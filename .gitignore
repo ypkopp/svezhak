@@ -55,3 +55,10 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+/.idea/.idea.SmartInventory/.idea/.gitignore
+/.idea/.idea.SmartInventory/.idea/indexLayout.xml
+/.idea/.idea.SmartInventory/.idea/vcs.xml
+/.idea/indexLayout.xml
+/.idea/projectSettingsUpdater.xml
+/.idea/vcs.xml
+/.idea/workspace.xml
