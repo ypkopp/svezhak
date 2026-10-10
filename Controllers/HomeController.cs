@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using SmartInventory.Authorization;
 using SmartInventory.Models;
 
 namespace SmartInventory.Controllers;
@@ -12,6 +13,12 @@ public class HomeController : Controller
     }
 
     public IActionResult Privacy()
+    {
+        return View();
+    }
+    
+    [AuthorizeRole(AppRole.ServerAdmin, AppRole.OrganizationOwner, AppRole.RestaurantManager)]
+    public IActionResult BuildingSettings()
     {
         return View();
     }

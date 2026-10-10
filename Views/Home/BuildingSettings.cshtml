@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+    <title>Настройки здания</title>
+</head>
+<body>
+<div>
+    <h2>Настройки здания</h2>
+
+    <!-- Форма настроек -->
+    <form id="buildingSettingsForm">
+        <div>
+            <label>ID Здания:</label>
+            <input type="text" id="buildingId" value="5"/>
+            <label>Адрес здания:</label>
+            <input type="text" id="address" value="Пушкинская 42"/>
+        </div>
+
+        <button type="submit">Сохранить изменения</button>
+    </form>
+
+    <div id="resultMessage" style="margin-top: 10px; font-weight: bold;"></div>
+</div>
+</body>
+</html>
+
+<script>
+    document.getElementById('buildingSettingsForm').addEventListener('submit', async function (e) {
+        e.preventDefault(); // Отменяем стандартную отправку формы (чтобы страница не перезагружалась)
+
+        // 1. Собираем данные в DTO-объект
+        const dto = {
+            address: document.getElementById('address').value
+        };
+        
+        const buildingId = document.getElementById('buildingId').value;
+
+        const messageDiv = document.getElementById('resultMessage');
+        messageDiv.innerText = "Сохранение...";
+
+        try {
+            // 2. Отправляем POST-запрос на наш API-эндпоинт
+            const response = await fetch(`/api/buildings/${buildingId}/settings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dto) // Превращаем объект в JSON-строку
+            });
+
+            console.log(response);
+            
+            if (response.ok) {
+                const result = await response.json();
+                messageDiv.style.color = "green";
+                messageDiv.innerText = result.message; // "Настройки успешно сохранены!"
+            } else if (response.status === 403) {
+                messageDiv.style.color = "red";
+                messageDiv.innerText = "Ошибка: У вас нет прав на управление этим зданием.";
+            } else {
+                messageDiv.style.color = "red";
+                messageDiv.innerText = "Произошла ошибка при сохранении.";
+            }
+        } catch (error) {
+            console.error('Ошибка сети:', error);
+            messageDiv.style.color = "red";
+            messageDiv.innerText = "Ошибка соединения с сервером.";
+        }
+    });
+</script>
