@@ -15,6 +15,17 @@ public class HomeController : Controller
     {
         return View();
     }
+    
+    [Route("Home/Error")]
+    public IActionResult Error(int statusCode)
+    {
+        if (statusCode == 404)
+        {
+            return View("NotFound"); // Возвращает представление Views/Home/NotFound.cshtml
+        }
+    
+        return View("Error");
+    }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
