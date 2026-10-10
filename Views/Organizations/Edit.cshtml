@@ -1,0 +1,111 @@
+@using SmartInventory.Authorization
+@model SmartInventory.Models.Organizations.OrganizationEditViewModel
+
+@{
+    ViewData["Title"] = "Редактировать организацию";
+}
+
+<div class="container mt-4">
+    <h2>Редактирование организации</h2>
+    <hr/>
+
+    <form asp-action="Edit" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="Id"/>
+
+        <!-- Основная информация -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">Основная информация</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label">Название</label>
+                    <input asp-for="Name" class="form-control"/>
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="OwnerId" class="form-label">ID владельца</label>
+                    <input asp-for="OwnerId" class="form-control"/>
+                    <span asp-validation-for="OwnerId" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Здания -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">Здания</div>
+            <div class="card-body">
+                @for (int i = 0; i < Model.Buildings.Count; i++)
+                {
+                    <div class="border p-3 mb-3 rounded bg-light">
+                        <input type="hidden" asp-for="Buildings[i].Id"/>
+
+                        <div class="mb-2">
+                            <label class="form-label">Адрес</label>
+                            <input asp-for="Buildings[i].Address" class="form-control"/>
+                            <span asp-validation-for="Buildings[i].Address" class="text-danger"></span>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">ID менеджера</label>
+                            <input asp-for="Buildings[i].ManagerId" class="form-control"/>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Коды доступа -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">Коды доступа</div>
+            <div class="card-body">
+                @for (int i = 0; i < Model.AccessCodes.Count; i++)
+                {
+                    <div class="border p-3 mb-3 rounded bg-light">
+                        <input type="hidden" asp-for="AccessCodes[i].Id"/>
+
+                        <div class="row">
+                            <div class="mb-2">
+                                <label class="form-label"><b>ID</b></label>
+                                <span class="form-control-plaintext"><b>@Model.AccessCodes[i].Id</b></span>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Код</label>
+                                <input asp-for="AccessCodes[i].Code" class="form-control" readonly/>
+                                <!-- Обычно код не меняют после создания -->
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Роль</label>
+                                <!-- Используем tag helper asp-for и asp-items с методом Html.GetEnumSelectList -->
+                                <select asp-for="AccessCodes[i].RoleName" asp-items="Html.GetEnumSelectList<AppRole>()" class="form-select">
+                                </select>
+                                <span asp-validation-for="AccessCodes[i].RoleName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Сотрудник</label>
+                                <input asp-for="AccessCodes[i].EmployeeName" class="form-control"/>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6 form-check">
+                                <input asp-for="AccessCodes[i].IsActive" class="form-check-input"/>
+                                <label asp-for="AccessCodes[i].IsActive" class="form-check-label">Активен</label>
+                            </div>
+                            <div class="col-md-6 form-check">
+                                <input asp-for="AccessCodes[i].IsActivated" class="form-check-input"/>
+                                <label asp-for="AccessCodes[i].IsActivated" class="form-check-label">Активирован</label>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <button type="submit" class="btn btn-success">Сохранить изменения</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}
