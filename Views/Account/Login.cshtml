@@ -1,0 +1,27 @@
+﻿@{
+    ViewData["Title"] = "Вход в систему";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <h2>@ViewData["Title"]</h2>
+        
+        <!-- Используем стандартный тег-хелпер asp-action -->
+        <form asp-controller="Account" asp-action="Login" method="post">
+            <div class="form-group mb-3">
+                <label for="code">Код доступа</label>
+                <input type="text" id="code" name="code" class="form-control" placeholder="Введите ваш код" required />
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">Войти</button>
+        </form>
+
+        <!-- Вывод ошибки, если она передана из контроллера через ViewBag / ModelState -->
+        @if (ViewBag.Error != null)
+        {
+            <div class="alert alert-danger mt-3">
+                @ViewBag.Error
+            </div>
+        }
+    </div>
+</div>
