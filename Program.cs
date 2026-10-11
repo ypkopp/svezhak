@@ -20,6 +20,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddScoped<IAuthorizationHandler, ManageBuildingAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ManageOrganizationAuthorizationHandler>();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -29,6 +30,11 @@ builder.Services.AddAuthorization(options =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddAutoMapper(cfg => 
+{
+    cfg.AddMaps(typeof(Program).Assembly);
+});
 
 var app = builder.Build();
 

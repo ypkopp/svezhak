@@ -1,14 +1,21 @@
+using System.Security.Claims;
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartInventory.Authorization;
 using SmartInventory.Data;
-using SmartInventory.Models.Account;
+using SmartInventory.Extensions;
 using SmartInventory.Models.Organizations;
 using SmartInventory.Models.Structure;
 
-[AuthorizeRole(AppRole.ServerAdmin)]
-public class OrganizationsController(ApplicationDbContext context) : Controller
+[AuthorizeRole(AppRole.ServerAdmin, AppRole.OrganizationOwner)]
+public class OrganizationsController(
+    IMapper mapper,
+    ApplicationDbContext context,
+    IAuthorizationService authorizationService) : Controller
 {
+    [AuthorizeRole(AppRole.ServerAdmin)]
     public async Task<IActionResult> Index()
     {
         var organizations = await context.Organizations
@@ -16,14 +23,7 @@ public class OrganizationsController(ApplicationDbContext context) : Controller
             .Include(o => o.AccessCodes)
             .ToListAsync();
 
-        var viewModels = organizations.Select(o => new OrganizationIndexViewModel
-        {
-            Id = o.Id,
-            Name = o.Name,
-            OwnerId = o.OwnerId,
-            BuildingsCount = o.Buildings.Count,
-            AccessCodesCount = o.AccessCodes.Count
-        }).ToList();
+        var viewModels = mapper.Map<List<OrganizationIndexViewModel>>(organizations);
 
         return View(viewModels);
     }
@@ -38,32 +38,17 @@ public class OrganizationsController(ApplicationDbContext context) : Controller
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (organization == null) return NotFound();
-        
-        var viewModel = new OrganizationDetailsViewModel
-        {
-            Id = organization.Id,
-            Name = organization.Name,
-            OwnerId = organization.OwnerId,
-            Buildings = organization.Buildings.Select(b => new BuildingViewModel
-            {
-                Id = b.Id,
-                Address = b.Address,
-                ManagerId = b.ManagerId
-            }).ToList(),
-            AccessCodes = organization.AccessCodes.Select(a => new AccessCodeViewModel
-            {
-                Id = a.Id,
-                Code = a.Code,
-                RoleName = a.RoleName,
-                IsActive = a.IsActive,
-                IsActivated = a.IsActivated,
-                EmployeeName = a.EmployeeName
-            }).ToList()
-        };
 
-        return View(viewModel);
+        var authResult =
+            await authorizationService.AuthorizeAsync(User, organization, new ManageOrganizationRequirement());
+        if (!authResult.Succeeded)
+        {
+            return Forbid();
+        }
+
+        return View(organization);
     }
-    
+
     [HttpGet]
     public async Task<IActionResult> Edit(int? id)
     {
@@ -76,37 +61,41 @@ public class OrganizationsController(ApplicationDbContext context) : Controller
 
         if (organization == null) return NotFound();
 
-        var viewModel = new OrganizationEditViewModel
+        var authResult =
+            await authorizationService.AuthorizeAsync(User, organization, new ManageOrganizationRequirement());
+        if (!authResult.Succeeded)
         {
-            Id = organization.Id,
-            Name = organization.Name,
-            OwnerId = organization.OwnerId,
-            Buildings = organization.Buildings.Select(b => new BuildingEditViewModel
-            {
-                Id = b.Id,
-                Address = b.Address,
-                ManagerId = b.ManagerId
-            }).ToList(),
-            AccessCodes = organization.AccessCodes.Select(a => new AccessCodeEditViewModel
-            {
-                Id = a.Id,
-                Code = a.Code,
-                RoleName = a.RoleName,
-                IsActive = a.IsActive,
-                IsActivated = a.IsActivated,
-                EmployeeName = a.EmployeeName
-            }).ToList()
-        };
+            return Forbid();
+        }
+
+        var viewModel = mapper.Map<OrganizationEditViewModel>(organization);
 
         return View(viewModel);
     }
-    
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, OrganizationEditViewModel model)
     {
         if (id != model.Id) return NotFound();
+
+        var organization = await context.Organizations
+            .Include(o => o.Buildings)
+            .Include(o => o.AccessCodes)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (organization == null) return NotFound();
+
+        var authResult =
+            await authorizationService.AuthorizeAsync(User, organization, new ManageOrganizationRequirement());
         
+        if (!authResult.Succeeded)
+        {
+            return Forbid();
+        }
+
+        ValidModel(model, organization);
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -114,69 +103,11 @@ public class OrganizationsController(ApplicationDbContext context) : Controller
 
         try
         {
-            var organization = await context.Organizations
-                .Include(o => o.Buildings)
-                .Include(o => o.AccessCodes)
-                .FirstOrDefaultAsync(o => o.Id == id);
-
-            if (organization == null) return NotFound();
-            
             organization.Name = model.Name;
             organization.OwnerId = model.OwnerId;
             
-            var incomingBuildingIds = model.Buildings.Select(b => b.Id).ToList();
-            var buildingsToRemove = organization.Buildings.Where(b => !incomingBuildingIds.Contains(b.Id)).ToList();
-            context.Buildings.RemoveRange(buildingsToRemove);
-
-            foreach (var bModel in model.Buildings)
-            {
-                if (bModel.Id == 0)
-                {
-                    organization.Buildings.Add(new Building
-                    {
-                        Address = bModel.Address,
-                        ManagerId = bModel.ManagerId,
-                        OrganizationId = organization.Id
-                    });
-                }
-                else
-                {
-                    var building = organization.Buildings.FirstOrDefault(b => b.Id == bModel.Id);
-                    if (building != null)
-                    {
-                        building.Address = bModel.Address;
-                        building.ManagerId = bModel.ManagerId;
-                    }
-                }
-            }
-            
-            var incomingCodeIds = model.AccessCodes.Select(a => a.Id).ToList();
-            var codesToRemove = organization.AccessCodes.Where(a => !incomingCodeIds.Contains(a.Id)).ToList();
-            context.AccessCodes.RemoveRange(codesToRemove);
-
-            foreach (var cModel in model.AccessCodes)
-            {
-                if (cModel.Id == 0)
-                {
-                    organization.AccessCodes.Add(new AccessCode(cModel.Code, cModel.RoleName, organization.Id)
-                    {
-                        IsActive = cModel.IsActive,
-                        IsActivated = cModel.IsActivated,
-                        EmployeeName = cModel.EmployeeName
-                    });
-                }
-                else
-                {
-                    var code = organization.AccessCodes.FirstOrDefault(a => a.Id == cModel.Id);
-                    if (code != null)
-                    {
-                        code.RoleName = cModel.RoleName;
-                        code.IsActive = cModel.IsActive;
-                        code.IsActivated = cModel.IsActivated;
-                        code.EmployeeName = cModel.EmployeeName;
-                    }
-                }
-            }
+            organization.UpdateBuildings(model.Buildings, context);
+            organization.UpdateAccessCodes(model.AccessCodes, context);
 
             await context.SaveChangesAsync();
         }
@@ -184,10 +115,44 @@ public class OrganizationsController(ApplicationDbContext context) : Controller
         {
             if (!context.Organizations.Any(e => e.Id == model.Id))
                 return NotFound();
-            
+
             throw;
         }
 
         return RedirectToAction(nameof(Details), new { id = model.Id });
+    }
+
+    private void ValidModel(OrganizationEditViewModel model, Organization organization)
+    {
+        var userRoleString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value!;
+        var userRole = Enum.Parse<AppRole>(userRoleString);
+
+        if (userRole != AppRole.ServerAdmin && organization.OwnerId != model.OwnerId)
+        {
+            ModelState.AddModelError(nameof(model.OwnerId), "У вас нет прав на изменение владельца организации.");
+        }
+
+        foreach (var modelCode in model.AccessCodes)
+        {
+            var existingCode = organization.AccessCodes.FirstOrDefault(c => c.Id == modelCode.Id);
+
+            if (existingCode == null)
+                continue;
+
+            if (userRole.IsRoleOptionDisabled(existingCode.Role, modelCode.Role))
+            {
+                ModelState.AddModelError("",
+                    $"У вас недостаточно прав для изменения роли с '{existingCode.Role}' на '{modelCode.Role}'.");
+            }
+
+            if (modelCode.IsActive != existingCode.IsActive)
+            {
+                if (existingCode.Role.GetHierarchyLevel() >= userRole.GetHierarchyLevel())
+                {
+                    ModelState.AddModelError("",
+                        $"У вас недостаточно прав для изменения статуса активности кода доступа сотрудника '{existingCode.EmployeeName ?? existingCode.Code}'.");
+                }
+            }
+        }
     }
 }

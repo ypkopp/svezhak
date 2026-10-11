@@ -1,4 +1,4 @@
-@model SmartInventory.Models.Organizations.OrganizationDetailsViewModel
+@model SmartInventory.Models.Structure.Organization
 
 @{
     ViewData["Title"] = "Информация об организации";
@@ -72,7 +72,7 @@
                         {
                             <tr>
                                 <td><code>@accessCode.Code</code></td>
-                                <td>@accessCode.RoleName</td>
+                                <td>@accessCode.Role</td>
                                 <td>
                                     @if (accessCode.IsActive)
                                     {

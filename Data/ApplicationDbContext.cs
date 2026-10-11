@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using SmartInventory.Models.Account;
 using SmartInventory.Models.Structure;
 
 namespace SmartInventory.Data;
@@ -13,7 +12,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
+        
+        modelBuilder.Entity<AccessCode>()
+            .Property(c => c.Role)
+            .HasConversion<string>()
+            .HasMaxLength(30);
+        
         // 1. Настройка уникального индекса для кодов доступа на всю систему
         modelBuilder.Entity<AccessCode>()
             .HasIndex(c => c.Code)

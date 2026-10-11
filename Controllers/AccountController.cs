@@ -47,7 +47,7 @@ public class AccountController(ApplicationDbContext db) : Controller
         var claims = new List<Claim>
         {
             new(ClaimTypes.Name, accessCode.EmployeeName ?? $"User_{accessCode.Id}"),
-            new(ClaimTypes.Role, accessCode.RoleName),
+            new(ClaimTypes.Role, accessCode.Role.ToString()),
             new("AccessCodeId", accessCode.Id.ToString()),
             new(ClaimTypes.NameIdentifier, accessCode.Id.ToString()),
         };
