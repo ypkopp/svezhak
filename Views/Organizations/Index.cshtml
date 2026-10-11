@@ -1,0 +1,61 @@
+@model IEnumerable<SmartInventory.Models.Organizations.OrganizationIndexViewModel>
+
+@{
+    ViewData["Title"] = "Список организаций";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Список организаций</h2>
+        <!-- Кнопка создания новой организации (если потребуется в будущем) -->
+        <!-- <a asp-action="Create" class="btn btn-primary">Добавить организацию</a> -->
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>ID Владельца</th>
+                            <th class="text-center">Зданий</th>
+                            <th class="text-center">Кодов доступа</th>
+                            <th class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Id</td>
+                                <td><strong>@item.Name</strong></td>
+                                <td><code>@item.OwnerId</code></td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">@item.BuildingsCount</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info text-dark">@item.AccessCodesCount</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Просмотр</a>
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Редактировать</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info" role="alert">
+            Организации пока не добавлены в систему.
+        </div>
+    }
+</div>

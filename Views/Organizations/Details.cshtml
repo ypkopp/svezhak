@@ -1,0 +1,104 @@
+@model SmartInventory.Models.Structure.Organization
+
+@{
+    ViewData["Title"] = "Информация об организации";
+}
+
+<div class="container mt-4">
+    <h2>@Model.Name</h2>
+    <hr />
+
+    <dl class="row">
+        <dt class="col-sm-3">ID организации:</dt>
+        <dd class="col-sm-9">@Model.Id</dd>
+
+        <dt class="col-sm-3">ID владельца (OwnerId):</dt>
+        <dd class="col-sm-9">@Model.OwnerId</dd>
+    </dl>
+
+    <!-- Секция зданий -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4>Здания (@Model.Buildings.Count)</h4>
+        </div>
+        <div class="card-body">
+            @if (Model.Buildings.Any())
+            {
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Адрес</th>
+                            <th>ID менеджера</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var building in Model.Buildings)
+                        {
+                            <tr>
+                                <td>@building.Address</td>
+                                <td>@building.ManagerId</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">У организации пока нет добавленных зданий.</p>
+            }
+        </div>
+    </div>
+
+    <!-- Секция кодов доступа -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h4>Коды доступа (@Model.AccessCodes.Count)</h4>
+        </div>
+        <div class="card-body">
+            @if (Model.AccessCodes.Any())
+            {
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Код</th>
+                            <th>Роль</th>
+                            <th>Статус</th>
+                            <th>Активирован</th>
+                            <th>Сотрудник</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var accessCode in Model.AccessCodes)
+                        {
+                            <tr>
+                                <td><code>@accessCode.Code</code></td>
+                                <td>@accessCode.Role</td>
+                                <td>
+                                    @if (accessCode.IsActive)
+                                    {
+                                        <span class="badge bg-success">Активен</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Неактивен</span>
+                                    }
+                                </td>
+                                <td>@(accessCode.IsActivated ? "Да" : "Нет")</td>
+                                <td>@(accessCode.EmployeeName ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">Коды доступа не найдены.</p>
+            }
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Редактировать</a>
+        <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+    </div>
+</div>

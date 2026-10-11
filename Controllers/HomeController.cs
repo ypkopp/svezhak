@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using SmartInventory.Authorization;
 using SmartInventory.Models;
 
 namespace SmartInventory.Controllers;
@@ -14,6 +15,23 @@ public class HomeController : Controller
     public IActionResult Privacy()
     {
         return View();
+    }
+    
+    [AuthorizeRole(AppRole.ServerAdmin, AppRole.OrganizationOwner, AppRole.RestaurantManager)]
+    public IActionResult BuildingSettings()
+    {
+        return View();
+    }
+    
+    [Route("Home/Error")]
+    public IActionResult Error(int statusCode)
+    {
+        if (statusCode == 404)
+        {
+            return View("NotFound"); // Возвращает представление Views/Home/NotFound.cshtml
+        }
+    
+        return View("Error");
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

@@ -1,0 +1,30 @@
+@model dynamic
+
+@{
+    ViewData["Title"] = "Страница не найдена";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/SmartInventory.styles.css" asp-append-version="true"/>
+</head>
+<body>
+<div class="text-center">
+    <h2>Ошибка!</h2>
+    <label>Страница не найдена!</label>
+    <ul class="navbar-nav flex-grow-1">
+        <li class="nav-item">
+            <button class="btn btn-outline-info">
+                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">На главную</a>
+            </button>
+        </li>
+    </ul>
+</div>
+</body>
+</html>
