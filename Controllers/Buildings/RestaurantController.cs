@@ -7,32 +7,32 @@ using SmartInventory.Data;
 namespace SmartInventory.Controllers;
 
 [ApiController]
-[Route("api/buildings")]
-public class BuildingsController(IAuthorizationService authorizationService, ApplicationDbContext db)
+[Route("api/restaurants")]
+public class RestaurantController(IAuthorizationService authorizationService, ApplicationDbContext db)
     : ControllerBase
 {
     [HttpPost("{id}/settings")]
-    public async Task<IActionResult> UpdateBuildingSettings(int id, [FromBody] UpdateBuildingDto dto)
+    public async Task<IActionResult> UpdateRestaurantSettings(int id, [FromBody] UpdateRestaurantDto dto)
     {
-        var building = await db.Buildings
+        var restaurant = await db.Restaurants
             .Include(b => b.Organization)
             .FirstOrDefaultAsync(b => b.Id == id);
 
-        if (building == null)
+        if (restaurant == null)
             return NotFound();
 
         var authResult = await authorizationService.AuthorizeAsync(
             User,
-            building,
-            nameof(AppPolicy.CanManageBuilding));
+            restaurant,
+            nameof(AppPolicy.CanManageRestaurant));
 
         if (!authResult.Succeeded)
             return Forbid();
 
-        building.Address = dto.Address;
+        restaurant.Address = dto.Address;
 
         await db.SaveChangesAsync();
 
-        return Ok(new { Message = "Successfully updated building" });
+        return Ok(new { Message = "Successfully updated restaurant" });
     }
 }

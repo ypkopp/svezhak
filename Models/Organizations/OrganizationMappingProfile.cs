@@ -9,12 +9,12 @@ public class OrganizationMappingProfile : Profile
     {
         CreateMap<Organization, OrganizationEditViewModel>().ReverseMap();
         
-        CreateMap<Building, BuildingEditViewModel>().ReverseMap();
+        CreateMap<Restaurant, RestaurantEditViewModel>().ReverseMap();
         CreateMap<AccessCode, AccessCodeEditViewModel>().ReverseMap();
         
         CreateMap<Organization, OrganizationIndexViewModel>()
-            .ForMember(dest => dest.BuildingsCount, 
-                opt => opt.MapFrom(src => src.Buildings.Count))
+            .ForMember(dest => dest.RestaurantsCount, 
+                opt => opt.MapFrom(src => src.Restaurants.Count))
             .ForMember(dest => dest.AccessCodesCount,
                 opt => opt.MapFrom(src => src.AccessCodes.Count));
     }

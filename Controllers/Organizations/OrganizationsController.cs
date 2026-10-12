@@ -19,7 +19,7 @@ public class OrganizationsController(
     public async Task<IActionResult> Index()
     {
         var organizations = await context.Organizations
-            .Include(o => o.Buildings)
+            .Include(o => o.Restaurants)
             .Include(o => o.AccessCodes)
             .ToListAsync();
 
@@ -33,7 +33,7 @@ public class OrganizationsController(
         if (id == null) return NotFound();
 
         var organization = await context.Organizations
-            .Include(o => o.Buildings)
+            .Include(o => o.Restaurants)
             .Include(o => o.AccessCodes)
             .FirstOrDefaultAsync(m => m.Id == id);
 
@@ -55,7 +55,7 @@ public class OrganizationsController(
         if (id == null) return NotFound();
 
         var organization = await context.Organizations
-            .Include(o => o.Buildings)
+            .Include(o => o.Restaurants)
             .Include(o => o.AccessCodes)
             .FirstOrDefaultAsync(m => m.Id == id);
 
@@ -80,7 +80,7 @@ public class OrganizationsController(
         if (id != model.Id) return NotFound();
 
         var organization = await context.Organizations
-            .Include(o => o.Buildings)
+            .Include(o => o.Restaurants)
             .Include(o => o.AccessCodes)
             .FirstOrDefaultAsync(o => o.Id == id);
 
@@ -106,7 +106,7 @@ public class OrganizationsController(
             organization.Name = model.Name;
             organization.OwnerId = model.OwnerId;
             
-            organization.UpdateBuildings(model.Buildings, context);
+            organization.UpdateRestaurants(model.Restaurants, context);
             organization.UpdateAccessCodes(model.AccessCodes, context);
 
             await context.SaveChangesAsync();

@@ -10,20 +10,20 @@ public class OrganizationEditViewModel
     [Required(ErrorMessage = "Название организации обязательно")]
     public string Name { get; init; } = string.Empty;
     
-    public List<BuildingEditViewModel> Buildings { get; init; } = [];
+    public List<RestaurantEditViewModel> Restaurants { get; init; } = [];
     public List<AccessCodeEditViewModel> AccessCodes { get; init; } = [];
     
     [Required(ErrorMessage = "ID владельца обязателен")]
     public string OwnerId { get; init; } = string.Empty;
 }
 
-public class BuildingEditViewModel
+public class RestaurantEditViewModel
 {
     public int Id { get; init; }
     [Required(ErrorMessage = "Адресс строения обязателен")]
     public string Address { get; init; } = string.Empty;
     
-    [Required(ErrorMessage = "ID манеджера обязателен")]
+    [Required(ErrorMessage = "ID управляющего рестораном обязателен")]
     public string ManagerId { get; init; } = string.Empty;
 }
 

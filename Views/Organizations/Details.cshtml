@@ -1,7 +1,11 @@
+@using System.Security.Claims
+@using SmartInventory.Authorization
 @model SmartInventory.Models.Structure.Organization
 
 @{
     ViewData["Title"] = "Информация об организации";
+    var currentUserRoleString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value!;
+    var currentUserRole = Enum.Parse<AppRole>(currentUserRoleString);
 }
 
 <div class="container mt-4">
@@ -19,24 +23,24 @@
     <!-- Секция зданий -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
-            <h4>Здания (@Model.Buildings.Count)</h4>
+            <h4>Заведения (@Model.Restaurants.Count)</h4>
         </div>
         <div class="card-body">
-            @if (Model.Buildings.Any())
+            @if (Model.Restaurants.Any())
             {
                 <table class="table table-striped">
                     <thead>
                         <tr>
                             <th>Адрес</th>
-                            <th>ID менеджера</th>
+                            <th>ID управляющего</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var building in Model.Buildings)
+                        @foreach (var restaurant in Model.Restaurants)
                         {
                             <tr>
-                                <td>@building.Address</td>
-                                <td>@building.ManagerId</td>
+                                <td>@restaurant.Address</td>
+                                <td>@restaurant.ManagerId</td>
                             </tr>
                         }
                     </tbody>
@@ -44,7 +48,7 @@
             }
             else
             {
-                <p class="text-muted">У организации пока нет добавленных зданий.</p>
+                <p class="text-muted">У организации пока нет добавленных заведений.</p>
             }
         </div>
     </div>
@@ -99,6 +103,13 @@
 
     <div class="mt-3">
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Редактировать</a>
-        <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+        @if (currentUserRole == AppRole.ServerAdmin)
+        {
+            <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+        }
+        else
+        {
+            <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">На главную</a>
+        }
     </div>
 </div>

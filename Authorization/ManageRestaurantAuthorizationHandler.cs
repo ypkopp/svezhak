@@ -3,17 +3,17 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace SmartInventory.Authorization;
 
-public class ManageBuildingRequirement : IAuthorizationRequirement
+public class ManageRestaurantRequirement : IAuthorizationRequirement
 {
 }
 
-public class ManageBuildingAuthorizationHandler
-    : AuthorizationHandler<ManageBuildingRequirement, Building>
+public class ManageRestaurantAuthorizationHandler
+    : AuthorizationHandler<ManageRestaurantRequirement, Restaurant>
 {
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
-        ManageBuildingRequirement requirement,
-        Building resource)
+        ManageRestaurantRequirement requirement,
+        Restaurant resource)
     {
         var user = context.User;
 

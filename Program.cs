@@ -19,13 +19,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
     });
 
-builder.Services.AddScoped<IAuthorizationHandler, ManageBuildingAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ManageRestaurantAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ManageOrganizationAuthorizationHandler>();
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy(nameof(AppPolicy.CanManageBuilding), policy =>
-        policy.Requirements.Add(new ManageBuildingRequirement()));
+    options.AddPolicy(nameof(AppPolicy.CanManageRestaurant), policy =>
+        policy.Requirements.Add(new ManageRestaurantRequirement()));
 });
 
 // Add services to the container.

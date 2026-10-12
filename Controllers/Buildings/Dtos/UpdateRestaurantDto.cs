@@ -1,6 +1,6 @@
 namespace SmartInventory.Controllers;
 
-public class UpdateBuildingDto
+public class UpdateRestaurantDto
 {
     public string Address { get; set; }
 }

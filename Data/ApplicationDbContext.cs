@@ -6,7 +6,7 @@ namespace SmartInventory.Data;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
     public DbSet<Organization> Organizations { get; set; } = null!;
-    public DbSet<Building> Buildings { get; set; } = null!;
+    public DbSet<Restaurant> Restaurants { get; set; } = null!;
     public DbSet<AccessCode> AccessCodes { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -22,17 +22,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<AccessCode>()
             .HasIndex(c => c.Code)
             .IsUnique();
-
-        // 2. Настройка связи между Organization и AccessCodes (Один ко многим)
+        
         modelBuilder.Entity<Organization>()
             .HasMany(o => o.AccessCodes)
             .WithOne(c => c.Organization)
             .HasForeignKey(c => c.OrganizationId)
             .OnDelete(DeleteBehavior.Cascade); // Если удаляется организация, удаляются и ее коды
-
-        // 3. Настройка связи между Organization и Buildings (Один ко многим)
+        
         modelBuilder.Entity<Organization>()
-            .HasMany(o => o.Buildings)
+            .HasMany(o => o.Restaurants)
             .WithOne(b => b.Organization)
             .HasForeignKey(b => b.OrganizationId)
             .OnDelete(DeleteBehavior.Cascade);

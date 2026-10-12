@@ -9,14 +9,14 @@ public class Organization
     [MaxLength(100)]
     public string Name { get; set; } = null!;
     
-    public List<Building> Buildings { get; init; } = [];
+    public List<Restaurant> Restaurants { get; init; } = [];
     public List<AccessCode> AccessCodes { get; init; } = [];
 
     [MaxLength(100)]
     public string OwnerId { get; set; } = null!;
 }
 
-public class Building
+public class Restaurant
 {
     public int Id { get; init; }
     [MaxLength(100)]

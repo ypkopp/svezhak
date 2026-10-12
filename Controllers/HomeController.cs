@@ -28,7 +28,7 @@ public class HomeController : Controller
     {
         if (statusCode == 404)
         {
-            return View("NotFound"); // Возвращает представление Views/Home/NotFound.cshtml
+            return View("NotFound");
         }
     
         return View("Error");

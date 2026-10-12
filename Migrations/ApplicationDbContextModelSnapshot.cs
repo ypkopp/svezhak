@@ -62,7 +62,30 @@ namespace SmartInventory.Migrations
                     b.ToTable("AccessCodes");
                 });
 
-            modelBuilder.Entity("SmartInventory.Models.Structure.Building", b =>
+            modelBuilder.Entity("SmartInventory.Models.Structure.Organization", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Organizations");
+                });
+
+            modelBuilder.Entity("SmartInventory.Models.Structure.Restaurant", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -87,30 +110,7 @@ namespace SmartInventory.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Buildings");
-                });
-
-            modelBuilder.Entity("SmartInventory.Models.Structure.Organization", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("OwnerId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Organizations");
+                    b.ToTable("Restaurants");
                 });
 
             modelBuilder.Entity("SmartInventory.Models.Structure.AccessCode", b =>
@@ -124,10 +124,10 @@ namespace SmartInventory.Migrations
                     b.Navigation("Organization");
                 });
 
-            modelBuilder.Entity("SmartInventory.Models.Structure.Building", b =>
+            modelBuilder.Entity("SmartInventory.Models.Structure.Restaurant", b =>
                 {
                     b.HasOne("SmartInventory.Models.Structure.Organization", "Organization")
-                        .WithMany("Buildings")
+                        .WithMany("Restaurants")
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -139,7 +139,7 @@ namespace SmartInventory.Migrations
                 {
                     b.Navigation("AccessCodes");
 
-                    b.Navigation("Buildings");
+                    b.Navigation("Restaurants");
                 });
 #pragma warning restore 612, 618
         }
