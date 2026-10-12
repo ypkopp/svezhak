@@ -231,4 +231,32 @@ public static class DbInitializer
 
         await db.SaveChangesAsync();
     }
+
+    /// <summary>
+    /// Полный сброс демо: удаляет все данные склада и организации,
+    /// затем заново вызывает SeedAsync. Используется кнопкой «Сбросить демо».
+    /// </summary>
+    public static async Task ResetAndReseedAsync(IServiceProvider services)
+    {
+        var db = services.GetRequiredService<ApplicationDbContext>();
+        await db.Database.MigrateAsync();
+
+        // Порядок удаления — от дочерних к родительским (FK = Restrict)
+        db.WriteOffs.RemoveRange(db.WriteOffs);
+        db.OrderItems.RemoveRange(db.OrderItems);
+        db.Orders.RemoveRange(db.Orders);
+        db.RecipeItems.RemoveRange(db.RecipeItems);
+        db.Batches.RemoveRange(db.Batches);
+        db.Deliveries.RemoveRange(db.Deliveries);
+        db.Dishes.RemoveRange(db.Dishes);
+        db.Products.RemoveRange(db.Products);
+        await db.SaveChangesAsync();
+
+        db.AccessCodes.RemoveRange(db.AccessCodes);
+        db.Restaurants.RemoveRange(db.Restaurants);
+        db.Organizations.RemoveRange(db.Organizations);
+        await db.SaveChangesAsync();
+
+        await SeedAsync(services);
+    }
 }

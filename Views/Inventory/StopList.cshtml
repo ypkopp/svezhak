@@ -1,0 +1,64 @@
+@{
+    ViewData["Title"] = "Стоп-лист";
+    var stopList = (List<SmartInventory.Services.OrderService.StopListItem>)ViewBag.StopList;
+    var hotOffers = (IEnumerable<dynamic>)ViewBag.HotOffers;
+}
+
+<h1 class="sv-page-title">Стоп-лист &amp; Hot Offers</h1>
+<p class="sv-page-sub">Что нельзя продавать и что нужно продать в первую очередь</p>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="sv-card">
+            <div class="sv-section-title">🚫 Стоп-лист — не хватает ингредиентов</div>
+            @if (stopList.Any())
+            {
+                @foreach (var s in stopList)
+                {
+                    <div class="mb-3 pb-3" style="border-bottom:1px solid var(--sv-border)">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong style="color:var(--sv-red)">@s.DishName</strong>
+                            <span class="sv-badge sv-badge-red">стоп</span>
+                        </div>
+                        <div class="mt-1" style="font-size:.85rem">
+                            @foreach (var sh in s.Shortages)
+                            {
+                                <div class="sv-muted">@sh.ProductName — нужно @($"{sh.Needed:0.##}") @sh.Unit, доступно @($"{sh.Available:0.##}") @sh.Unit</div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="sv-muted mb-0">Стоп-лист пуст — все блюда доступны. 🎉</p>
+            }
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="sv-card">
+            <div class="sv-section-title">🔥 Hot Offers — продать до истечения срока</div>
+            @if (hotOffers.Any())
+            {
+                @foreach (var h in hotOffers)
+                {
+                    <div class="mb-3 pb-3" style="border-bottom:1px solid var(--sv-border)">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong style="color:var(--sv-accent)">@h.Name</strong>
+                            <span class="sv-badge sv-badge-accent">@($"{h.HoursLeft:0.#}") ч</span>
+                        </div>
+                        <div class="sv-muted mt-1" style="font-size:.85rem">@h.Reason</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="sv-muted mb-0">Нет блюд с горящими ингредиентами.</p>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>setTimeout(function () { location.reload(); }, 15000);</script>
+}

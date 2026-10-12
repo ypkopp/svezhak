@@ -1,0 +1,88 @@
+@using SmartInventory.Models.Inventory
+@{
+    ViewData["Title"] = "Поставки";
+    var deliveries = (List<Delivery>)ViewBag.Deliveries;
+    var products = (List<Product>)ViewBag.Products;
+}
+
+<h1 class="sv-page-title">Поставки</h1>
+<p class="sv-page-sub">Приёмка и журнал поставок — ExpiresAt = сейчас + срок годности в часах</p>
+
+@if (TempData["DeliveryOk"] is string ok) { <div class="sv-alert sv-alert-success mb-3">@ok</div> }
+@if (TempData["DeliveryError"] is string err) { <div class="sv-alert sv-alert-danger mb-3">@err</div> }
+
+<div class="row g-3">
+    <div class="col-md-5">
+        <div class="sv-card">
+            <div class="sv-section-title">📦 Приёмка поставки</div>
+            <form asp-action="Deliveries" method="post">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label class="sv-label">Номер поставки</label>
+                    <input name="number" class="sv-input" placeholder="D-004" required />
+                </div>
+                <div class="sv-label mb-2">Позиции</div>
+                <div id="lines"></div>
+                <button type="button" class="btn-sv-ghost btn-sm mb-3" id="addLine">+ строка</button>
+                <button type="submit" class="btn-sv w-100">Принять поставку</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="sv-card">
+            <div class="sv-section-title">Журнал поставок</div>
+            @if (deliveries.Any())
+            {
+                @foreach (var d in deliveries)
+                {
+                    <div class="mb-3 pb-3" style="border-bottom:1px solid var(--sv-border)">
+                        <div class="d-flex justify-content-between">
+                            <strong>@d.Number</strong>
+                            <span class="sv-muted" style="font-size:.82rem">@d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                        </div>
+                        <div class="mt-1">
+                            @foreach (var b in d.Batches)
+                            {
+                                <span class="sv-badge sv-badge-muted me-1 mb-1">@b.Product?.Name @($"{b.QtyInitial:0.##}") {b.Product?.Unit}</span>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="sv-muted mb-0">Поставок ещё не было.</p>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const products = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(products.Select(p => new { p.Id, p.Name, p.Unit })));
+    const lines = document.getElementById('lines');
+
+    function addLine() {
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-2 align-items-center';
+        row.innerHTML = `
+            <div class="col-6">
+                <select name="productId" class="sv-select" required>
+                    <option value="">— продукт —</option>
+                    ${products.map(p => `<option value="${p.Id}">${p.Name} (${p.Unit})</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-3">
+                <input name="qty" type="number" step="0.01" min="0.01" class="sv-input" placeholder="кол-во" required />
+            </div>
+            <div class="col-3 d-flex align-items-center">
+                <input name="shelfHours" type="number" step="1" min="1" class="sv-input" placeholder="часов" required />
+                <button type="button" class="btn-sv-ghost btn-sm ms-1 px-2" onclick="this.closest('.row').remove()">×</button>
+            </div>`;
+        lines.appendChild(row);
+    }
+
+    document.getElementById('addLine').addEventListener('click', addLine);
+    addLine();
+</script>
+}

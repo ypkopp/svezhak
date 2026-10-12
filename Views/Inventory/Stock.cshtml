@@ -1,0 +1,54 @@
+@{
+    ViewData["Title"] = "Склад";
+    var stock = (IEnumerable<dynamic>)ViewBag.Stock;
+    bool expiringOnly = ViewBag.ExpiringOnly;
+}
+
+<div class="d-flex justify-content-between align-items-baseline mb-1">
+    <h1 class="sv-page-title">Склад</h1>
+    <label class="sv-toggle">
+        <input type="checkbox" id="expToggle" @(expiringOnly ? "checked" : "") />
+        только истекающие (&lt;48ч)
+    </label>
+</div>
+<p class="sv-page-sub">Остатки по партиям, отсортированы по сроку годности (FEFO)</p>
+
+<div class="sv-card">
+    @if (stock.Any())
+    {
+        <table class="sv-table">
+            <thead>
+                <tr>
+                    <th>Продукт</th><th>Поставка</th><th>Остаток</th>
+                    <th>Изначально</th><th>Годен до</th><th>Осталось</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var b in stock)
+            {
+                <tr class="@b.RowClass">
+                    <td><strong>@b.Product</strong></td>
+                    <td><span class="sv-badge sv-badge-muted">@b.Delivery</span></td>
+                    <td>@($"{b.QtyRemaining:0.##}") @b.Unit</td>
+                    <td class="sv-muted">@($"{b.QtyInitial:0.##}") @b.Unit</td>
+                    <td class="sv-muted">@b.ExpiresAt.ToLocalTime().ToString("dd.MM HH:mm")</td>
+                    <td>@b.HoursText</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="sv-muted mb-0">@(expiringOnly ? "Нет истекающих партий." : "Склад пуст — примите поставку.")</p>
+    }
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById('expToggle').addEventListener('change', function () {
+        window.location.href = '@Url.Action("Stock", "Inventory")' + (this.checked ? '?expiringOnly=true' : '');
+    });
+    setTimeout(function () { location.reload(); }, 15000);
+</script>
+}

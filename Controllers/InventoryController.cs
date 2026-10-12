@@ -1,0 +1,366 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SmartInventory.Authorization;
+using SmartInventory.Data;
+using SmartInventory.Models.Inventory;
+using SmartInventory.Services;
+
+namespace SmartInventory.Controllers;
+
+/// <summary>
+/// Интерфейс «СВЕЖАК»: дашборд, склад, поставки, заказ, стоп-лист.
+/// Всё scoped по ресторану текущего пользователя.
+/// </summary>
+[Authorize]
+public class InventoryController(
+    ApplicationDbContext db,
+    OrderService orders,
+    IServiceProvider services) : Controller
+{
+    private static readonly TimeSpan YellowHours = TimeSpan.FromHours(48);
+    private static readonly TimeSpan RedHours = TimeSpan.FromHours(24);
+
+    /// <summary>Ресторан текущего пользователя по его AccessCode → OrganizationId.</summary>
+    private async Task<int?> GetRestaurantIdAsync()
+    {
+        var codeIdStr = User.FindFirstValue("AccessCodeId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(codeIdStr, out var codeId)) return null;
+
+        var orgId = await db.AccessCodes
+            .Where(c => c.Id == codeId)
+            .Select(c => (int?)c.OrganizationId)
+            .FirstOrDefaultAsync();
+        if (orgId is null) return null;
+
+        return await db.Restaurants
+            .Where(r => r.OrganizationId == orgId)
+            .Select(r => (int?)r.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    private static string SemaphoreClass(DateTime expiresAt, DateTime now)
+    {
+        if (expiresAt <= now) return "sv-row-expired";
+        var left = expiresAt - now;
+        if (left < RedHours) return "sv-row-red";
+        if (left < YellowHours) return "sv-row-yellow";
+        return "sv-row-green";
+    }
+
+    private static string HoursLeftText(DateTime expiresAt, DateTime now)
+    {
+        var left = expiresAt - now;
+        if (left <= TimeSpan.Zero) return "просрочено";
+        var h = left.TotalHours;
+        if (h >= 48) return $"{(int)h / 24} дн {(int)h % 24} ч";
+        return $"{h:0.#} ч";
+    }
+
+    // GET /Inventory — дашборд
+    public async Task<IActionResult> Index()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+
+        var batches = await db.Batches
+            .Include(b => b.Product)
+            .Include(b => b.Delivery)
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0)
+            .ToListAsync();
+
+        var live = batches.Where(b => b.ExpiresAt > now).ToList();
+        var expiring24 = live.Count(b => b.ExpiresAt < now.AddHours(24));
+
+        var stopList = await orders.GetStopListAsync(rid.Value);
+
+        // Hot offers: блюда, чьи ингредиенты частично горят (<24ч)
+        var dishes = await db.Dishes
+            .Where(d => d.RestaurantId == rid && d.IsActive)
+            .Include(d => d.RecipeItems)
+            .ToListAsync();
+
+        var batchesByProduct = live
+            .GroupBy(b => b.ProductId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(b => b.ExpiresAt).ToList());
+
+        var hotOffers = new List<object>();
+        foreach (var dish in dishes)
+        {
+            // Ближайший срок годности среди ингредиентов блюда
+            var minHours = dish.RecipeItems
+                .Select(ri => batchesByProduct.GetValueOrDefault(ri.ProductId)?.FirstOrDefault()?.ExpiresAt)
+                .Where(e => e.HasValue)
+                .Select(e => (e!.Value - now).TotalHours)
+                .DefaultIfEmpty(double.MaxValue)
+                .Min();
+            if (minHours is < 24 and > 0)
+            {
+                hotOffers.Add(new { dish.Name, dish.Price, HoursLeft = minHours });
+            }
+        }
+
+        // Рекомендуем продать: приоритет = 1 / часов до ближайшего срока ингредиента
+        var recommended = dishes
+            .Select(d =>
+            {
+                var hours = d.RecipeItems
+                    .Select(ri => batchesByProduct.GetValueOrDefault(ri.ProductId)?.FirstOrDefault()?.ExpiresAt)
+                    .Where(e => e.HasValue)
+                    .Select(e => (e!.Value - now).TotalHours)
+                    .DefaultIfEmpty(double.MaxValue)
+                    .Min();
+                return new { d.Name, d.Price, HoursLeft = hours, Priority = 1.0 / Math.Max(hours, 0.01) };
+            })
+            .Where(x => x.HoursLeft > 0 && x.HoursLeft < double.MaxValue)
+            .OrderByDescending(x => x.Priority)
+            .Take(5)
+            .ToList();
+
+        var burning = live
+            .OrderBy(b => b.ExpiresAt)
+            .Take(5)
+            .Select(b => new
+            {
+                Product = b.Product!.Name,
+                Delivery = b.Delivery!.Number,
+                b.QtyRemaining,
+                b.ExpiresAt,
+                RowClass = SemaphoreClass(b.ExpiresAt, now),
+                HoursText = HoursLeftText(b.ExpiresAt, now),
+            })
+            .ToList();
+
+        ViewBag.KpiPositions = live.Select(b => b.ProductId).Distinct().Count();
+        ViewBag.KpiExpiring = expiring24;
+        ViewBag.KpiStopList = stopList.Count;
+        ViewBag.KpiHotOffers = hotOffers.Count;
+        ViewBag.Burning = burning;
+        ViewBag.Recommended = recommended;
+        ViewBag.Now = now;
+        return View();
+    }
+
+    // GET /Inventory/Stock?expiringOnly=true — остатки по партиям
+    public async Task<IActionResult> Stock(bool expiringOnly = false)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+
+        var query = db.Batches
+            .Include(b => b.Product)
+            .Include(b => b.Delivery)
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0);
+
+        if (expiringOnly)
+            query = query.Where(b => b.ExpiresAt > now && b.ExpiresAt < now.AddHours(48));
+
+        var stock = (await query.OrderBy(b => b.ExpiresAt).ToListAsync())
+            .Select(b => new
+            {
+                Product = b.Product!.Name,
+                b.Product!.Unit,
+                Delivery = b.Delivery!.Number,
+                b.QtyInitial,
+                b.QtyRemaining,
+                b.ExpiresAt,
+                RowClass = SemaphoreClass(b.ExpiresAt, now),
+                HoursText = HoursLeftText(b.ExpiresAt, now),
+            })
+            .ToList();
+
+        ViewBag.ExpiringOnly = expiringOnly;
+        ViewBag.Stock = stock;
+        return View();
+    }
+
+    // GET /Inventory/Deliveries — журнал + форма приёма
+    public async Task<IActionResult> Deliveries()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var deliveries = await db.Deliveries
+            .Where(d => d.RestaurantId == rid)
+            .Include(d => d.Batches).ThenInclude(b => b.Product)
+            .OrderByDescending(d => d.CreatedAt)
+            .ToListAsync();
+
+        var products = await db.Products
+            .Where(p => p.RestaurantId == rid)
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+
+        ViewBag.Deliveries = deliveries;
+        ViewBag.Products = products;
+        return View();
+    }
+
+    // POST /Inventory/Deliveries — приёмка поставки
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Deliveries(string number, int[] productId, decimal[] qty, double[] shelfHours)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(number) || productId.Length == 0)
+        {
+            TempData["DeliveryError"] = "Укажите номер поставки и хотя бы одну позицию.";
+            return RedirectToAction(nameof(Deliveries));
+        }
+
+        var now = DateTime.UtcNow;
+        var delivery = new Delivery
+        {
+            RestaurantId = rid.Value,
+            Number = number.Trim(),
+            CreatedAt = now,
+        };
+        db.Deliveries.Add(delivery);
+
+        var lines = productId.Length;
+        for (var i = 0; i < lines; i++)
+        {
+            if (i >= qty.Length || i >= shelfHours.Length || qty[i] <= 0) continue;
+            db.Batches.Add(new Batch
+            {
+                RestaurantId = rid.Value,
+                Delivery = delivery,
+                ProductId = productId[i],
+                QtyInitial = qty[i],
+                QtyRemaining = qty[i],
+                ReceivedAt = now,
+                ExpiresAt = now.AddHours(shelfHours[i]),
+            });
+        }
+
+        await db.SaveChangesAsync();
+        TempData["DeliveryOk"] = $"Поставка {delivery.Number} принята.";
+        return RedirectToAction(nameof(Deliveries));
+    }
+
+    // GET /Inventory/Order — форма заказа + журнал
+    public async Task<IActionResult> Order()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var dishes = await db.Dishes
+            .Where(d => d.RestaurantId == rid && d.IsActive)
+            .OrderBy(d => d.Name)
+            .ToListAsync();
+
+        var journal = await db.Orders
+            .Where(o => o.RestaurantId == rid)
+            .OrderByDescending(o => o.CreatedAt)
+            .Take(20)
+            .Select(o => new
+            {
+                o.Id,
+                o.Status,
+                o.RejectReason,
+                o.CreatedAt,
+                ItemCount = o.Items.Count,
+            })
+            .ToListAsync();
+
+        ViewBag.Dishes = dishes;
+        ViewBag.Journal = journal;
+        return View();
+    }
+
+    // POST /Inventory/Order — оформление
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Order(int[] dishId, int[] qty)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var items = dishId.Zip(qty, (d, q) => (DishId: d, Qty: q))
+            .Where(x => x.Qty > 0)
+            .Select(x => (x.DishId, x.Qty))
+            .ToList();
+
+        if (items.Count == 0)
+        {
+            TempData["OrderError"] = "Выберите хотя бы одно блюдо.";
+            return RedirectToAction(nameof(Order));
+        }
+
+        var result = await orders.PlaceOrderAsync(rid.Value, items);
+        if (result.Status == OrderService.StatusRejected)
+        {
+            TempData["OrderError"] = result.RejectReason;
+        }
+        else
+        {
+            TempData["OrderOk"] = $"Заказ #{result.OrderId} принят — списания проведены по FEFO.";
+        }
+        return RedirectToAction(nameof(Order));
+    }
+
+    // GET /Inventory/StopList — стоп-лист + hot offers
+    public async Task<IActionResult> StopList()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+
+        var stopList = await orders.GetStopListAsync(rid.Value);
+
+        var dishes = await db.Dishes
+            .Where(d => d.RestaurantId == rid && d.IsActive)
+            .Include(d => d.RecipeItems).ThenInclude(r => r.Product)
+            .ToListAsync();
+
+        var liveBatches = await db.Batches
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now)
+            .ToListAsync();
+        var batchesByProduct = liveBatches
+            .GroupBy(b => b.ProductId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(b => b.ExpiresAt).ToList());
+
+        var stopIds = stopList.Select(s => s.DishId).ToHashSet();
+        var hotOffers = dishes
+            .Where(d => !stopIds.Contains(d.Id))
+            .Select(d =>
+            {
+                var nearest = d.RecipeItems
+                    .Select(ri => batchesByProduct.GetValueOrDefault(ri.ProductId)?.FirstOrDefault())
+                    .Where(b => b is not null)
+                    .OrderBy(b => b!.ExpiresAt)
+                    .FirstOrDefault();
+                if (nearest is null) return null;
+                var hours = (nearest.ExpiresAt - now).TotalHours;
+                if (hours >= 24 || hours <= 0) return null;
+                return new
+                {
+                    d.Name,
+                    d.Price,
+                    Reason = $"{nearest.Product?.Name} — осталось {hours:0.#} ч",
+                    HoursLeft = hours,
+                };
+            })
+            .Where(x => x is not null)
+            .ToList();
+
+        ViewBag.StopList = stopList;
+        ViewBag.HotOffers = hotOffers;
+        return View();
+    }
+
+    // POST /Inventory/ResetDemo — сброс демо-данных
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetDemo()
+    {
+        await DbInitializer.ResetAndReseedAsync(services);
+        TempData["OrderOk"] = "Демо-данные сброшены и заново загружены.";
+        return RedirectToAction(nameof(Index));
+    }
+}

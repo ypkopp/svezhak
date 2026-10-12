@@ -1,0 +1,108 @@
+@{
+    ViewData["Title"] = "Дашборд";
+    var burning = (IEnumerable<dynamic>)ViewBag.Burning;
+    var recommended = (IEnumerable<dynamic>)ViewBag.Recommended;
+}
+
+<div class="d-flex justify-content-between align-items-baseline mb-1">
+    <h1 class="sv-page-title">Дашборд</h1>
+    <span class="sv-muted" style="font-size:.85rem">обновлено @(((DateTime)ViewBag.Now).ToLocalTime().ToString("HH:mm"))</span>
+</div>
+<p class="sv-page-sub">Склад, сроки и продажи в реальном времени</p>
+
+@if (TempData["OrderOk"] is string ok)
+{
+    <div class="sv-alert sv-alert-success mb-3">@ok</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="sv-card sv-kpi ok">
+            <div class="sv-kpi-value">@ViewBag.KpiPositions</div>
+            <div class="sv-kpi-label">позиций на складе</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="sv-card sv-kpi @(ViewBag.KpiExpiring > 0 ? "danger" : "ok")">
+            <div class="sv-kpi-value">@ViewBag.KpiExpiring</div>
+            <div class="sv-kpi-label">партий истекает &lt;24ч</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="sv-card sv-kpi @(ViewBag.KpiStopList > 0 ? "warn" : "ok")">
+            <div class="sv-kpi-value">@ViewBag.KpiStopList</div>
+            <div class="sv-kpi-label">блюд в стоп-листе</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="sv-card sv-kpi accent">
+            <div class="sv-kpi-value">@ViewBag.KpiHotOffers</div>
+            <div class="sv-kpi-label">hot offers</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="sv-card">
+            <div class="sv-section-title">🔥 Горящие партии — топ-5</div>
+            @if (burning.Any())
+            {
+                <table class="sv-table">
+                    <thead><tr><th>Продукт</th><th>Поставка</th><th>Остаток</th><th>Осталось</th></tr></thead>
+                    <tbody>
+                    @foreach (var b in burning)
+                    {
+                        <tr class="@b.RowClass">
+                            <td><strong>@b.Product</strong></td>
+                            <td class="sv-muted">@b.Delivery</td>
+                            <td>@b.QtyRemaining</td>
+                            <td>@b.HoursText</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="sv-muted mb-0">Партий нет.</p>
+            }
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="sv-card">
+            <div class="sv-section-title">💡 Рекомендуем продать</div>
+            @if (recommended.Any())
+            {
+                <table class="sv-table">
+                    <thead><tr><th>Блюдо</th><th>Цена</th><th>Ближайший срок</th></tr></thead>
+                    <tbody>
+                    @foreach (var r in recommended)
+                    {
+                        <tr>
+                            <td><strong>@r.Name</strong></td>
+                            <td class="sv-muted">@($"{r.Price:0}") ₽</td>
+                            <td>
+                                <span class="sv-badge @(r.HoursLeft < 24 ? "sv-badge-red" : r.HoursLeft < 48 ? "sv-badge-yellow" : "sv-badge-green")">
+                                    @($"{r.HoursLeft:0.#}") ч
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="sv-muted mb-0">Нет активных блюд.</p>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // JS polling: перезагрузка каждые 15 сек для актуальности сроков
+    setTimeout(function () { location.reload(); }, 15000);
+</script>
+}

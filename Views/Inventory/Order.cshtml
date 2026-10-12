@@ -1,0 +1,93 @@
+@using SmartInventory.Models.Inventory
+@{
+    ViewData["Title"] = "Заказ";
+    var dishes = (List<Dish>)ViewBag.Dishes;
+    var journal = (IEnumerable<dynamic>)ViewBag.Journal;
+}
+
+<h1 class="sv-page-title">Оформление заказа</h1>
+<p class="sv-page-sub">При приёме списание идёт по FEFO — самые ранние партии первыми</p>
+
+@if (TempData["OrderOk"] is string ok)
+{
+    <div class="sv-alert sv-alert-success mb-3">@ok</div>
+}
+@if (TempData["OrderError"] is string err)
+{
+    <div class="sv-alert sv-alert-danger mb-3">
+        <strong>Заказ отклонён — дефицит:</strong>
+        <ul class="mb-0 mt-2">
+            @foreach (var line in err.Split(';'))
+            {
+                <li>@line.Trim()</li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="sv-card">
+            <div class="sv-section-title">Меню</div>
+            <form asp-action="Order" method="post">
+                @Html.AntiForgeryToken()
+                <table class="sv-table mb-3">
+                    <thead><tr><th>Блюдо</th><th>Цена</th><th style="width:90px">Кол-во</th></tr></thead>
+                    <tbody>
+                    @foreach (var d in dishes)
+                    {
+                        <tr>
+                            <td>
+                                <input type="hidden" name="dishId" value="@d.Id" />
+                                <strong>@d.Name</strong>
+                            </td>
+                            <td class="sv-muted">@($"{d.Price:0}") ₽</td>
+                            <td><input name="qty" type="number" min="0" value="0" class="sv-input" style="padding:.35rem .5rem" /></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+                <button type="submit" class="btn-sv w-100">Оформить заказ</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="sv-card">
+            <div class="sv-section-title">Журнал заказов</div>
+            @if (journal.Any())
+            {
+                <table class="sv-table">
+                    <thead><tr><th>#</th><th>Статус</th><th>Позиций</th><th>Время</th></tr></thead>
+                    <tbody>
+                    @foreach (var o in journal)
+                    {
+                        <tr>
+                            <td class="sv-muted">@o.Id</td>
+                            <td>
+                                @if (o.Status == "accepted")
+                                {
+                                    <span class="sv-badge sv-badge-green">accepted</span>
+                                }
+                                else
+                                {
+                                    <span class="sv-badge sv-badge-red" title="@o.RejectReason">rejected</span>
+                                }
+                            </td>
+                            <td>@o.ItemCount</td>
+                            <td class="sv-muted">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="sv-muted mb-0">Заказов ещё не было.</p>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>setTimeout(function () { location.reload(); }, 15000);</script>
+}
