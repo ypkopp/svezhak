@@ -10,11 +10,13 @@ using SmartInventory.Models.Organizations;
 using SmartInventory.Models.Structure;
 
 [AuthorizeRole(AppRole.ServerAdmin, AppRole.OrganizationOwner)]
+[Route("[controller]")]
 public class OrganizationsController(
     IMapper mapper,
     ApplicationDbContext context,
     IAuthorizationService authorizationService) : Controller
 {
+    [HttpGet]
     [AuthorizeRole(AppRole.ServerAdmin)]
     public async Task<IActionResult> Index()
     {
@@ -28,10 +30,10 @@ public class OrganizationsController(
         return View(viewModels);
     }
 
-    public async Task<IActionResult> Details(int? id)
+    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}/Details")]
+    public async Task<IActionResult> Details(int id)
     {
-        if (id == null) return NotFound();
-
         var organization = await context.Organizations
             .Include(o => o.Restaurants)
             .Include(o => o.AccessCodes)
@@ -49,11 +51,9 @@ public class OrganizationsController(
         return View(organization);
     }
 
-    [HttpGet]
-    public async Task<IActionResult> Edit(int? id)
+    [HttpGet("{id:int}/Edit")]
+    public async Task<IActionResult> Edit(int id)
     {
-        if (id == null) return NotFound();
-
         var organization = await context.Organizations
             .Include(o => o.Restaurants)
             .Include(o => o.AccessCodes)
@@ -73,7 +73,7 @@ public class OrganizationsController(
         return View(viewModel);
     }
 
-    [HttpPost]
+    [HttpPost("{id:int}/Edit")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, OrganizationEditViewModel model)
     {
