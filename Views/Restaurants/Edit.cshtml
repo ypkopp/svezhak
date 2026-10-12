@@ -1,0 +1,41 @@
+@model SmartInventory.Models.Restaurants.RestaurantEditViewModel
+
+@{
+    ViewData["Title"] = $"Редактирование ресторана №{Model.Id}";
+}
+
+<div class="container mt-4">
+    <h2>@ViewData["Title"]</h2>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-6">
+            <form asp-action="Edit" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <input type="hidden" asp-for="Id" />
+
+                <div class="mb-3">
+                    <label asp-for="Address" class="form-label">Адрес</label>
+                    <input asp-for="Address" class="form-control" />
+                    <span asp-validation-for="Address" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ManagerId" class="form-label">ID Управляющего (ManagerId)</label>
+                    <input asp-for="ManagerId" class="form-control" />
+                    <span asp-validation-for="ManagerId" class="text-danger"></span>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                    <a asp-action="Dashboard" asp-route-id="@Model.Id" class="btn btn-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

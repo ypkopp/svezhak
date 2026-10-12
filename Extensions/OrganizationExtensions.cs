@@ -1,5 +1,6 @@
 using SmartInventory.Data;
 using SmartInventory.Models.Organizations;
+using SmartInventory.Models.Restaurants;
 using SmartInventory.Models.Structure;
 
 namespace SmartInventory.Extensions;

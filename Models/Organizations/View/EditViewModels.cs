@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using SmartInventory.Authorization;
+using SmartInventory.Models.Restaurants;
 
 namespace SmartInventory.Models.Organizations;
 
@@ -15,16 +16,6 @@ public class OrganizationEditViewModel
     
     [Required(ErrorMessage = "ID владельца обязателен")]
     public string OwnerId { get; init; } = string.Empty;
-}
-
-public class RestaurantEditViewModel
-{
-    public int Id { get; init; }
-    [Required(ErrorMessage = "Адресс строения обязателен")]
-    public string Address { get; init; } = string.Empty;
-    
-    [Required(ErrorMessage = "ID управляющего рестораном обязателен")]
-    public string ManagerId { get; init; } = string.Empty;
 }
 
 public class AccessCodeEditViewModel

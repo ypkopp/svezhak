@@ -1,5 +1,6 @@
 using AutoMapper;
 using SmartInventory.Models.Organizations;
+using SmartInventory.Models.Restaurants;
 
 namespace SmartInventory.Models.Structure;
 
