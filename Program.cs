@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SmartInventory.Authorization;
 using SmartInventory.Data;
+using SmartInventory.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddScoped<IAuthorizationHandler, ManageRestaurantAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ManageOrganizationAuthorizationHandler>();
+builder.Services.AddScoped<OrderService>();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -37,6 +39,12 @@ builder.Services.AddAutoMapper(cfg =>
 });
 
 var app = builder.Build();
+
+// Применяем миграции и наполняем пустую БД демо-данными
+using (var scope = app.Services.CreateScope())
+{
+    await DbInitializer.SeedAsync(scope.ServiceProvider);
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
