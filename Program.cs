@@ -68,4 +68,13 @@ app.MapControllerRoute(
         pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+// Временный дев-харнесс для ручной проверки OrderService — только в Development
+if (app.Environment.IsDevelopment())
+{
+    app.MapControllerRoute(
+        name: "dev",
+        pattern: "Dev/{action=SeedStatus}",
+        defaults: new { controller = "Dev" });
+}
+
 app.Run();

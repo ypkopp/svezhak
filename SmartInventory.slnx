@@ -3,4 +3,5 @@
     <File Path="docker-compose.yml" />
   </Folder>
   <Project Path="SmartInventory.csproj" />
+  <Project Path="Svezhak.Tests/Svezhak.Tests.csproj" />
 </Solution>

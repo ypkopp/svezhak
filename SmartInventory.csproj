@@ -24,4 +24,13 @@
       </None>
     </ItemGroup>
 
+    <!-- Веб-проект собирает **/*.cs рекурсивно — исключаем каталог тестового
+         проекта, иначе он ловит чужие файлы (xunit/Sqlite) и не собирается -->
+    <ItemGroup>
+      <Compile Remove="Svezhak.Tests/**" />
+      <Content Remove="Svezhak.Tests/**" />
+      <EmbeddedResource Remove="Svezhak.Tests/**" />
+      <None Remove="Svezhak.Tests/**" />
+    </ItemGroup>
+
 </Project>
