@@ -23,6 +23,9 @@ public sealed class AdvisorService(
 {
     public sealed record Insight(string Category, string Title, string Explanation, string Icon, string ActionLabel, string ActionUrl, string Severity);
     public sealed record InsightsResult(int RestaurantId, DateTime GeneratedAtUtc, bool UsedAi, IReadOnlyList<Insight> Insights);
+
+    /// <summary>Текстовое резюме состояния для дашборда: проза + 2–3 рекомендации.</summary>
+    public sealed record SummaryResult(DateTime GeneratedAtUtc, bool UsedAi, string Text, IReadOnlyList<Insight> Highlights);
     private sealed record Snapshot(List<Insight> LocalInsights, object Data);
 
     public async Task<InsightsResult> GetInsightsAsync(int restaurantId, CancellationToken ct = default)
@@ -62,6 +65,96 @@ public sealed class AdvisorService(
             SlidingExpiration = TimeSpan.FromMinutes(5)
         });
         return result;
+    }
+
+    /// <summary>
+    /// Текстовое резюме для блока «ИИ-анализ смены» на дашборде:
+    /// 2–4 предложения о состоянии склада + топ-3 рекомендации.
+    /// Работает и при недоступном LLM — строится из локальных правил.
+    /// </summary>
+    public async Task<SummaryResult> GetSummaryAsync(int restaurantId, CancellationToken ct = default)
+    {
+        var key = $"advisor:summary:{restaurantId}";
+        if (cache.TryGetValue<SummaryResult>(key, out var cached) && cached is not null)
+            return cached;
+
+        var snapshot = await BuildSnapshotAsync(restaurantId, ct);
+        var local = snapshot.LocalInsights;
+        var usedAi = false;
+        var text = BuildLocalSummary(snapshot.Data, local);
+
+        var baseUrl = configuration["Ai:BaseUrl"]?.TrimEnd('/');
+        var model = configuration["Ai:Model"];
+        var apiKey = configuration["Ai:ApiKey"];
+        if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(model) && !string.IsNullOrWhiteSpace(apiKey))
+        {
+            try
+            {
+                var aiText = await SummarizeWithAiAsync(baseUrl, model, apiKey, snapshot.Data, ct);
+                if (!string.IsNullOrWhiteSpace(aiText))
+                {
+                    text = aiText;
+                    usedAi = true;
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning("Advisor AI summary unavailable; using local text ({ErrorType})", ex.GetType().Name);
+            }
+        }
+
+        var result = new SummaryResult(DateTime.UtcNow, usedAi, text, local.Take(3).ToList());
+        cache.Set(key, result, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(7),
+            SlidingExpiration = TimeSpan.FromMinutes(5)
+        });
+        return result;
+    }
+
+    private static string BuildLocalSummary(object data, List<Insight> local)
+    {
+        // Короткое человекочитаемое резюме из локальных правил.
+        var sell = local.Count(x => x.Category == "продать срочно");
+        var order = local.Count(x => x.Category == "заказать");
+        var writeoff = local.Count(x => x.Category == "списать");
+        var parts = new List<string>();
+
+        if (writeoff > 0)
+            parts.Add($"{writeoff} партий(ия) просрочены или почти испорчены — требуется проверка на списание.");
+        if (order > 0)
+            parts.Add($"{order} позиций(ия) стоит заказать — запасов не хватит при текущем расходе.");
+        if (sell > 0)
+            parts.Add($"{sell} блюд(о) рекомендую продать в первую очередь — у них горящие ингредиенты.");
+        if (parts.Count == 0)
+            parts.Add("Склад под контролем: срочных рекомендаций нет. Все партии свежие, стоп-лист пуст.");
+
+        return string.Join(" ", parts);
+    }
+
+    private async Task<string> SummarizeWithAiAsync(string baseUrl, string model, string apiKey, object data, CancellationToken ct)
+    {
+        var client = clients.CreateClient(nameof(AdvisorService));
+        client.Timeout = TimeSpan.FromSeconds(12);
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        request.Content = new StringContent(JsonSerializer.Serialize(new
+        {
+            model,
+            temperature = 0.3,
+            messages = new object[]
+            {
+                new { role = "system", content = "Ты советник ресторанного склада. Используй ТОЛЬКО переданные факты — не выдумывай цифры и сроки. Ответь 2–4 предложениями на русском: что горит, что в стоп-листе, главная рекомендация. Без списков и маркировок — одна связная фраза." },
+                new { role = "user", content = JsonSerializer.Serialize(data) }
+            }
+        }), Encoding.UTF8, "application/json");
+
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var json = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var content = json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+        return content?.Trim() ?? "";
     }
 
     private async Task<Snapshot> BuildSnapshotAsync(int restaurantId, CancellationToken ct)

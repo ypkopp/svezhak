@@ -43,7 +43,10 @@
             </nav>
             <div class="sv-sidebar-shift">
                 <img src="~/img/brand/chef-4-sm.png" alt="" />
-                <div><span>Смена</span><strong>Рин · шеф</strong><small>до 23:00 · 4 повара</small></div>
+                <div>
+                    <span>Смена <em class="sv-badge sv-badge-muted" style="font-size:8px;vertical-align:1px">Демо</em></span>
+                    <strong>Рин · шеф</strong><small>до 23:00 · 4 повара</small>
+                </div>
             </div>
             <div class="sv-sidebar-foot">
                 <form asp-controller="Inventory" asp-action="ResetDemo" method="post" onsubmit="return confirm('Сбросить демо-данные? Все заказы и списания будут удалены.');">

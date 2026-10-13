@@ -18,6 +18,7 @@ public class InventoryController(
     ApplicationDbContext db,
     OrderService orders,
     HotOffersService hotOffersService,
+    AdvisorService advisorService,
     IServiceProvider services,
     InventoryEventBus eventBus) : Controller
 {
@@ -131,6 +132,9 @@ public class InventoryController(
         // Для пульса и приветствия
         ViewBag.HasAlert = stopList.Count > 0 || live.Any(b => b.ExpiresAt < now.AddHours(12));
         ViewBag.ThreatCount = live.Count(b => b.ExpiresAt < now.AddHours(24));
+
+        // ИИ-анализ смены — текстовое резюме (fallback на локальные правила)
+        ViewBag.AiSummary = await advisorService.GetSummaryAsync(rid.Value);
         return View();
     }
 

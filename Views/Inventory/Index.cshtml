@@ -45,6 +45,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @if (TempData["OrderOk"] is string ok) { <div class="sv-alert sv-alert-success mb-3">@ok</div> }
 
+@{ var ai = (SmartInventory.Services.AdvisorService.SummaryResult)ViewBag.AiSummary; }
+<section class="sv-card sv-ai-block fade-up">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex align-items-center gap-2">
+            <img src="~/img/brand/chef-2-sm.png" style="width:38px" alt="" />
+            <div class="sv-section-title mb-0">ИИ-анализ смены</div>
+        </div>
+        <span class="sv-ai-note @(ai.UsedAi ? "sv-badge sv-badge-accent" : "sv-badge sv-badge-muted")">
+            @(ai.UsedAi ? $"ИИ · обновлено {ai.GeneratedAtUtc.ToLocalTime():HH:mm}" : "ИИ временно недоступен — локальные правила")
+        </span>
+    </div>
+    <p class="sv-ai-text">@ai.Text</p>
+    @if (ai.Highlights.Count > 0)
+    {
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            @foreach (var h in ai.Highlights)
+            {
+                <a class="sv-chip" href="@h.ActionUrl" title="@h.Explanation">@h.Title <span class="sv-muted">· @h.Category</span></a>
+            }
+        </div>
+    }
+</section>
+
 <div class="sv-flow-card fade-up">
     <div class="sv-flow">
         <img src="~/img/brand/info-flow.png" asp-append-version="true" alt="Путь продукта" />
@@ -62,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="sv-k">Река свежести · 72 ч вперёд</div>
             <div class="sv-river-title">Каждая партия — точка на оси времени. <span>Чем левее, тем срочнее.</span></div>
         </div>
+        <div class="sv-chart-hint">Точки — партии; по цвету видно срочность (красный <12ч, оранжевый 12–24ч, зелёный дальше).</div>
     </div>
     <div class="sv-chart-wrap" id="riverWrap">
         <div id="riverSkel" class="sv-chart-skel"></div>
@@ -74,14 +98,17 @@ document.addEventListener('DOMContentLoaded', function () {
 <div class="sv-grid-12">
     <div class="sv-card sv-col-7 fade-up">
         <div class="sv-section-title">Пульс заказов · 24 часа</div>
+        <div class="sv-chart-hint">Заказы по часам за последние сутки — видно, когда кухня нагружена.</div>
         <div class="sv-chart-wrap"><div id="pulseSkel" class="sv-chart-skel"></div><div id="orderPulse" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="pulseEmpty">Заказов за сутки не было.</div><div class="sv-chart-error" id="pulseError"></div></div>
     </div>
     <div class="sv-card sv-col-5 fade-up">
         <div class="sv-section-title">Водопад списаний · сегодня</div>
+        <div class="sv-chart-hint">Сколько продукта было утром → ушло в заказы → списано по просрочке → осталось.</div>
         <div class="sv-chart-wrap"><div id="waterfallSkel" class="sv-chart-skel"></div><div id="waterfall" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="waterfallEmpty">Списаний за сегодня не было.</div><div class="sv-chart-error" id="waterfallError"></div></div>
     </div>
     <div class="sv-card sv-col-7 fade-up">
         <div class="sv-section-title">Карта просрочки · 7 дней</div>
+        <div class="sv-chart-hint">Интенсивность = количество, сгорающее в этот день по каждому продукту.</div>
         <div class="sv-chart-wrap"><div id="heatmapSkel" class="sv-chart-skel"></div><div id="heatmap" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="heatmapEmpty">Ничего не сгорает в ближайшие 7 дней.</div><div class="sv-chart-error" id="heatmapError"></div></div>
     </div>
     <div class="sv-card sv-col-5 fade-up">
@@ -89,6 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="sv-section-title mb-0">💡 Рекомендуем продать · топ-5</div>
             <span class="sv-section-title mb-0" style="color:var(--a1)"><span id="hotCount">0</span> в hot offer</span>
         </div>
+        <div class="sv-chart-hint">Блюда с самыми горящими ингредиентами — score по срочности и расходу.</div>
         @foreach (var r in recommended)
         {
             var col = r.HoursLeft < 12 ? "#F56565" : r.HoursLeft < 24 ? "#ED8936" : "#48BB78";
@@ -106,10 +134,12 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
     <div class="sv-card sv-col-7 fade-up">
         <div class="sv-section-title">Прогноз стоп-листа</div>
+        <div class="sv-chart-hint">При текущем расходе эти блюда встанут в стоп-лист через N часов/дней.</div>
         <div class="sv-chart-wrap"><div id="forecastSkel" class="sv-chart-skel"></div><div id="stopForecast" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="forecastEmpty">Прогноз не строится — история заказов пуста.</div><div class="sv-chart-error" id="forecastError"></div></div>
     </div>
     <div class="sv-card sv-col-5 fade-up">
         <div class="sv-section-title">Доля потерь · 30 дней</div>
+        <div class="sv-chart-hint">Соотношение проданного, списанного и просроченного за 30 дней.</div>
         <div class="sv-chart-wrap"><div id="lossSkel" class="sv-chart-skel"></div><div id="lossShare" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="lossEmpty">Нет данных для расчёта.</div><div class="sv-chart-error" id="lossError"></div></div>
     </div>
 </div>
