@@ -30,6 +30,11 @@ builder.Services.AddScoped<IAuthorizationHandler, ManageRestaurantAuthorizationH
 builder.Services.AddScoped<IAuthorizationHandler, ManageOrganizationAuthorizationHandler>();
 builder.Services.AddScoped<OrderService>();
 
+// SignalR + свип просрочки + шина событий склада
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<InventoryEventBus>();
+builder.Services.AddHostedService<ExpirySweepService>();
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(nameof(AppPolicy.CanManageRestaurant), policy =>
@@ -82,5 +87,8 @@ if (app.Environment.IsDevelopment())
         pattern: "Dev/{action=SeedStatus}",
         defaults: new { controller = "Dev" });
 }
+
+// SignalR-хаб склада
+app.MapHub<SmartInventory.Hubs.InventoryHub>("/hubs/inventory");
 
 app.Run();

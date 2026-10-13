@@ -49,6 +49,6 @@
     document.getElementById('expToggle').addEventListener('change', function () {
         window.location.href = '@Url.Action("Stock", "Inventory")' + (this.checked ? '?expiringOnly=true' : '');
     });
-    setTimeout(function () { location.reload(); }, 15000);
 </script>
+@await Html.PartialAsync("_InventoryRealtime")
 }

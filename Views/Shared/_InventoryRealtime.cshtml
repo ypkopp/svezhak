@@ -1,0 +1,28 @@
+@* SignalR-клиент склада: перезагрузка страницы по событию. *@
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+<script>
+(function () {
+    if (typeof signalR === 'undefined') return;
+    var conn = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/inventory')
+        .withAutomaticReconnect()
+        .build();
+
+    var changed = false, timer = null;
+    function notify() {
+        // Накапливаем события 800мс, чтобы не дёргать перезагрузку при серии
+        changed = true;
+        clearTimeout(timer);
+        timer = setTimeout(function () { if (changed) location.reload(); }, 800);
+    }
+    ['stock_changed', 'order_created', 'batch_expired'].forEach(function (ev) {
+        conn.on(ev, notify);
+    });
+
+    conn.start().catch(function (e) {
+        // Фолбэк на polling, если SignalR недоступен
+        console.warn('SignalR недоступен, polling 15с', e);
+        setTimeout(function () { location.reload(); }, 15000);
+    });
+})();
+</script>

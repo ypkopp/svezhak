@@ -17,7 +17,8 @@ namespace SmartInventory.Controllers;
 public class InventoryController(
     ApplicationDbContext db,
     OrderService orders,
-    IServiceProvider services) : Controller
+    IServiceProvider services,
+    InventoryEventBus eventBus) : Controller
 {
     private static readonly TimeSpan YellowHours = TimeSpan.FromHours(48);
     private static readonly TimeSpan RedHours = TimeSpan.FromHours(24);
@@ -342,6 +343,7 @@ public class InventoryController(
         }
 
         await db.SaveChangesAsync();
+        await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
         TempData["DeliveryOk"] = $"Поставка {delivery.Number} принята.";
         return RedirectToAction(nameof(Deliveries));
     }
@@ -396,12 +398,14 @@ public class InventoryController(
         }
 
         var result = await orders.PlaceOrderAsync(rid.Value, items);
+        await eventBus.PublishAsync(InventoryEventBus.OrderCreated, rid.Value);
         if (result.Status == OrderService.StatusRejected)
         {
             TempData["OrderError"] = result.RejectReason;
         }
         else
         {
+            await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
             TempData["OrderOk"] = $"Заказ #{result.OrderId} принят — списания проведены по FEFO.";
         }
         return RedirectToAction(nameof(Order));

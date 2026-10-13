@@ -258,9 +258,7 @@
     document.getElementById('bubbleNext').onclick = function(){ ti=(ti+1)%TIPS.length; showTip(); };
     document.getElementById('bubbleHide').onclick = function(){ bubble.style.display='none'; mascot.classList.add('min'); clearInterval(rotator); };
     img.onclick = function(){ var hidden = bubble.style.display==='none'; bubble.style.display = hidden?'block':'none'; mascot.classList.toggle('min', !hidden); };
-
-    // ---------- автообновление каждые 15 сек ----------
-    setTimeout(function(){ location.reload(); }, 15000);
 })();
 </script>
+@await Html.PartialAsync("_InventoryRealtime")
 }
