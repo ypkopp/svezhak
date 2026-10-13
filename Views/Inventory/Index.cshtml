@@ -1,6 +1,5 @@
 @{
     ViewData["Title"] = "Дашборд";
-    var burning = (IEnumerable<dynamic>)ViewBag.Burning;
     var recommended = (IEnumerable<dynamic>)ViewBag.Recommended;
     var now = (DateTime)ViewBag.Now;
     var hasAlert = (bool)ViewBag.HasAlert;
@@ -30,107 +29,83 @@
     <div class="sv-alert sv-alert-success mb-3">@ok</div>
 }
 
-<!-- KPI с нарастанием чисел -->
+<!-- Ряд 1: KPI с count-up и спарклайном -->
 <div class="sv-kpis">
-    <div class="sv-kpi-p fade-up"><span class="v" style="color:var(--sv-green)" data-count="@ViewBag.KpiPositions">0</span><span class="l">позиций на складе</span></div>
-    <div class="sv-kpi-p fade-up"><span class="v" style="color:@(ViewBag.KpiExpiring > 0 ? "var(--sv-red)" : "var(--sv-green)")" data-count="@ViewBag.KpiExpiring">0</span><span class="l">партий истекает &lt; 24 ч</span></div>
-    <div class="sv-kpi-p fade-up"><span class="v" style="color:@(stopCount > 0 ? "var(--sv-yellow)" : "var(--sv-green)")" data-count="@stopCount">0</span><span class="l">блюд в стоп-листе</span></div>
-    <div class="sv-kpi-p fade-up"><span class="v" style="color:var(--sv-accent)" data-count="@ViewBag.KpiHotOffers">0</span><span class="l">hot offers</span></div>
+    <div class="sv-kpi-p fade-up"><span class="v" style="color:var(--sv-green)" data-count="@ViewBag.KpiPositions">0</span><span class="l">позиций на складе</span><canvas class="sv-spark" data-spark="orders"></canvas></div>
+    <div class="sv-kpi-p fade-up"><span class="v" style="color:@(ViewBag.KpiExpiring > 0 ? "var(--sv-red)" : "var(--sv-green)")" data-count="@ViewBag.KpiExpiring">0</span><span class="l">партий истекает &lt; 24 ч</span><canvas class="sv-spark" data-spark="orders"></canvas></div>
+    <div class="sv-kpi-p fade-up"><span class="v" style="color:@(stopCount > 0 ? "var(--sv-yellow)" : "var(--sv-green)")" data-count="@stopCount">0</span><span class="l">блюд в стоп-листе</span><canvas class="sv-spark" data-spark="orders"></canvas></div>
+    <div class="sv-kpi-p fade-up"><span class="v" style="color:var(--sv-accent)" data-count="@ViewBag.KpiHotOffers">0</span><span class="l">hot offers</span><canvas class="sv-spark" data-spark="orders"></canvas></div>
 </div>
 
 <!-- Фирменный пульс-разделитель под KPI (реагирует на тревогу) -->
 <div class="mb-3 fade-up">@{ ViewData["PulseAlert"] = hasAlert; }@await Html.PartialAsync("_Pulse")</div>
 
-<!-- Река свежести -->
+<!-- Ряд 2: Река свежести (ECharts scatter) на всю ширину -->
 <div class="sv-river fade-up">
     <div class="sv-river-head">
         <div>
             <div class="sv-k">Река свежести · 72 ч вперёд</div>
             <div class="sv-river-title">Каждая партия — точка на оси времени. <span>Чем левее, тем срочнее.</span></div>
         </div>
-        <div class="sv-legend">
-            <span><i style="background:#F56565"></i>&lt; 12 ч</span>
-            <span><i style="background:#ED8936"></i>&lt; 24 ч</span>
-            <span><i style="background:#48BB78"></i>спокойно</span>
-        </div>
     </div>
-    <div class="sv-river-body" id="riverBody">
-        <div class="sv-zone hot" style="width:@((12.0/72*100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
-        <div class="sv-zone warm" style="left:@((12.0/72*100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%;width:@((12.0/72*100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
-        <div class="sv-now"><span>сейчас @now.ToLocalTime().ToString("HH:mm")</span></div>
-        @foreach (var t in new[] { 12, 24, 36, 48, 60, 72 })
-        {
-            <div class="sv-tick" style="left:@((t/72.0*100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"><span>+@t ч</span></div>
-        }
+    <div class="sv-chart-wrap" id="riverWrap">
+        <div id="riverSkel" class="sv-chart-skel"></div>
+        <div id="riverChart" class="sv-chart" style="display:none;height:220px"></div>
+        <div class="sv-chart-empty" id="riverEmpty">Партий с живым сроком нет.</div>
+        <div class="sv-chart-error" id="riverError"></div>
     </div>
 </div>
 
-<!-- Графики ECharts -->
+<!-- Ряд 3: Пульс заказов (7) + Водопад списаний (5) -->
 <div class="row g-3 mb-3">
-    <div class="col-md-12">
-        <div class="sv-card fade-up">
+    <div class="col-md-7">
+        <div class="sv-card sv-chart-card fade-up">
             <div class="sv-section-title">Пульс заказов · 24 часа</div>
-            <div id="pulseSkel" class="sv-chart-skel"></div>
-            <div id="orderPulse" class="sv-chart" style="display:none"></div>
+            <div class="sv-chart-wrap">
+                <div id="pulseSkel" class="sv-chart-skel"></div>
+                <div id="orderPulse" class="sv-chart" style="display:none"></div>
+                <div class="sv-chart-empty" id="pulseEmpty">Заказов за сутки не было.</div>
+                <div class="sv-chart-error" id="pulseError"></div>
+            </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="sv-card fade-up">
+    <div class="col-md-5">
+        <div class="sv-card sv-chart-card fade-up">
             <div class="sv-section-title">Водопад списаний · сегодня</div>
-            <div id="waterfallSkel" class="sv-chart-skel"></div>
-            <div id="waterfall" class="sv-chart" style="display:none"></div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="sv-card fade-up">
-            <div class="sv-section-title">Карта просрочки · 7 дней</div>
-            <div id="heatmapSkel" class="sv-chart-skel"></div>
-            <div id="heatmap" class="sv-chart" style="display:none"></div>
+            <div class="sv-chart-wrap">
+                <div id="waterfallSkel" class="sv-chart-skel"></div>
+                <div id="waterfall" class="sv-chart" style="display:none"></div>
+                <div class="sv-chart-empty" id="waterfallEmpty">Списаний за сегодня не было.</div>
+                <div class="sv-chart-error" id="waterfallError"></div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Фитили + рекомендации -->
+<!-- Ряд 4: Карта просрочки (7) + Рекомендуем продать (5) -->
 <div class="row g-3">
-    <div class="col-md-6">
-        <div class="sv-card fade-up">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="sv-section-title mb-0">🔥 Горящие партии — топ-5</div>
-                <a class="sv-muted" style="font-size:.78rem" asp-action="Stock">Весь склад →</a>
+    <div class="col-md-7">
+        <div class="sv-card sv-chart-card fade-up">
+            <div class="sv-section-title">Карта просрочки · 7 дней</div>
+            <div class="sv-chart-wrap">
+                <div id="heatmapSkel" class="sv-chart-skel"></div>
+                <div id="heatmap" class="sv-chart" style="display:none"></div>
+                <div class="sv-chart-empty" id="heatmapEmpty">Ничего не сгорает в ближайшие 7 дней.</div>
+                <div class="sv-chart-error" id="heatmapError"></div>
             </div>
-            @{ var i = 0; }
-            @foreach (var b in burning)
-            {
-                var hours = (b.ExpiresAt - now).TotalHours;
-                var urg = hours < 12 ? "hot" : hours < 24 ? "warm" : "ok";
-                var col = urg == "hot" ? "#F56565" : urg == "warm" ? "#ED8936" : "#48BB78";
-                var pct = Math.Max(4, Math.Min(100, hours / 24 * 100));
-                <div class="sv-fuse">
-                    <div class="sv-fuse-top">
-                        <b>@b.Product</b><span class="mono">@b.Delivery</span><span class="mono">@($"{b.QtyRemaining:0.##}")</span>
-                        <span class="sv-left" style="color:@col">@b.HoursText</span>
-                    </div>
-                    <div class="sv-fuse-bar"><div style="width:@pct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%;background:@col"><i></i></div></div>
-                </div>
-                i++;
-            }
-            @if (i == 0)
-            {
-                <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt=""/><p>Горящих партий нет — склад в порядке.</p></div>
-            }
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-5">
         <div class="sv-card fade-up">
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="sv-section-title mb-0">💡 Рекомендуем продать</div>
+                <div class="sv-section-title mb-0">💡 Рекомендуем продать · топ-5</div>
                 <span class="sv-section-title mb-0" style="color:var(--sv-accent)"><span id="hotCount">0</span> в hot offer</span>
             </div>
             @foreach (var r in recommended)
             {
                 var col = r.HoursLeft < 12 ? "#F56565" : r.HoursLeft < 24 ? "#ED8936" : "#48BB78";
                 <div class="sv-rec">
-                    <div><b>@r.Name</b><span>ближайший срок ингредиента</span></div>
+                    <div><b>@r.Name</b><span>@r.Reason</span></div>
                     <span class="price">@($"{r.Price:0}") ₽</span>
                     <span class="sv-pill" style="color:@col;border-color:@col">@($"{r.HoursLeft:0.#}") ч</span>
                     <button type="button" class="sv-push" data-name="@r.Name">в акцию</button>
@@ -144,21 +119,9 @@
     </div>
 </div>
 
-<!-- Маскот-подсказчик (chef-4 — приветствие) -->
-<div class="sv-mascot" id="mascot">
-    <div class="sv-bubble" id="bubble">
-        <div class="sv-bubble-name" id="bubbleName">Рин · подсказка</div>
-        <div id="bubbleText"></div>
-        <div class="sv-bubble-act">
-            <button id="bubbleNext" type="button">Дальше</button>
-            <button id="bubbleHide" type="button">Скрыть</button>
-        </div>
-    </div>
-    <img src="~/img/brand/chef-4-sm.png" asp-append-version="true" alt="Рин" id="mascotImg" />
-</div>
-
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="~/js/svezhak-charts.js" asp-append-version="true"></script>
 <script>
 (function(){
     // ---------- fade-up stagger ----------
@@ -172,153 +135,22 @@
         requestAnimationFrame(step);
     });
 
-    var TIPS = [
-        'Горящие партии видны на реке — чем левее чип, тем срочнее продать.',
-        'Списание по заказу идёт по FEFO: самые ранние партии первыми.',
-        'Блюдо попадает в стоп-лист, когда не хватает хотя бы одного ингредиента.',
-        'Hot offers — блюда с горящими ингредиентами. Продавай их первыми.'
-    ];
-    // ---------- река свежести: layout без наездов ----------
-    var body = document.getElementById('riverBody'), MAX = 72, GAP = 8, LANE_H = 46, TOP = 30, LANES = 5;
-    function urgency(h){ return h < 12 ? 'hot' : h < 24 ? 'warm' : 'ok'; }
-
-    // временный чип-мерилка для ширины по контенту
-    function measure(b){
-        var el = document.createElement('div');
-        el.className = 'sv-chip ' + urgency(b.hoursLeft);
-        el.style.visibility = 'hidden'; el.style.position = 'absolute'; el.style.left = '-9999px';
-        el.innerHTML = '<b>'+b.name+'</b><em>'+String(b.hoursLeft).replace('.',',')+' ч</em>';
-        body.appendChild(el);
-        var w = el.offsetWidth;
-        el.remove();
-        return w;
-    }
-
-    function layoutRiver(batches){
-        // убираем старые чипы
-        body.querySelectorAll('.sv-chip, .sv-empty').forEach(function(e){ e.remove(); });
-        if (!batches.length){
-            var p = document.createElement('div'); p.className='sv-empty'; p.style.padding='1rem';
-            p.innerHTML='<img src="/img/brand/chef-4-sm.png" style="width:54px"><p class="sv-muted">Партий с живым сроком нет.</p>';
-            body.appendChild(p); body.style.height = '190px'; return;
-        }
-        var W = body.clientWidth;
-        // сортируем по сроку — сначала самые срочные
-        var items = batches.slice().sort(function(a,b){ return a.hoursLeft - b.hoursLeft; }).map(function(b){
-            var w = measure(b);
-            var cx = Math.min(W - w/2, Math.max(w/2, (b.hoursLeft / MAX) * W));
-            return { b: b, w: w, x: cx - w/2 };
-        });
-        // lanes[li] = массив {x0, x1} занятых отрезков
-        var lanes = Array.from({length: LANES}, function(){ return []; });
-        var used = 0;
-        items.forEach(function(it){
-            var placed = false;
-            for (var li = 0; li < LANES; li++){
-                var lane = lanes[li], clash = false;
-                for (var k = 0; k < lane.length; k++){
-                    if (it.x < lane[k].x1 + GAP && it.x + it.w + GAP > lane[k].x0) { clash = true; break; }
-                }
-                if (!clash){ lane.push({x0: it.x, x1: it.x + it.w}); it.li = li; placed = true; used = Math.max(used, li + 1); break; }
-            }
-            if (!placed){
-                // все дорожки заняты — в самую короткую (сдвигаем вправо за последний чип)
-                var li = 0, minEnd = Infinity;
-                lanes.forEach(function(lane, i){ var end = lane.length ? lane[lane.length-1].x1 : -Infinity; if (end < minEnd){ minEnd = end; li = i; } });
-                it.li = li;
-                it.x = Math.min(W - it.w, minEnd + GAP);
-                lanes[li].push({x0: it.x, x1: it.x + it.w});
-                used = Math.max(used, li + 1);
-            }
-        });
-        items.forEach(function(it){
-            var b = it.b, chip = document.createElement('div');
-            chip.className = 'sv-chip ' + urgency(b.hoursLeft);
-            chip.style.left = it.x + 'px';
-            chip.style.top = (TOP + it.li * LANE_H) + 'px';
-            chip.innerHTML = '<b>'+b.name+'</b><em>'+String(b.hoursLeft).replace('.',',')+' ч</em>';
-            chip.title = b.name + ' · ' + b.delivery + ' · ' + b.qty + ' ' + b.unit;
-            chip.onmouseenter = function(){ chip.classList.add('hv'); };
-            chip.onmouseleave = function(){ chip.classList.remove('hv'); };
-            body.appendChild(chip);
-        });
-        body.style.height = (TOP + used * LANE_H + 14) + 'px';
-    }
-
-    var riverData = [];
-    fetch('@Url.Action("ChartDataRiver", "Inventory")').then(function(r){ return r.json(); }).then(function(batches){
-        riverData = batches; layoutRiver(riverData);
-    });
-    window.addEventListener('resize', function(){ layoutRiver(riverData); });
-
-    // ---------- общий тёмный стиль ECharts ----------
-    var AX = '#8b93a3', GRID = 'rgba(255,255,255,.05)';
-    var TIP = { backgroundColor:'#1d212b', borderColor:'#2a2f3a', borderWidth:1, textStyle:{color:'#E2E8F0', fontSize:12}, confine:true };
-
-    // ---------- «Пульс заказов» — плавная area-line с градиентом ----------
-    var pulse = echarts.init(document.getElementById('orderPulse'));
-    fetch('@Url.Action("ChartDataOrderPulse", "Inventory")').then(function(r){ return r.json(); }).then(function(d){
-        document.getElementById('pulseSkel').style.display='none';
-        document.getElementById('orderPulse').style.display='block';
-        pulse.setOption({
-            grid:{left:8,right:14,top:18,bottom:24,containLabel:true},
-            xAxis:{type:'category',data:d.labels,boundaryGap:false,axisLabel:{color:AX},axisLine:{lineStyle:{color:GRID}}},
-            yAxis:{type:'value',axisLabel:{color:AX},splitLine:{lineStyle:{color:GRID}}},
-            tooltip:Object.assign({trigger:'axis'}, TIP),
-            series:[{
-                name:'заказы', type:'line', smooth:true, symbol:'circle', symbolSize:8, data:d.values,
-                lineStyle:{width:3,color:'#ED8936',shadowColor:'rgba(237,137,54,.6)',shadowBlur:14},
-                itemStyle:{color:'#F6AD55',borderColor:'#ED8936',borderWidth:2,shadowColor:'rgba(237,137,54,.8)',shadowBlur:10},
-                areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(237,137,54,.45)'},{offset:1,color:'rgba(237,137,54,0)'}]}}
-            }]
-        });
+    // ---------- мини-спарклайны KPI ----------
+    document.querySelectorAll('canvas[data-spark]').forEach(function(cv){
+        SvCharts.drawSparkline(cv);
     });
 
-    // ---------- «Водопад списаний» — stacked bar, градиент + скруглённый верх ----------
-    var wf = echarts.init(document.getElementById('waterfall'));
-    fetch('@Url.Action("ChartDataWaterfall", "Inventory")').then(function(r){ return r.json(); }).then(function(d){
-        document.getElementById('waterfallSkel').style.display='none';
-        document.getElementById('waterfall').style.display='block';
-        var base = [0, d.start - d.byOrder, d.start - d.byOrder - d.byExpired, 0];
-        var vals = [d.start, d.byOrder, d.byExpired, d.current];
-        function grad(c1,c2){ return {type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:c1},{offset:1,color:c2}]}; }
-        wf.setOption({
-            grid:{left:8,right:8,top:24,bottom:24,containLabel:true},
-            xAxis:{type:'category',data:['Утро','По заказам','Просрочка','Сейчас'],axisLabel:{color:AX},axisLine:{lineStyle:{color:GRID}}},
-            yAxis:{type:'value',axisLabel:{color:AX},splitLine:{lineStyle:{color:GRID}}},
-            tooltip:Object.assign({trigger:'axis',axisPointer:{type:'shadow'}}, TIP),
-            series:[
-                {type:'bar',stack:'w',itemStyle:{color:'rgba(255,255,255,0.03)'},data:base,tooltip:{show:false},silent:true},
-                {type:'bar',stack:'w',barWidth:'46%',itemStyle:{borderRadius:[8,8,0,0]},
-                 data:[
-                    {value:vals[0],itemStyle:{color:grad('#48BB78','#2f9e63')}},
-                    {value:vals[1],itemStyle:{color:grad('#ED8936','#c56a21')}},
-                    {value:vals[2],itemStyle:{color:grad('#F56565','#c93e3e')}},
-                    {value:vals[3],itemStyle:{color:grad('#48BB78','#2f9e63')}}],
-                 label:{show:true,position:'top',color:'#E2E8F0',fontSize:10}}
-            ]
-        });
+    // ---------- графики ----------
+    SvCharts.initAll({
+        river:     { el: 'riverChart',   skel: 'riverSkel',     empty: 'riverEmpty',     err: 'riverError',
+                     url: '@Url.Action("ChartDataRiver", "Inventory")',           type: 'river' },
+        pulse:     { el: 'orderPulse',   skel: 'pulseSkel',     empty: 'pulseEmpty',     err: 'pulseError',
+                     url: '@Url.Action("ChartDataOrderPulse", "Inventory")',      type: 'pulse' },
+        waterfall: { el: 'waterfall',    skel: 'waterfallSkel', empty: 'waterfallEmpty', err: 'waterfallError',
+                     url: '@Url.Action("ChartDataWaterfall", "Inventory")',       type: 'waterfall' },
+        heatmap:   { el: 'heatmap',      skel: 'heatmapSkel',   empty: 'heatmapEmpty',   err: 'heatmapError',
+                     url: '@Url.Action("ChartDataExpiryHeatmap", "Inventory")',   type: 'heatmap' }
     });
-
-    // ---------- «Карта просрочки» — heatmap, шкала тёмно-зелёный→оранжевый→красный ----------
-    var hm = echarts.init(document.getElementById('heatmap'));
-    fetch('@Url.Action("ChartDataExpiryHeatmap", "Inventory")').then(function(r){ return r.json(); }).then(function(d){
-        document.getElementById('heatmapSkel').style.display='none';
-        document.getElementById('heatmap').style.display='block';
-        var max = d.data.length ? Math.max.apply(null, d.data.map(function(x){return x[2];})) : 1;
-        hm.setOption({
-            grid:{left:8,right:14,top:8,bottom:34,containLabel:true},
-            xAxis:{type:'category',data:d.days,axisLabel:{color:AX},splitArea:{show:true,areaStyle:{color:['rgba(255,255,255,0.015)','rgba(255,255,255,0)']}}},
-            yAxis:{type:'category',data:d.products,axisLabel:{color:AX,fontSize:10}},
-            visualMap:{min:0,max:max,calculable:true,orient:'horizontal',left:'center',bottom:0,
-                inRange:{color:['#1d3a2a','#ED8936','#F56565']},textStyle:{color:AX}},
-            tooltip:Object.assign({position:'top'}, TIP),
-            series:[{type:'heatmap',data:d.data,label:{show:true,color:'#E2E8F0',fontSize:9},
-                itemStyle:{borderRadius:4,borderColor:'#171a21',borderWidth:1},
-                emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,.6)'}}}]
-        });
-    });
-    window.addEventListener('resize', function(){ wf.resize(); hm.resize(); pulse.resize(); });
 
     // ---------- рекомендации: кнопки «в акцию» ----------
     var hotCount = 0;
@@ -330,17 +162,6 @@
             document.getElementById('hotCount').textContent = hotCount;
         });
     });
-
-    // ---------- маскот-подсказчик ----------
-    var bubble = document.getElementById('bubble'), txt = document.getElementById('bubbleText'),
-        nameEl = document.getElementById('bubbleName'), img = document.getElementById('mascotImg'),
-        mascot = document.getElementById('mascot'), ti = 0;
-    function showTip(){ txt.textContent = TIPS[ti]; nameEl.textContent = 'Рин · подсказка '+(ti+1)+'/'+TIPS.length; }
-    showTip();
-    var rotator = setInterval(function(){ ti = (ti+1)%TIPS.length; showTip(); }, 6500);
-    document.getElementById('bubbleNext').onclick = function(){ ti=(ti+1)%TIPS.length; showTip(); };
-    document.getElementById('bubbleHide').onclick = function(){ bubble.style.display='none'; mascot.classList.add('min'); clearInterval(rotator); };
-    img.onclick = function(){ var hidden = bubble.style.display==='none'; bubble.style.display = hidden?'block':'none'; mascot.classList.toggle('min', !hidden); };
 })();
 </script>
 @await Html.PartialAsync("_InventoryRealtime")

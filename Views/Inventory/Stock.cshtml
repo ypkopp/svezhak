@@ -4,18 +4,19 @@
     bool expiringOnly = ViewBag.ExpiringOnly;
 }
 
-<div class="d-flex justify-content-between align-items-baseline mb-1">
-    <h1 class="sv-page-title">Склад</h1>
+<h1 class="sv-page-title fade-up">Склад</h1>
+<div class="d-flex justify-content-between align-items-center mb-3 fade-up">
+    <p class="sv-page-sub mb-0">Остатки по партиям, отсортированы по сроку годности (FEFO)</p>
     <label class="sv-toggle">
         <input type="checkbox" id="expToggle" @(expiringOnly ? "checked" : "") />
         только истекающие (&lt;48ч)
     </label>
 </div>
-<p class="sv-page-sub">Остатки по партиям, отсортированы по сроку годности (FEFO)</p>
 
-<div class="sv-card">
+<div class="sv-card fade-up">
     @if (stock.Any())
     {
+        <div class="sv-table-wrap">
         <table class="sv-table">
             <thead>
                 <tr>
@@ -37,15 +38,17 @@
             }
             </tbody>
         </table>
+        </div>
     }
     else
     {
-        <p class="sv-muted mb-0">@(expiringOnly ? "Нет истекающих партий." : "Склад пуст — примите поставку.")</p>
+        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt=""/><p>@(expiringOnly ? "Нет истекающих партий." : "Склад пуст — примите поставку.")</p></div>
     }
 </div>
 
 @section Scripts {
 <script>
+    document.querySelectorAll('.fade-up').forEach(function(el, i){ setTimeout(function(){ el.classList.add('in'); }, 60 + i*75); });
     document.getElementById('expToggle').addEventListener('change', function () {
         window.location.href = '@Url.Action("Stock", "Inventory")' + (this.checked ? '?expiringOnly=true' : '');
     });
