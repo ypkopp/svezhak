@@ -1,0 +1,145 @@
+@using SmartInventory.Models.Structure
+@{
+    ViewData["Title"] = "Сотрудники";
+    var codes = (List<AccessCode>)ViewBag.Codes;
+    var selfId = (int?)ViewBag.SelfCodeId;
+    var roles = (ValueTuple<SmartInventory.Authorization.AppRole, string>[])ViewBag.Roles;
+    string RoleBadge(SmartInventory.Authorization.AppRole r) => r switch
+    {
+        SmartInventory.Authorization.AppRole.Admin => "<span class=\"sv-badge sv-badge-red\">админ</span>",
+        SmartInventory.Authorization.AppRole.RestaurantManager or SmartInventory.Authorization.AppRole.Manager => "<span class=\"sv-badge sv-badge-accent\">менеджер</span>",
+        SmartInventory.Authorization.AppRole.HeadChef => "<span class=\"sv-badge sv-badge-yellow\">шеф</span>",
+        SmartInventory.Authorization.AppRole.OrganizationOwner => "<span class=\"sv-badge sv-badge-accent\">владелец</span>",
+        SmartInventory.Authorization.AppRole.ServerAdmin => "<span class=\"sv-badge sv-badge-muted\">server</span>",
+        _ => "<span class=\"sv-badge sv-badge-green\">повар</span>",
+    };
+}
+
+<div class="sv-title-row fade-up">
+    <div>
+        <div class="sv-kicker">Админ · персонал</div>
+        <h1 class="sv-page-title">Сотрудники</h1>
+        <div class="sv-page-sub mb-0">Access-коды входа для вашего ресторана. Код показывается один раз при создании.</div>
+    </div>
+    <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#createEmployeeModal">＋ Новый сотрудник</button>
+</div>
+
+@if (ViewBag.Error is string err && !string.IsNullOrEmpty(err))
+{
+    <div class="sv-alert sv-alert-danger fade-up" role="alert">@err</div>
+}
+@if (ViewBag.NewCode is string newCode && !string.IsNullOrEmpty(newCode))
+{
+    <div class="sv-card fade-up" style="border-color:#48BB7855;margin-bottom:14px">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <img src="~/img/brand/st-check.png" style="width:40px" alt="" />
+            <div style="flex:1;min-width:180px">
+                <div class="sv-eyebrow" style="color:var(--gr)">Сотрудник добавлен — код показан один раз</div>
+                <div style="font:700 15px var(--disp);margin-top:4px">@ViewBag.NewCodeName</div>
+            </div>
+            <code class="sv-led-clock" style="font-size:22px;letter-spacing:.12em;min-width:auto;padding:12px 18px">@newCode</code>
+            <button class="btn-sv-ghost btn-sm" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('@newCode')">Копировать</button>
+        </div>
+        <div class="sv-surface-caption mt-2">Передайте этот код сотруднику для входа. После ухода со страницы он больше не отображается.</div>
+    </div>
+}
+
+<div class="sv-card fade-up">
+    <div class="sv-section-title">Коды доступа <span class="sv-live-dot"></span></div>
+    @if (codes.Count == 0)
+    {
+        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Пока нет ни одного access-кода.</p></div>
+    }
+    else
+    {
+        <div class="sv-table-wrap">
+            <table class="sv-table">
+                <thead>
+                    <tr><th>Сотрудник</th><th>Роль</th><th>Статус</th><th style="text-align:right">Действие</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var c in codes)
+                {
+                    var isSelf = c.Id == selfId;
+                    <tr class="@(c.IsActive ? "" : "sv-row-expired")">
+                        <td>
+                            <div style="font-weight:800">@(c.EmployeeName ?? $"Сотрудник #{c.Id}")</div>
+                            <div class="sv-muted" style="font-size:10px;font-family:var(--mono)">ID @c.Id</div>
+                        </td>
+                        <td>@Html.Raw(RoleBadge(c.Role))</td>
+                        <td>
+                            @if (c.IsActive)
+                            {
+                                <span class="sv-badge sv-badge-green">активен</span>
+                            }
+                            else
+                            {
+                                <span class="sv-badge sv-badge-muted">деактивирован</span>
+                            }
+                        </td>
+                        <td style="text-align:right">
+                            @if (isSelf)
+                            {
+                                <span class="sv-chip" style="height:28px">это вы</span>
+                            }
+                            else
+                            {
+                                <form asp-action="ToggleEmployee" method="post" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    @if (c.IsActive)
+                                    {
+                                        <button class="btn-sv-danger-outline btn-sm" type="submit" onclick="return confirm('Деактивировать @(c.EmployeeName ?? "сотрудника")? Доступ будет отключён.')">Деактивировать</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn-sv-ghost btn-sm" type="submit">Активировать</button>
+                                    }
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Модалка: новый сотрудник -->
+<div class="modal fade" id="createEmployeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:linear-gradient(165deg,#1b1e27f2,#111318f2);border:1px solid var(--bd);border-radius:20px;color:var(--tx)">
+            <form asp-action="CreateEmployee" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="border-color:#ffffff10">
+                    <div>
+                        <div class="sv-kicker">Новый сотрудник</div>
+                        <h5 class="modal-title" style="font:700 17px var(--disp)">Создать access-код</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="sv-label d-block mb-1">Имя сотрудника</label>
+                    <input class="sv-input mb-3" type="text" name="employeeName" placeholder="Например, Рин" required maxlength="100" />
+                    <label class="sv-label d-block mb-1">Роль</label>
+                    <select class="sv-select" name="role">
+                        @foreach (var (value, label) in roles)
+                        {
+                            <option value="@label">@label</option>
+                        }
+                    </select>
+                    <div class="sv-surface-caption mt-3">Код из 8 символов будет сгенерирован автоматически и показан один раз.</div>
+                </div>
+                <div class="modal-footer" style="border-color:#ffffff10">
+                    <button type="button" class="btn-sv-ghost" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn-sv-primary">Создать код</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>
+}

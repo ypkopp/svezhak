@@ -1,0 +1,134 @@
+@using SmartInventory.Models.Inventory
+@using SmartInventory.Models.Structure
+@{
+    ViewData["Title"] = "Расписание";
+    var days = (List<DateOnly>)ViewBag.Days;
+    var today = (DateOnly)ViewBag.Today;
+    var weekOffset = (int)ViewBag.WeekOffset;
+    var shiftsByDay = (Dictionary<DateOnly, List<Shift>>)ViewBag.Shifts;
+    var employees = (List<AccessCode>)ViewBag.Employees;
+    var positions = (string[])ViewBag.Positions;
+    string[] dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+    string PosColor(string p) => p switch
+    {
+        "шеф" => "var(--ye)",
+        "менеджер" => "var(--a1)",
+        _ => "var(--gr)",
+    };
+    var weekStart = days[0];
+    var weekEnd = days[6];
+}
+
+<div class="sv-title-row fade-up">
+    <div>
+        <div class="sv-kicker">Админ · смены</div>
+        <h1 class="sv-page-title">Расписание</h1>
+        <div class="sv-page-sub mb-0">@weekStart.ToString("dd.MM") — @weekEnd.ToString("dd.MM.yyyy") · неделя @(weekOffset == 0 ? "(текущая)" : weekOffset > 0 ? $"+{weekOffset}" : weekOffset.ToString())</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn-sv-ghost btn-sm" asp-action="Schedule" asp-route-weekOffset="@(weekOffset - 1)">← Пред</a>
+        <a class="sv-chip" style="height:34px;text-decoration:none" asp-action="Schedule" asp-route-weekOffset="0">Сегодня</a>
+        <a class="btn-sv-ghost btn-sm" asp-action="Schedule" asp-route-weekOffset="@(weekOffset + 1)">След →</a>
+        <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#addShiftModal">＋ Смена</button>
+    </div>
+</div>
+
+@if (ViewBag.Error is string err && !string.IsNullOrEmpty(err))
+{
+    <div class="sv-alert sv-alert-danger fade-up" role="alert">@err</div>
+}
+
+<div class="sv-card fade-up">
+    <div class="sv-week-grid">
+        @for (var i = 0; i < 7; i++)
+        {
+            var day = days[i];
+            var isToday = day == today;
+            shiftsByDay.TryGetValue(day, out var dayShifts);
+            <div class="sv-day-col @(isToday ? "is-today" : "")">
+                <div class="sv-day-head">
+                    <span class="sv-day-name">@dayNames[i]</span>
+                    <span class="sv-day-num @(isToday ? "is-today" : "")">@day.Day</span>
+                </div>
+                <div class="sv-day-body">
+                    @if (dayShifts is { Count: > 0 })
+                    {
+                        foreach (var s in dayShifts)
+                        {
+                            <div class="sv-shift-card" style="--pos:@PosColor(s.Position)">
+                                <div class="sv-shift-name">@(s.AccessCode?.EmployeeName ?? "—")</div>
+                                <div class="sv-shift-pos">@s.Position</div>
+                                <div class="sv-shift-time">@s.StartTime.ToString("HH\\:mm")–@s.EndTime.ToString("HH\\:mm")</div>
+                                <form asp-action="DeleteShift" method="post" class="sv-shift-del" onsubmit="return confirm('Удалить смену @(s.AccessCode?.EmployeeName) @day.ToString("dd.MM")?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@s.Id" />
+                                    <input type="hidden" name="weekOffset" value="@weekOffset" />
+                                    <button type="submit" aria-label="Удалить">×</button>
+                                </form>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="sv-day-empty">—</div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Модалка: добавить смену -->
+<div class="modal fade" id="addShiftModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:linear-gradient(165deg,#1b1e27f2,#111318f2);border:1px solid var(--bd);border-radius:20px;color:var(--tx)">
+            <form asp-action="AddShift" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="weekOffset" value="@weekOffset" />
+                <div class="modal-header" style="border-color:#ffffff10">
+                    <div>
+                        <div class="sv-kicker">Новая смена</div>
+                        <h5 class="modal-title" style="font:700 17px var(--disp)">Добавить в расписание</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="sv-label d-block mb-1">Сотрудник</label>
+                    <select class="sv-select mb-3" name="accessCodeId" required>
+                        @foreach (var e in employees)
+                        {
+                            <option value="@e.Id">@(e.EmployeeName ?? $"Сотрудник #{e.Id}")</option>
+                        }
+                    </select>
+                    <label class="sv-label d-block mb-1">Дата</label>
+                    <input class="sv-input mb-3" type="date" name="date" value="@today.ToString("yyyy-MM-dd")" required />
+                    <div class="row g-2">
+                        <div class="col">
+                            <label class="sv-label d-block mb-1">Начало</label>
+                            <input class="sv-input" type="time" name="startTime" value="09:00" required />
+                        </div>
+                        <div class="col">
+                            <label class="sv-label d-block mb-1">Конец</label>
+                            <input class="sv-input" type="time" name="endTime" value="23:00" required />
+                        </div>
+                    </div>
+                    <label class="sv-label d-block mb-1 mt-3">Должность</label>
+                    <select class="sv-select" name="position">
+                        @foreach (var p in positions)
+                        {
+                            <option value="@p">@p</option>
+                        }
+                    </select>
+                </div>
+                <div class="modal-footer" style="border-color:#ffffff10">
+                    <button type="button" class="btn-sv-ghost" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn-sv-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>
+}
