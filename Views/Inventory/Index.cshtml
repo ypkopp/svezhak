@@ -67,6 +67,13 @@
 
 <!-- Графики ECharts -->
 <div class="row g-3 mb-3">
+    <div class="col-md-12">
+        <div class="sv-card fade-up">
+            <div class="sv-section-title">Пульс заказов · 24 часа</div>
+            <div id="pulseSkel" class="sv-chart-skel"></div>
+            <div id="orderPulse" class="sv-chart" style="display:none"></div>
+        </div>
+    </div>
     <div class="col-md-6">
         <div class="sv-card fade-up">
             <div class="sv-section-title">Водопад списаний · сегодня</div>
@@ -119,7 +126,6 @@
                 <div class="sv-section-title mb-0">💡 Рекомендуем продать</div>
                 <span class="sv-section-title mb-0" style="color:var(--sv-accent)"><span id="hotCount">0</span> в hot offer</span>
             </div>
-            @{ var pushedAny = 0; }
             @foreach (var r in recommended)
             {
                 var col = r.HoursLeft < 12 ? "#F56565" : r.HoursLeft < 24 ? "#ED8936" : "#48BB78";
@@ -172,70 +178,147 @@
         'Блюдо попадает в стоп-лист, когда не хватает хотя бы одного ингредиента.',
         'Hot offers — блюда с горящими ингредиентами. Продавай их первыми.'
     ];
-    // ---------- река свежести ----------
-    var body = document.getElementById('riverBody'), MAX = 72;
+    // ---------- река свежести: layout без наездов ----------
+    var body = document.getElementById('riverBody'), MAX = 72, GAP = 8, LANE_H = 46, TOP = 30, LANES = 5;
     function urgency(h){ return h < 12 ? 'hot' : h < 24 ? 'warm' : 'ok'; }
-    fetch('@Url.Action("ChartDataRiver", "Inventory")').then(function(r){ return r.json(); }).then(function(batches){
-        var lanes = [[],[],[]];
-        batches.forEach(function(b,i){ lanes[i%3].push(b); });
-        lanes.forEach(function(lane, li){
-            lane.forEach(function(b){
-                var chip = document.createElement('div');
-                chip.className = 'sv-chip ' + urgency(b.hoursLeft);
-                chip.style.left = 'calc(' + (b.hoursLeft/MAX*100) + '% + 6px)';
-                chip.style.top = (30 + li*46) + 'px';
-                chip.innerHTML = '<b>'+b.name+'</b><em>'+String(b.hoursLeft).replace('.',',')+' ч</em>';
-                chip.title = b.delivery + ' · ' + b.qty + ' ' + b.unit;
-                chip.onmouseenter = function(){ chip.classList.add('hv'); };
-                chip.onmouseleave = function(){ chip.classList.remove('hv'); };
-                body.appendChild(chip);
-            });
-        });
-        if(!batches.length){
+
+    // временный чип-мерилка для ширины по контенту
+    function measure(b){
+        var el = document.createElement('div');
+        el.className = 'sv-chip ' + urgency(b.hoursLeft);
+        el.style.visibility = 'hidden'; el.style.position = 'absolute'; el.style.left = '-9999px';
+        el.innerHTML = '<b>'+b.name+'</b><em>'+String(b.hoursLeft).replace('.',',')+' ч</em>';
+        body.appendChild(el);
+        var w = el.offsetWidth;
+        el.remove();
+        return w;
+    }
+
+    function layoutRiver(batches){
+        // убираем старые чипы
+        body.querySelectorAll('.sv-chip, .sv-empty').forEach(function(e){ e.remove(); });
+        if (!batches.length){
             var p = document.createElement('div'); p.className='sv-empty'; p.style.padding='1rem';
             p.innerHTML='<img src="/img/brand/chef-4-sm.png" style="width:54px"><p class="sv-muted">Партий с живым сроком нет.</p>';
-            body.appendChild(p);
+            body.appendChild(p); body.style.height = '190px'; return;
         }
+        var W = body.clientWidth;
+        // сортируем по сроку — сначала самые срочные
+        var items = batches.slice().sort(function(a,b){ return a.hoursLeft - b.hoursLeft; }).map(function(b){
+            var w = measure(b);
+            var cx = Math.min(W - w/2, Math.max(w/2, (b.hoursLeft / MAX) * W));
+            return { b: b, w: w, x: cx - w/2 };
+        });
+        // lanes[li] = массив {x0, x1} занятых отрезков
+        var lanes = Array.from({length: LANES}, function(){ return []; });
+        var used = 0;
+        items.forEach(function(it){
+            var placed = false;
+            for (var li = 0; li < LANES; li++){
+                var lane = lanes[li], clash = false;
+                for (var k = 0; k < lane.length; k++){
+                    if (it.x < lane[k].x1 + GAP && it.x + it.w + GAP > lane[k].x0) { clash = true; break; }
+                }
+                if (!clash){ lane.push({x0: it.x, x1: it.x + it.w}); it.li = li; placed = true; used = Math.max(used, li + 1); break; }
+            }
+            if (!placed){
+                // все дорожки заняты — в самую короткую (сдвигаем вправо за последний чип)
+                var li = 0, minEnd = Infinity;
+                lanes.forEach(function(lane, i){ var end = lane.length ? lane[lane.length-1].x1 : -Infinity; if (end < minEnd){ minEnd = end; li = i; } });
+                it.li = li;
+                it.x = Math.min(W - it.w, minEnd + GAP);
+                lanes[li].push({x0: it.x, x1: it.x + it.w});
+                used = Math.max(used, li + 1);
+            }
+        });
+        items.forEach(function(it){
+            var b = it.b, chip = document.createElement('div');
+            chip.className = 'sv-chip ' + urgency(b.hoursLeft);
+            chip.style.left = it.x + 'px';
+            chip.style.top = (TOP + it.li * LANE_H) + 'px';
+            chip.innerHTML = '<b>'+b.name+'</b><em>'+String(b.hoursLeft).replace('.',',')+' ч</em>';
+            chip.title = b.name + ' · ' + b.delivery + ' · ' + b.qty + ' ' + b.unit;
+            chip.onmouseenter = function(){ chip.classList.add('hv'); };
+            chip.onmouseleave = function(){ chip.classList.remove('hv'); };
+            body.appendChild(chip);
+        });
+        body.style.height = (TOP + used * LANE_H + 14) + 'px';
+    }
+
+    var riverData = [];
+    fetch('@Url.Action("ChartDataRiver", "Inventory")').then(function(r){ return r.json(); }).then(function(batches){
+        riverData = batches; layoutRiver(riverData);
+    });
+    window.addEventListener('resize', function(){ layoutRiver(riverData); });
+
+    // ---------- общий тёмный стиль ECharts ----------
+    var AX = '#8b93a3', GRID = 'rgba(255,255,255,.05)';
+    var TIP = { backgroundColor:'#1d212b', borderColor:'#2a2f3a', borderWidth:1, textStyle:{color:'#E2E8F0', fontSize:12}, confine:true };
+
+    // ---------- «Пульс заказов» — плавная area-line с градиентом ----------
+    var pulse = echarts.init(document.getElementById('orderPulse'));
+    fetch('@Url.Action("ChartDataOrderPulse", "Inventory")').then(function(r){ return r.json(); }).then(function(d){
+        document.getElementById('pulseSkel').style.display='none';
+        document.getElementById('orderPulse').style.display='block';
+        pulse.setOption({
+            grid:{left:8,right:14,top:18,bottom:24,containLabel:true},
+            xAxis:{type:'category',data:d.labels,boundaryGap:false,axisLabel:{color:AX},axisLine:{lineStyle:{color:GRID}}},
+            yAxis:{type:'value',axisLabel:{color:AX},splitLine:{lineStyle:{color:GRID}}},
+            tooltip:Object.assign({trigger:'axis'}, TIP),
+            series:[{
+                name:'заказы', type:'line', smooth:true, symbol:'circle', symbolSize:8, data:d.values,
+                lineStyle:{width:3,color:'#ED8936',shadowColor:'rgba(237,137,54,.6)',shadowBlur:14},
+                itemStyle:{color:'#F6AD55',borderColor:'#ED8936',borderWidth:2,shadowColor:'rgba(237,137,54,.8)',shadowBlur:10},
+                areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(237,137,54,.45)'},{offset:1,color:'rgba(237,137,54,0)'}]}}
+            }]
+        });
     });
 
-    // ---------- водопад списаний ----------
+    // ---------- «Водопад списаний» — stacked bar, градиент + скруглённый верх ----------
     var wf = echarts.init(document.getElementById('waterfall'));
     fetch('@Url.Action("ChartDataWaterfall", "Inventory")').then(function(r){ return r.json(); }).then(function(d){
         document.getElementById('waterfallSkel').style.display='none';
         document.getElementById('waterfall').style.display='block';
         var base = [0, d.start - d.byOrder, d.start - d.byOrder - d.byExpired, 0];
         var vals = [d.start, d.byOrder, d.byExpired, d.current];
+        function grad(c1,c2){ return {type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:c1},{offset:1,color:c2}]}; }
         wf.setOption({
-            grid:{left:8,right:8,top:18,bottom:24,containLabel:true},
-            xAxis:{type:'category',data:['Утро','По заказам','Просрочка','Сейчас'],axisLabel:{color:'#8b93a5'},axisLine:{lineStyle:{color:'#2a2f3a'}}},
-            yAxis:{type:'value',axisLabel:{color:'#8b93a5'},splitLine:{lineStyle:{color:'rgba(42,47,58,.5)'}}},
+            grid:{left:8,right:8,top:24,bottom:24,containLabel:true},
+            xAxis:{type:'category',data:['Утро','По заказам','Просрочка','Сейчас'],axisLabel:{color:AX},axisLine:{lineStyle:{color:GRID}}},
+            yAxis:{type:'value',axisLabel:{color:AX},splitLine:{lineStyle:{color:GRID}}},
+            tooltip:Object.assign({trigger:'axis',axisPointer:{type:'shadow'}}, TIP),
             series:[
-                {type:'bar',stack:'w',itemStyle:{color:'transparent'},data:base,tooltip:{show:false},silent:true},
-                {type:'bar',stack:'w',barWidth:'46%',
-                 data:[{value:vals[0],itemStyle:{color:'#48BB78'}},{value:vals[1],itemStyle:{color:'#ED8936'}},{value:vals[2],itemStyle:{color:'#F56565'}},{value:vals[3],itemStyle:{color:'#48BB78'}}],
+                {type:'bar',stack:'w',itemStyle:{color:'rgba(255,255,255,0.03)'},data:base,tooltip:{show:false},silent:true},
+                {type:'bar',stack:'w',barWidth:'46%',itemStyle:{borderRadius:[8,8,0,0]},
+                 data:[
+                    {value:vals[0],itemStyle:{color:grad('#48BB78','#2f9e63')}},
+                    {value:vals[1],itemStyle:{color:grad('#ED8936','#c56a21')}},
+                    {value:vals[2],itemStyle:{color:grad('#F56565','#c93e3e')}},
+                    {value:vals[3],itemStyle:{color:grad('#48BB78','#2f9e63')}}],
                  label:{show:true,position:'top',color:'#E2E8F0',fontSize:10}}
-            ],
-            tooltip:{trigger:'axis',axisPointer:{type:'shadow'}}
+            ]
         });
     });
 
-    // ---------- heatmap просрочки ----------
+    // ---------- «Карта просрочки» — heatmap, шкала тёмно-зелёный→оранжевый→красный ----------
     var hm = echarts.init(document.getElementById('heatmap'));
     fetch('@Url.Action("ChartDataExpiryHeatmap", "Inventory")').then(function(r){ return r.json(); }).then(function(d){
         document.getElementById('heatmapSkel').style.display='none';
         document.getElementById('heatmap').style.display='block';
         var max = d.data.length ? Math.max.apply(null, d.data.map(function(x){return x[2];})) : 1;
         hm.setOption({
-            grid:{left:8,right:14,top:8,bottom:30,containLabel:true},
-            xAxis:{type:'category',data:d.days,axisLabel:{color:'#8b93a5'},splitArea:{show:true}},
-            yAxis:{type:'category',data:d.products,axisLabel:{color:'#8b93a5',fontSize:10}},
+            grid:{left:8,right:14,top:8,bottom:34,containLabel:true},
+            xAxis:{type:'category',data:d.days,axisLabel:{color:AX},splitArea:{show:true,areaStyle:{color:['rgba(255,255,255,0.015)','rgba(255,255,255,0)']}}},
+            yAxis:{type:'category',data:d.products,axisLabel:{color:AX,fontSize:10}},
             visualMap:{min:0,max:max,calculable:true,orient:'horizontal',left:'center',bottom:0,
-                inRange:{color:['#171a21','#ED8936','#F56565']},textStyle:{color:'#8b93a5'}},
+                inRange:{color:['#1d3a2a','#ED8936','#F56565']},textStyle:{color:AX}},
+            tooltip:Object.assign({position:'top'}, TIP),
             series:[{type:'heatmap',data:d.data,label:{show:true,color:'#E2E8F0',fontSize:9},
-                emphasis:{itemStyle:{shadowBlur:8,shadowColor:'rgba(0,0,0,.6)'}}}]
+                itemStyle:{borderRadius:4,borderColor:'#171a21',borderWidth:1},
+                emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,.6)'}}}]
         });
     });
-    window.addEventListener('resize', function(){ wf.resize(); hm.resize(); });
+    window.addEventListener('resize', function(){ wf.resize(); hm.resize(); pulse.resize(); });
 
     // ---------- рекомендации: кнопки «в акцию» ----------
     var hotCount = 0;

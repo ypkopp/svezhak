@@ -161,6 +161,35 @@ public class InventoryController(
         return Json(batches);
     }
 
+    // GET /Inventory/ChartData/orderPulse — заказы по часам за последние 24 ч
+    [HttpGet]
+    public async Task<IActionResult> ChartDataOrderPulse()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+        var from = now.AddHours(-24);
+
+        var rows = await db.Orders
+            .Where(o => o.RestaurantId == rid && o.CreatedAt >= from)
+            .Select(o => o.CreatedAt)
+            .ToListAsync();
+
+        // bucket по часам
+        var buckets = new int[24];
+        for (var i = 0; i < 24; i++)
+        {
+            var bucketStart = from.AddHours(i);
+            buckets[i] = rows.Count(t => t >= bucketStart && t < bucketStart.AddHours(1));
+        }
+
+        var labels = Enumerable.Range(0, 24)
+            .Select(i => from.AddHours(i).ToLocalTime().ToString("HH:mm"))
+            .ToList();
+
+        return Json(new { labels, values = buckets });
+    }
+
     // GET /Inventory/ChartData/waterfall — водопад списаний за сегодня
     [HttpGet]
     public async Task<IActionResult> ChartDataWaterfall()
