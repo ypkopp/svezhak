@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "Профиль";
+    var name = (string)ViewBag.EmployeeName;
+    var initials = string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => char.ToUpper(w[0]))).Take(2);
+    string initialsStr = new(initials.ToArray());
+    if (string.IsNullOrEmpty(initialsStr)) initialsStr = "?";
+}
+
+<div class="sv-title-row fade-up">
+    <div>
+        <div class="sv-kicker">Аккаунт</div>
+        <h1 class="sv-page-title">Профиль сотрудника</h1>
+        <div class="sv-page-sub mb-0">Данные доступа и привязка к ресторану.</div>
+    </div>
+</div>
+
+<div class="sv-grid-12">
+    <div class="sv-card sv-col-5 fade-up" style="text-align:center;padding-top:30px">
+        <div class="sv-profile-avatar">@initialsStr</div>
+        <div style="font:700 20px var(--disp);margin-top:14px">@name</div>
+        <div class="sv-badge sv-badge-accent" style="margin-top:8px">@ViewBag.Role</div>
+        <div class="sv-surface-caption" style="margin-top:16px">
+            @(ViewBag.IsActive ? "Доступ активен" : "Доступ деактивирован")
+        </div>
+        <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:18px">
+            @Html.AntiForgeryToken()
+            <button class="btn-sv-danger-outline w-100" type="submit">↪ Выйти</button>
+        </form>
+    </div>
+    <div class="sv-card sv-col-7 fade-up">
+        <div class="sv-section-title">Данные доступа</div>
+        <div class="sv-prof-rows">
+            <div class="sv-prof-row"><span class="sv-prof-k">Имя</span><b>@name</b></div>
+            <div class="sv-prof-row"><span class="sv-prof-k">Роль</span><b>@ViewBag.Role</b></div>
+            <div class="sv-prof-row"><span class="sv-prof-k">Ресторан</span><b>@ViewBag.Restaurant</b></div>
+            <div class="sv-prof-row"><span class="sv-prof-k">Организация</span><b>@ViewBag.Organization</b></div>
+            <div class="sv-prof-row"><span class="sv-prof-k">Код доступа</span><code class="sv-led-clock" style="font-size:15px;min-width:auto;padding:8px 14px">@ViewBag.MaskedCode</code></div>
+        </div>
+        <div class="sv-surface-caption mt-3">Код скрыт — показываются только последние 4 символа. Полный код выдаёт администратор.</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>
+}

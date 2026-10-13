@@ -29,7 +29,7 @@
     <div class="sv-app-shell">
         <aside class="sv-handoff-sidebar">
             <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index">
-                <img src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
+                <img data-theme-logo src="~/img/brand/logo-1a.png" data-src-a="@Url.Content("~/img/brand/logo-1a.png")" data-src-b="@Url.Content("~/img/brand/logo-1b.png")" asp-append-version="true" alt="СВЕЖАК" />
             </a>
             <div class="sv-sidebar-caption">Склад без просрочки</div>
             <nav class="sv-handoff-nav" aria-label="Основная навигация">
@@ -63,12 +63,26 @@
         </aside>
         <div class="sv-main-shell">
             <header class="sv-handoff-topbar">
-                <label class="sv-global-search"><span>⌕</span><input type="search" placeholder="Найти партию, блюдо, поставку…" data-global-search /><kbd>⌘K</kbd></label>
+                <label class="sv-global-search" id="searchWrap">
+                    <span>⌕</span>
+                    <input type="search" placeholder="Найти партию, блюдо, поставку…" data-global-search autocomplete="off" />
+                    <kbd>⌘K</kbd>
+                    <div class="sv-search-drop" id="searchDrop" hidden></div>
+                </label>
                 <div class="sv-topbar-tools">
-                    <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Переключить тему"><span class="sv-theme-dot"></span><span data-theme-label>Тема A · Скан</span></button>
+                    <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Переключить тему">
+                        <span class="sv-theme-knob"><img data-theme-knob src="~/img/brand/logo-1a-sm.png" alt="" /></span>
+                        <span class="sv-theme-label"><strong data-theme-label>Тема A</strong><small data-theme-sub>Скан · оранж</small></span>
+                    </button>
                     <span class="sv-led-clock" data-led-clock>00:00</span>
-                    <button class="sv-icon-button" type="button" aria-label="Уведомления">♢<i></i></button>
-                    <div class="sv-profile"><b>ДМ</b><span><strong>@User.Identity?.Name</strong><small>«Сакура», Тверская</small></span></div>
+                    <div class="sv-bell-wrap">
+                        <button class="sv-icon-button" type="button" id="bellBtn" aria-label="Уведомления">♢<i id="bellDot" hidden></i></button>
+                        <div class="sv-bell-drop" id="bellDrop" hidden>
+                            <div class="sv-bell-head"><b>Уведомления</b><button id="bellRead" type="button">прочитано</button></div>
+                            <div id="bellList"><div class="sv-bell-empty">Загрузка…</div></div>
+                        </div>
+                    </div>
+                    <a class="sv-profile" asp-controller="Account" asp-action="Profile" title="Профиль"><b>@((User.Identity?.Name ?? "?").FirstOrDefault())</b><span><strong>@User.Identity?.Name</strong><small>профиль →</small></span></a>
                 </div>
             </header>
             <main class="sv-handoff-main" role="main">@RenderBody()</main>

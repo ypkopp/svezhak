@@ -14,6 +14,34 @@ public class AccountController(ApplicationDbContext db) : Controller
         return View();
     }
 
+    // GET /Account/Profile — профиль сотрудника: имя, роль, ресторан, код, выход
+    [HttpGet("Profile")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> Profile()
+    {
+        var codeIdStr = User.FindFirstValue("AccessCodeId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(codeIdStr, out var codeId)) return Forbid();
+
+        var code = await db.AccessCodes
+            .Include(c => c.Organization)
+            .FirstOrDefaultAsync(c => c.Id == codeId);
+        if (code is null) return NotFound();
+
+        var restaurant = await db.Restaurants
+            .FirstOrDefaultAsync(r => r.OrganizationId == code.OrganizationId);
+
+        // Маскируем код — показываем только последние 4 символа
+        var masked = code.Code.Length > 4 ? new string('•', code.Code.Length - 4) + code.Code[^4..] : code.Code;
+
+        ViewBag.EmployeeName = code.EmployeeName ?? $"Сотрудник #{code.Id}";
+        ViewBag.Role = code.Role.ToString();
+        ViewBag.MaskedCode = masked;
+        ViewBag.Restaurant = restaurant?.Address ?? code.Organization?.Name ?? "—";
+        ViewBag.Organization = code.Organization?.Name ?? "—";
+        ViewBag.IsActive = code.IsActive;
+        return View();
+    }
+
     [HttpGet("Login")]
     public IActionResult Login(string? returnUrl = null)
     {
