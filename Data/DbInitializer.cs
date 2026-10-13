@@ -13,12 +13,18 @@ namespace SmartInventory.Data;
 public static class DbInitializer
 {
     public const string ManagerAccessCode = "MANAGER1234";
+    public const string AdminAccessCode = "ADMIN1234";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
 
         await db.Database.MigrateAsync();
+
+        // Сотрудники и доступы сидим идемпотентно — независимо от того,
+        // наполнен ли уже склад. Это отдельный блок, чтобы демо-учётки
+        // появлялись и на уже засиденной БД.
+        await SeedStaffAsync(db);
 
         // Сидим только пустую БД: если склад уже наполнен — ничего не трогаем
         if (await db.Products.AnyAsync())
@@ -242,6 +248,7 @@ public static class DbInitializer
         await db.Database.MigrateAsync();
 
         // Порядок удаления — от дочерних к родительским (FK = Restrict)
+        db.Shifts.RemoveRange(db.Shifts);
         db.WriteOffs.RemoveRange(db.WriteOffs);
         db.OrderItems.RemoveRange(db.OrderItems);
         db.Orders.RemoveRange(db.Orders);
@@ -258,5 +265,61 @@ public static class DbInitializer
         await db.SaveChangesAsync();
 
         await SeedAsync(services);
+    }
+
+    /// <summary>
+    /// Демо-персонал и доступы: админ + пара сотрудников со сменами на сегодня.
+    /// Идемпотентно — добивает только то, чего ещё нет, поэтому безопасно
+    /// вызывать и на уже засиденной БД.
+    /// </summary>
+    private static async Task SeedStaffAsync(ApplicationDbContext db)
+    {
+        var org = await db.Organizations.FirstOrDefaultAsync();
+        if (org is null) return; // склады ещё не созданы — сработает на следующем прогоне
+
+        var restaurant = await db.Restaurants
+            .Where(r => r.OrganizationId == org.Id)
+            .FirstOrDefaultAsync();
+        if (restaurant is null) return;
+        var rid = restaurant.Id;
+
+        async Task<AccessCode> EnsureCodeAsync(string code, AppRole role, string name)
+        {
+            var existing = await db.AccessCodes.FirstOrDefaultAsync(c => c.Code == code);
+            if (existing is not null) return existing;
+            var created = new AccessCode(code, role, org.Id) { EmployeeName = name, IsActive = true };
+            db.AccessCodes.Add(created);
+            await db.SaveChangesAsync();
+            return created;
+        }
+
+        // Админ владеет разделом /Admin — код входит отдельно от менеджера
+        await EnsureCodeAsync(AdminAccessCode, AppRole.Admin, "Демо-админ");
+
+        // Линейный персонал для виджета «Смена» и расписания
+        var rin = await EnsureCodeAsync("CHEF0001", AppRole.HeadChef, "Рин");
+        var mika = await EnsureCodeAsync("COOK0001", AppRole.Staff, "Мика");
+
+        // Смены на сегодня — чтобы виджет «Смена» ожил сразу после входа
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        async Task EnsureShiftAsync(AccessCode code, string position, TimeOnly start, TimeOnly end)
+        {
+            var exists = await db.Shifts.AnyAsync(s =>
+                s.RestaurantId == rid && s.AccessCodeId == code.Id && s.Date == today);
+            if (exists) return;
+            db.Shifts.Add(new Shift
+            {
+                RestaurantId = rid,
+                AccessCodeId = code.Id,
+                Date = today,
+                StartTime = start,
+                EndTime = end,
+                Position = position,
+            });
+        }
+
+        await EnsureShiftAsync(rin, "шеф", new TimeOnly(9, 0), new TimeOnly(23, 0));
+        await EnsureShiftAsync(mika, "повар", new TimeOnly(12, 0), new TimeOnly(20, 0));
+        await db.SaveChangesAsync();
     }
 }

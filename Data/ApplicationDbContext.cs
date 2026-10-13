@@ -20,6 +20,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<OrderItem> OrderItems { get; set; } = null!;
     public DbSet<WriteOff> WriteOffs { get; set; } = null!;
 
+    // Расписание смен
+    public DbSet<Shift> Shifts { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -81,6 +84,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<RecipeItem>().HasIndex(r => r.DishId);
         modelBuilder.Entity<RecipeItem>().HasIndex(r => r.ProductId);
         modelBuilder.Entity<OrderItem>().HasIndex(o => o.OrderId);
+
+        // Расписание смен: недельная сетка и виджет — всегда по ресторану и дате
+        modelBuilder.Entity<Shift>().HasIndex(s => new { s.RestaurantId, s.Date });
+        modelBuilder.Entity<Shift>()
+            .HasOne(s => s.AccessCode)
+            .WithMany()
+            .HasForeignKey(s => s.AccessCodeId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // У Order/Batch/Product несколько дочерних таблиц — каскадные удаления
         // создают циклические пути, запрещённые в SQL Server. Все складские FK

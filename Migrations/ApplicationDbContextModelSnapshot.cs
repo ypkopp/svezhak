@@ -227,6 +227,43 @@ namespace SmartInventory.Migrations
                     b.ToTable("RecipeItems");
                 });
 
+            modelBuilder.Entity("SmartInventory.Models.Inventory.Shift", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AccessCodeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("Position")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("RestaurantId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccessCodeId");
+
+                    b.HasIndex("RestaurantId", "Date");
+
+                    b.ToTable("Shifts");
+                });
+
             modelBuilder.Entity("SmartInventory.Models.Inventory.WriteOff", b =>
                 {
                     b.Property<int>("Id")
@@ -423,6 +460,17 @@ namespace SmartInventory.Migrations
                     b.Navigation("Dish");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SmartInventory.Models.Inventory.Shift", b =>
+                {
+                    b.HasOne("SmartInventory.Models.Structure.AccessCode", "AccessCode")
+                        .WithMany()
+                        .HasForeignKey("AccessCodeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AccessCode");
                 });
 
             modelBuilder.Entity("SmartInventory.Models.Inventory.WriteOff", b =>

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartInventory.Models.Structure;
 
 namespace SmartInventory.Models.Inventory;
 
@@ -104,6 +105,24 @@ public class OrderItem
     public Dish Dish { get; init; } = null!;
 
     public int Qty { get; set; }
+}
+
+public class Shift
+{
+    public int Id { get; init; }
+    public int RestaurantId { get; init; }
+
+    // Сотрудник — FK на AccessCode
+    public int AccessCodeId { get; set; }
+    public AccessCode AccessCode { get; set; } = null!;
+
+    public DateOnly Date { get; set; }
+    public TimeOnly StartTime { get; set; }
+    public TimeOnly EndTime { get; set; }
+
+    // "шеф" / "повар" / "менеджер"
+    [MaxLength(20)]
+    public string Position { get; set; } = null!;
 }
 
 public class WriteOff

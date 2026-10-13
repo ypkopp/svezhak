@@ -8,6 +8,7 @@ public enum AppRole
     RestaurantManager,
     OrganizationOwner,
     ServerAdmin,
+    Admin,
 }
 
 public static class AppRoleExtensions
@@ -19,7 +20,8 @@ public static class AppRoleExtensions
         AppRole.HeadChef => 3,
         AppRole.RestaurantManager => 4,
         AppRole.OrganizationOwner => 5,
-        AppRole.ServerAdmin => 6,
+        AppRole.Admin => 6,
+        AppRole.ServerAdmin => 7,
         _ => 0
     };
     
