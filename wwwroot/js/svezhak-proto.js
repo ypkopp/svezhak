@@ -151,9 +151,9 @@
         node.querySelectorAll('.sv-th-c').forEach(function (x) { x.classList.remove('hv'); });
         node.querySelectorAll('.sv-th-p').forEach(function (x) { x.classList.remove('on'); });
         cell.classList.add('hv');
-        var p = cell.querySelector ? null : null;
-        node.querySelector('.sv-th-p[data-row="' + cell.dataset.r + '"]')?.classList.add('on');
-        out.innerHTML = 'query --item "' + esc(cell.dataset.p) + '" --day ' + esc(cell.dataset.day) + ' → <b>' + esc(num(cell.dataset.v)) + ' ' + esc(cell.dataset.unit || '') + '</b> истекает';
+        var row = node.querySelector('.sv-th-p[data-row="' + cell.dataset.r + '"]');
+        if (row) row.classList.add('on');
+        out.innerHTML = 'query --item "' + esc(cell.dataset.p) + '" --day ' + esc(cell.dataset.day) + ' → <b>' + esc(num(cell.dataset.v)) + '</b> истекает';
       });
       cell.addEventListener('mouseleave', function () {
         out.innerHTML = 'watch --expiry --days 7<span class="sv-th-caret">▍</span>';
