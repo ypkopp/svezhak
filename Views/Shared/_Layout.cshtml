@@ -2,94 +2,82 @@
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
-    string Active(string action) =>
-        currentController == "Inventory" && currentAction == action ? " active" : "";
-    var isAuthed = User.Identity != null && User.Identity.IsAuthenticated;
+    string Active(string action) => currentController == "Inventory" && currentAction == action ? " active" : "";
+    var isAuthed = User.Identity?.IsAuthenticated == true;
 }
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>@ViewData["Title"] - СВЕЖАК</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — СВЕЖАК</title>
     <script type="importmap"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="~/img/brand/logo-led.png"/>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="~/css/svezhak.css" asp-append-version="true"/>
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
-    <link rel="stylesheet" href="~/SmartInventory.styles.css" asp-append-version="true"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="~/img/brand/logo-led.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/svezhak.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SmartInventory.styles.css" asp-append-version="true" />
 </head>
-<body>
-<!-- Липкая шапка: только лого (в нём уже есть слово СВЕЖАК) + пульс + действия -->
-<header class="sv-topbar">
-    <a class="sv-brand" asp-controller="Inventory" asp-action="Index">
-        <img src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" class="sv-brand-img" />
-    </a>
-    @await Html.PartialAsync("_Pulse")
-    <div class="sv-topbar-act">
-        @if (isAuthed)
-        {
-            <form asp-controller="Inventory" asp-action="ResetDemo" method="post"
-                  onsubmit="return confirm('Сбросить демо-данные? Все заказы и списания будут удалены.');">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn-sv-danger-outline">⟲ Сбросить демо</button>
-            </form>
-            <span class="sv-muted sv-username">@User.Identity?.Name</span>
-            <form asp-controller="Account" asp-action="Logout" method="post">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn-sv-ghost">Выйти</button>
-            </form>
-        }
-        else
-        {
-            <a class="btn-sv-ghost" asp-controller="Account" asp-action="Login">Войти</a>
-        }
+<body class="sv-app-body">
+<div class="sv-background" aria-hidden="true"></div>
+@if (isAuthed)
+{
+    <div class="sv-app-shell">
+        <aside class="sv-handoff-sidebar">
+            <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index">
+                <img src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
+            </a>
+            <div class="sv-sidebar-caption">Склад без просрочки</div>
+            <nav class="sv-handoff-nav" aria-label="Основная навигация">
+                <a asp-controller="Inventory" asp-action="Index" class="sv-handoff-nav-item@(Active("Index"))">
+                    <span class="sv-nav-icon">⌂</span><span>Дашборд</span><b class="sv-nav-badge sv-badge-danger">@((int?)ViewBag.KpiExpiring ?? 0)</b>
+                </a>
+                <a asp-controller="Inventory" asp-action="Stock" class="sv-handoff-nav-item@(Active("Stock"))"><span class="sv-nav-icon">▦</span><span>Склад</span></a>
+                <a asp-controller="Inventory" asp-action="Deliveries" class="sv-handoff-nav-item@(Active("Deliveries"))"><span class="sv-nav-icon">⇩</span><span>Поставки</span></a>
+                <a asp-controller="Inventory" asp-action="Order" class="sv-handoff-nav-item@(Active("Order"))"><span class="sv-nav-icon">▤</span><span>Заказ</span></a>
+                <a asp-controller="Inventory" asp-action="StopList" class="sv-handoff-nav-item@(Active("StopList"))"><span class="sv-nav-icon">⊘</span><span>Стоп-лист</span><b class="sv-nav-badge sv-badge-success">0</b></a>
+                <a asp-controller="Advisor" asp-action="Index" class="sv-handoff-nav-item@(currentController == "Advisor" ? " active" : "")"><span class="sv-nav-icon">✦</span><span>Советник</span></a>
+            </nav>
+            <div class="sv-sidebar-shift">
+                <img src="~/img/brand/chef-4-sm.png" alt="" />
+                <div><span>Смена</span><strong>Рин · шеф</strong><small>до 23:00 · 4 повара</small></div>
+            </div>
+            <div class="sv-sidebar-foot">
+                <form asp-controller="Inventory" asp-action="ResetDemo" method="post" onsubmit="return confirm('Сбросить демо-данные? Все заказы и списания будут удалены.');">
+                    @Html.AntiForgeryToken()
+                    <button class="sv-sidebar-action is-danger" type="submit">↺ <span>Сбросить демо</span></button>
+                </form>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button class="sv-sidebar-action" type="submit">↪ <span>Выйти</span></button>
+                </form>
+            </div>
+        </aside>
+        <div class="sv-main-shell">
+            <header class="sv-handoff-topbar">
+                <label class="sv-global-search"><span>⌕</span><input type="search" placeholder="Найти партию, блюдо, поставку…" data-global-search /><kbd>⌘K</kbd></label>
+                <div class="sv-topbar-tools">
+                    <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Переключить тему"><span class="sv-theme-dot"></span><span data-theme-label>Тема A · Скан</span></button>
+                    <span class="sv-led-clock" data-led-clock>00:00</span>
+                    <button class="sv-icon-button" type="button" aria-label="Уведомления">♢<i></i></button>
+                    <div class="sv-profile"><b>ДМ</b><span><strong>@User.Identity?.Name</strong><small>«Сакура», Тверская</small></span></div>
+                </div>
+            </header>
+            <main class="sv-handoff-main" role="main">@RenderBody()</main>
+            <footer class="sv-handoff-footer">© 2026 — СВЕЖАК · мониторинг остатков и сроков годности</footer>
+        </div>
     </div>
-</header>
-
-<div class="sv-shell">
-    @if (isAuthed)
-    {
-        <!-- Левый сайдбар -->
-        <nav class="sv-sidebar">
-            <a asp-controller="Inventory" asp-action="Index" class="sv-side-item@(Active("Index"))" title="Дашборд">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
-                <span>Дашборд</span>
-            </a>
-            <a asp-controller="Inventory" asp-action="Stock" class="sv-side-item@(Active("Stock"))" title="Склад">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
-                <span>Склад</span>
-            </a>
-            <a asp-controller="Inventory" asp-action="Deliveries" class="sv-side-item@(Active("Deliveries"))" title="Поставки">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="5" width="15" height="12" rx="1"/><path d="M16 9h4l3 3v5h-7V9z"/><circle cx="5" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>
-                <span>Поставки</span>
-            </a>
-            <a asp-controller="Inventory" asp-action="Order" class="sv-side-item@(Active("Order"))" title="Заказ">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-12L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/></svg>
-                <span>Заказ</span>
-            </a>
-            <a asp-controller="Inventory" asp-action="StopList" class="sv-side-item@(Active("StopList"))" title="Стоп-лист">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M5.5 5.5l13 13"/></svg>
-                <span>Стоп-лист</span>
-            </a>
-        </nav>
-    }
-
-    <div class="sv-content">
-        <main role="main" class="pb-4">
-            @RenderBody()
-        </main>
-        <footer class="sv-footer sv-muted">
-            &copy; 2026 — СВЕЖАК · мониторинг остатков и сроков годности
-        </footer>
-    </div>
-</div>
-
+}
+else
+{
+    <main role="main">@RenderBody()</main>
+}
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/svezhak-shell.js" asp-append-version="true"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

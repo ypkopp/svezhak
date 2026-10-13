@@ -30,6 +30,9 @@ builder.Services.AddScoped<IAuthorizationHandler, ManageRestaurantAuthorizationH
 builder.Services.AddScoped<IAuthorizationHandler, ManageOrganizationAuthorizationHandler>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<HotOffersService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient(nameof(AdvisorService));
+builder.Services.AddScoped<AdvisorService>();
 
 // SignalR + свип просрочки + шина событий склада
 builder.Services.AddSignalR();

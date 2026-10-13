@@ -5,84 +5,76 @@
     var products = (List<Product>)ViewBag.Products;
 }
 
-<h1 class="sv-page-title">Поставки</h1>
-<p class="sv-page-sub">Приёмка и журнал поставок — ExpiresAt = сейчас + срок годности в часах</p>
-
-@if (TempData["DeliveryOk"] is string ok) { <div class="sv-alert sv-alert-success mb-3">@ok</div> }
-@if (TempData["DeliveryError"] is string err) { <div class="sv-alert sv-alert-danger mb-3">@err</div> }
-
-<div class="row g-3">
-    <div class="col-md-5">
-        <div class="sv-card">
-            <div class="sv-section-title">📦 Приёмка поставки</div>
-            <form asp-action="Deliveries" method="post">
-                @Html.AntiForgeryToken()
-                <div class="mb-3">
-                    <label class="sv-label">Номер поставки</label>
-                    <input name="number" class="sv-input" placeholder="D-004" required />
-                </div>
-                <div class="sv-label mb-2">Позиции</div>
-                <div id="lines"></div>
-                <button type="button" class="btn-sv-ghost btn-sm mb-3" id="addLine">+ строка</button>
-                <button type="submit" class="btn-sv-primary w-100">Принять поставку</button>
-            </form>
-        </div>
+<div class="sv-title-row fade-up">
+    <div>
+        <h1 class="sv-page-title">Поставки</h1>
+        <div class="sv-page-sub mb-0">Приёмка новых партий и история поставок. Срок партии = сейчас + часы.</div>
     </div>
-    <div class="col-md-7">
-        <div class="sv-card">
-            <div class="sv-section-title">Журнал поставок</div>
-            @if (deliveries.Any())
-            {
+    <img class="sv-sticker" src="~/img/brand/st-box.png" alt="" />
+</div>
+
+@if (TempData["DeliveryOk"] is string ok) { <div class="sv-form-success mb-3">@ok</div> }
+@if (TempData["DeliveryError"] is string err) { <div class="sv-form-alert mb-3">@err</div> }
+
+<div class="sv-delivery-layout">
+    <section class="sv-card fade-up">
+        <div class="sv-section-title">📦 Приёмка поставки</div>
+        <form asp-action="Deliveries" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3"><label class="sv-label">Номер поставки</label><input name="number" class="sv-input" placeholder="D-004" required /></div>
+            <div class="sv-label mb-2">Позиции</div>
+            <div id="deliveryLines"></div>
+            <button type="button" id="addLine" class="btn-sv-ghost btn-sm mb-3">+ строка</button>
+            <button type="submit" class="btn-sv-primary w-100">Принять поставку</button>
+        </form>
+    </section>
+
+    <section class="sv-card fade-up">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="sv-section-title mb-0">Журнал поставок</div><span class="sv-ai-note">@deliveries.Count записей</span>
+        </div>
+        @if (deliveries.Any())
+        {
+            <div class="sv-timeline">
                 @foreach (var d in deliveries)
                 {
-                    <div class="mb-3 pb-3" style="border-bottom:1px solid var(--sv-border)">
-                        <div class="d-flex justify-content-between">
-                            <strong>@d.Number</strong>
-                            <span class="sv-muted" style="font-size:.82rem">@d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
-                        </div>
-                        <div class="mt-1">
+                    <div class="sv-timeline-item">
+                        <div class="sv-timeline-dot"></div>
+                        <div class="sv-timeline-head"><b>@d.Number</b><span class="sv-muted mono">@d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span></div>
+                        <div class="d-flex flex-wrap gap-1">
                             @foreach (var b in d.Batches)
                             {
-                                <span class="sv-badge sv-badge-muted me-1 mb-1">@b.Product?.Name @($"{b.QtyInitial:0.##}") {b.Product?.Unit}</span>
+                                <span class="sv-badge sv-badge-muted">@b.Product?.Name <b>@($"{b.QtyInitial:0.##}") @b.Product?.Unit</b></span>
                             }
                         </div>
                     </div>
                 }
-            }
-            else
-            {
-                <p class="sv-muted mb-0">Поставок ещё не было.</p>
-            }
-        </div>
-    </div>
+            </div>
+        }
+        else
+        {
+            <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Поставок ещё не было — самая первая приёмка появится здесь.</p></div>
+        }
+    </section>
 </div>
 
 @section Scripts {
-<script>
+    <script>
     const products = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(products.Select(p => new { p.Id, p.Name, p.Unit })));
-    const lines = document.getElementById('lines');
-
+    const lines = document.getElementById('deliveryLines');
     function addLine() {
         const row = document.createElement('div');
-        row.className = 'row g-2 mb-2 align-items-center';
+        row.className = 'sv-dynamic-line';
         row.innerHTML = `
-            <div class="col-6">
-                <select name="productId" class="sv-select" required>
-                    <option value="">— продукт —</option>
-                    ${products.map(p => `<option value="${p.Id}">${p.Name} (${p.Unit})</option>`).join('')}
-                </select>
-            </div>
-            <div class="col-3">
-                <input name="qty" type="number" step="0.01" min="0.01" class="sv-input" placeholder="кол-во" required />
-            </div>
-            <div class="col-3 d-flex align-items-center">
-                <input name="shelfHours" type="number" step="1" min="1" class="sv-input" placeholder="часов" required />
-                <button type="button" class="btn-sv-ghost btn-sm ms-1 px-2" onclick="this.closest('.row').remove()">×</button>
-            </div>`;
+            <select name="productId" class="sv-select" required><option value="">— продукт —</option>${products.map(p => `<option value="${p.Id}">${p.Name} (${p.Unit})</option>`).join('')}</select>
+            <input name="qty" type="number" step="0.01" min="0.01" class="sv-input" placeholder="кол-во" required />
+            <input name="shelfHours" type="number" step="1" min="1" class="sv-input" placeholder="часов" required />
+            <button type="button" class="btn-sv-ghost px-2" aria-label="Удалить" onclick="this.parentElement.remove()">×</button>`;
         lines.appendChild(row);
     }
-
     document.getElementById('addLine').addEventListener('click', addLine);
     addLine();
-</script>
+    document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+    </script>
+    @await Html.PartialAsync("_InventoryRealtime")
 }

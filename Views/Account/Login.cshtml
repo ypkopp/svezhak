@@ -1,21 +1,36 @@
 @{
-    ViewData["Title"] = "Вход";
+    ViewData["Title"] = "Вход — СВЕЖАК";
 }
 
-<div class="sv-login-wrap">
-    <div class="sv-card sv-login-card">
-        <img src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" class="sv-login-logo" />
-
-        <form asp-controller="Account" asp-action="Login" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
-            <input type="text" id="code" name="code" class="sv-input" placeholder="Код доступа" required autocomplete="off" autofocus />
-            @if (ViewBag.Error != null)
-            {
-                <div class="sv-login-error">@ViewBag.Error</div>
-            }
-            <button type="submit" class="btn-sv-primary w-100 mt-3">Войти</button>
-        </form>
-    </div>
+<div class="sv-login-layout">
+    <section class="sv-login-art">
+        <img src="~/img/brand/key-visual.png" asp-append-version="true" alt="Команда СВЕЖАКа" />
+        <div class="sv-login-art-fade"></div>
+        <div class="sv-login-art-copy">
+            <div class="sv-kicker">v4 · ресторанный склад</div>
+            <h1>Каждая партия —<br /><span class="sv-gradient-text">под наблюдением.</span></h1>
+            <div class="sv-login-stats">
+                <div><b class="sv-lamp-count" style="--metric:var(--gr)">0</b><span>просрочек<br />за неделю</span></div>
+                <div><b class="sv-lamp-count" style="--metric:var(--a1)">-31%</b><span>списаний<br />за месяц</span></div>
+                <div><b class="sv-lamp-count" style="--metric:var(--ye)">24/7</b><span>мониторинг<br />сроков</span></div>
+            </div>
+        </div>
+    </section>
+    <section class="sv-login-side">
+        <div class="sv-login-theme"><button class="sv-theme-switch" type="button" data-theme-toggle><span class="sv-theme-icon" data-theme-icon>◉</span><span class="sv-theme-label"><strong data-theme-label>Тема A</strong><small>сменить</small></span></button></div>
+        <div class="sv-login-card">
+            <img class="sv-login-logo" src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
+            <div class="sv-login-heading"><b>Вход для смены</b><span>Код доступа ресторана</span></div>
+            <form asp-controller="Account" asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+                <div class="sv-login-field"><input class="sv-input" type="text" name="code" placeholder="Код доступа" autocomplete="off" autofocus required /></div>
+                @if (ViewBag.Error != null) { <div class="sv-login-message">@ViewBag.Error</div> }
+                <button class="btn-sv-primary w-100 mt-3" type="submit">Войти →</button>
+            </form>
+            <div class="sv-login-demo mt-3">Демо: <b>MANAGER1234</b></div>
+            <div class="sv-login-pulse">@await Html.PartialAsync("_Pulse")</div>
+        </div>
+        <div class="sv-login-foot">СКЛАД БЕЗ ПРОСРОЧКИ · © 2026</div>
+    </section>
 </div>
-<div class="mt-3" style="width:190px; margin:0 auto">@await Html.PartialAsync("_Pulse")</div>

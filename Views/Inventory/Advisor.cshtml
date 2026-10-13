@@ -1,0 +1,56 @@
+@model SmartInventory.Services.AdvisorService.InsightsResult
+@{
+    ViewData["Title"] = "Советник";
+    Func<string, string> catColor = c => c switch
+    {
+        "продать срочно" => "var(--rd)",
+        "заказать" => "var(--gr)",
+        "списать" => "var(--ye)",
+        _ => "var(--mut)"
+    };
+}
+
+<div class="sv-title-row fade-up">
+    <div>
+        <div class="sv-kicker">Юзу + локальные правила инвентаря</div>
+        <h1 class="sv-page-title">Советник склада</h1>
+        <div class="sv-page-sub mb-0">Инсайты по горящим партиям, стоп-листу, расходу и остаткам.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="sv-badge @(Model.UsedAi ? "sv-badge-accent" : "sv-badge-muted")">@(Model.UsedAi ? "AI-инсайты" : "локальные правила")</span>
+        <span class="sv-ai-note">обновлено @Model.GeneratedAtUtc.ToLocalTime().ToString("HH:mm")</span>
+    </div>
+</div>
+
+@if (!Model.Insights.Any())
+{
+    <div class="sv-card fade-up">
+        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Сейчас нет срочных рекомендаций — склад под контролем.</p></div>
+    </div>
+}
+else
+{
+    <div class="sv-advisor-grid">
+        @foreach (var item in Model.Insights)
+        {
+            var color = catColor(item.Category);
+            <article class="sv-advisor-card sv-hover-card fade-up" data-category="@item.Category" data-severity="@item.Severity">
+                <img src="~/img/brand/@item.Icon" alt="" />
+                <div>
+                    <div class="sv-advisor-top">
+                        <div class="sv-advisor-category" style="color:@color">@item.Category</div>
+                        <span class="sv-badge @(item.Severity == "high" ? "sv-badge-red" : item.Severity == "medium" ? "sv-badge-yellow" : "sv-badge-muted")">@item.Severity</span>
+                    </div>
+                    <h3>@item.Title</h3>
+                    <p>@item.Explanation</p>
+                    <a class="btn-sv-ghost btn-sm" href="@item.ActionUrl">@item.ActionLabel →</a>
+                </div>
+            </article>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });</script>
+    @await Html.PartialAsync("_InventoryRealtime")
+}

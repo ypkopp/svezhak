@@ -62,3 +62,6 @@ nunit-*.xml
 /.idea/projectSettingsUpdater.xml
 /.idea/vcs.xml
 /.idea/workspace.xml
+design/
+qa-*.png
+qa-*.mjs

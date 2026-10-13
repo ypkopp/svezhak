@@ -1,193 +1,198 @@
-/* СВЕЖАК — общие ECharts-хелперы: состояния, ресайз, стили, спарклайны. */
+/* СВЕЖАК — ECharts helpers: state, dark theme, resize, custom visuals. */
 (function () {
-    'use strict';
+  'use strict';
 
-    var AX = '#8b93a3', GRID = 'rgba(255,255,255,.05)';
-    var TIP = { backgroundColor: '#1d212b', borderColor: '#2a2f3a', borderWidth: 1, textStyle: { color: '#E2E8F0', fontSize: 12 }, confine: true };
+  var AX = '#7C8595', GRID = 'rgba(255,255,255,.05)';
+  var TIP = { backgroundColor: '#151923', borderColor: '#2a2f3a', borderWidth: 1, textStyle: { color: '#E2E8F0', fontSize: 12 }, confine: true };
+  var charts = [];
 
-    function show(id) { var e = document.getElementById(id); if (e) e.style.display = 'flex'; }
-    function hide(id) { var e = document.getElementById(id); if (e) e.style.display = 'none'; }
+  function el(id) { return document.getElementById(id); }
+  function show(id) { var e = el(id); if (e) e.style.display = 'flex'; }
+  function hide(id) { var e = el(id); if (e) e.style.display = 'none'; }
+  function colorFor(h) { return h < 12 ? '#F56565' : h < 24 ? '#ED8936' : '#48BB78'; }
+  function hasData(v) { return Array.isArray(v) && v.some(function (x) { return Number(x) !== 0; }); }
 
-    function urgencyColor(h) { return h < 12 ? '#F56565' : h < 24 ? '#ED8936' : '#48BB78'; }
-
-    function attachResizer(chart, el) {
-        if (typeof ResizeObserver === 'undefined') {
-            window.addEventListener('resize', function () { chart.resize(); });
-            return;
-        }
-        new ResizeObserver(function () { chart.resize(); }).observe(el);
-    }
-
-    /* ---------- Река свежести: партии как glowing-точки на оси 0–72ч ---------- */
-    function renderRiver(chart, batches) {
-        var MAX = 72;
-        // раскладываем по дорожкам: партии с близкими сроками — в соседние ряды
-        var sorted = (batches || []).slice().sort(function (a, b) { return a.hoursLeft - b.hoursLeft; });
-        var lanes = [[], [], [], []];
-        sorted.forEach(function (b, i) { lanes[i % 4].push(b); });
-        var data = [];
-        lanes.forEach(function (lane, li) {
-            lane.forEach(function (b) {
-                data.push({
-                    value: [Math.min(MAX, b.hoursLeft), li],
-                    name: b.name,
-                    itemStyle: { color: urgencyColor(b.hoursLeft) },
-                    b: b
-                });
-            });
+  function initChart(cfg) {
+    var elNode = el(cfg.el);
+    if (!elNode || typeof echarts === 'undefined') return null;
+    return new Promise(function (resolve) {
+      fetch(cfg.url)
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (data) {
+          hide(cfg.skel);
+          if (cfg.empty && cfg.isEmpty && cfg.isEmpty(data)) { show(cfg.empty); resolve(null); return; }
+          elNode.style.display = 'block';
+          var chart = echarts.init(elNode);
+          cfg.render(chart, data);
+          attachResize(chart, elNode);
+          resolve(chart);
+        })
+        .catch(function (err) {
+          hide(cfg.skel);
+          var node = el(cfg.error);
+          if (node) { node.textContent = 'Не удалось загрузить данные: ' + err.message; node.style.display = 'flex'; }
+          resolve(null);
         });
+    });
+  }
 
-        chart.setOption({
-            grid: { left: 40, right: 24, top: 30, bottom: 28 },
-            xAxis: {
-                type: 'value', min: 0, max: MAX,
-                name: 'часов до истечения', nameTextStyle: { color: AX, fontSize: 10 },
-                axisLabel: { color: AX, formatter: function (v) { return v === 0 ? 'сейчас' : '+' + v + 'ч'; } },
-                axisLine: { lineStyle: { color: GRID } }, splitLine: { lineStyle: { color: GRID } }
-            },
-            yAxis: { type: 'value', min: -0.5, max: 3.6, interval: 1, axisLabel: { show: false }, axisTick: { show: false }, splitLine: { show: false } },
-            tooltip: Object.assign({
-                trigger: 'item',
-                formatter: function (p) {
-                    var b = p.data.b;
-                    return '<b>' + b.name + '</b><br>' + b.delivery + ' · ' + b.qty + ' ' + b.unit +
-                        '<br><span style="color:' + urgencyColor(b.hoursLeft) + '">' + String(b.hoursLeft).replace('.', ',') + ' ч</span>';
-                }
-            }, TIP),
-            series: [{
-                type: 'scatter', symbolSize: 14, data: data,
-                label: {
-                    show: true, position: 'right', distance: 8, color: '#E2E8F0', fontSize: 10,
-                    formatter: function (p) { return p.name + ' · ' + String(p.data.b.hoursLeft).replace('.', ',') + ' ч'; }
-                },
-                itemStyle: { shadowBlur: 10, borderColor: '#0f1115', borderWidth: 2 },
-                emphasis: { scale: true, scaleSize: 6, itemStyle: { shadowBlur: 16, shadowColor: 'rgba(237,137,54,.6)' } },
-                markArea: {
-                    silent: true,
-                    data: [
-                        [{ name: '< 12 ч', xAxis: 0, itemStyle: { color: 'rgba(245,101,101,.09)' } },
-                         { xAxis: 12, label: { show: true, color: '#F56565', fontSize: 10, position: 'insideTop' } }],
-                        [{ name: '12–24 ч', xAxis: 12, itemStyle: { color: 'rgba(237,137,54,.07)' } },
-                         { xAxis: 24, label: { show: true, color: '#ED8936', fontSize: 10, position: 'insideTop' } }]
-                    ]
-                },
-                markLine: {
-                    silent: true, symbol: 'none',
-                    label: { formatter: 'сейчас', color: '#ED8936', fontSize: 10, position: 'insideEndTop' },
-                    lineStyle: { color: '#ED8936', width: 1.5 }, data: [{ xAxis: 0 }]
-                }
-            }]
-        });
+  function attachResize(chart, node) {
+    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', chart.resize); return; }
+    var observer = new ResizeObserver(function () { chart.resize(); });
+    observer.observe(node);
+    charts.push({ chart: chart, observer: observer });
+  }
+
+  /* Река свежести: glowing points + labels + mark areas/now */
+  function renderRiver(chart, batches) {
+    var rows = (batches || []).slice().sort(function (a, b) { return a.hoursLeft - b.hoursLeft; });
+    var laneCount = Math.min(6, Math.max(3, Math.ceil(rows.length / 3)));
+    var lanes = [];
+    var data = [];
+    rows.forEach(function (batch) {
+      var lane = 0;
+      for (var i = 0; i < laneCount; i++) {
+        var right = lanes[i] == null ? -Infinity : lanes[i];
+        if (batch.hoursLeft > right + 7) { lane = i; break; }
+      }
+      lanes[lane] = batch.hoursLeft + 7;
+      data.push({ value: [batch.hoursLeft, lane], name: batch.name, batch: batch, itemStyle: { color: colorFor(batch.hoursLeft) } });
+    });
+    chart.setOption({
+      grid: { left: 48, right: 28, top: 34, bottom: 34 },
+      xAxis: { type: 'value', min: 0, max: 72, name: 'часов до истечения', nameTextStyle: { color: AX }, axisLabel: { color: AX, formatter: function (v) { return v === 0 ? 'сейчас' : '+' + v + 'ч'; } }, axisLine: { lineStyle: { color: GRID } }, splitLine: { lineStyle: { color: GRID } } },
+      yAxis: { type: 'value', min: -0.5, max: laneCount - .4, axisLabel: { show: false }, splitLine: { show: false }, axisTick: { show: false } },
+      tooltip: Object.assign({ trigger: 'item', formatter: function (p) { var b = p.data.batch; return '<b>' + b.name + '</b><br>' + b.delivery + ' · ' + b.qty + ' ' + b.unit + '<br><b style="color:' + colorFor(b.hoursLeft) + '">' + b.hoursLeft + ' ч</b>'; } }, TIP),
+      series: [{
+        type: 'scatter', symbolSize: 16, data: data,
+        label: { show: true, position: 'right', distance: 9, formatter: function (p) { return p.data.name + ' · ' + p.data.batch.hoursLeft + ' ч'; }, color: '#E2E8F0', fontSize: 10, fontWeight: 700 },
+        itemStyle: { shadowBlur: 13, shadowColor: 'rgba(237,137,54,.55)', borderColor: '#0b0d11', borderWidth: 2 },
+        emphasis: { scale: true, scaleSize: 8, label: { fontSize: 11 } },
+        markArea: { silent: true, data: [
+          [{ name: '< 12 ч', xAxis: 0, itemStyle: { color: 'rgba(245,101,101,.09)' } }, { xAxis: 12, label: { color: '#F56565', fontSize: 10, position: 'insideTop' } }],
+          [{ name: '12–24 ч', xAxis: 12, itemStyle: { color: 'rgba(237,137,54,.07)' } }, { xAxis: 24, label: { color: '#ED8936', fontSize: 10, position: 'insideTop' } }]
+        ] },
+        markLine: { silent: true, symbol: 'none', lineStyle: { color: '#ED8936', width: 2 }, label: { formatter: 'сейчас', color: '#ED8936', fontSize: 10 }, data: [{ xAxis: 0 }] }
+      }]
+    });
+  }
+
+  function renderPulse(chart, d) {
+    chart.setOption({
+      grid: { left: 8, right: 14, top: 20, bottom: 24, containLabel: true },
+      xAxis: { type: 'category', data: d.labels, boundaryGap: false, axisLabel: { color: AX }, axisLine: { lineStyle: { color: GRID } } },
+      yAxis: { type: 'value', axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
+      tooltip: Object.assign({ trigger: 'axis' }, TIP),
+      series: [{
+        name: 'заказы', type: 'line', smooth: true, symbol: 'circle', symbolSize: 8, data: d.values,
+        lineStyle: { width: 3, color: '#ED8936', shadowColor: 'rgba(237,137,54,.7)', shadowBlur: 14 },
+        itemStyle: { color: '#F6AD55', borderColor: '#ED8936', borderWidth: 2, shadowBlur: 10, shadowColor: 'rgba(237,137,54,.9)' },
+        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(237,137,54,.45)' }, { offset: 1, color: 'rgba(237,137,54,0)' }] } }
+      }]
+    });
+  }
+
+  function gradient(c1, c2) { return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c1 }, { offset: 1, color: c2 }] }; }
+  function renderWaterfall(chart, d) {
+    var base = [0, d.start - d.byOrder, d.start - d.byOrder - d.byExpired, 0];
+    chart.setOption({
+      grid: { left: 8, right: 8, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: 'category', data: ['Утро', 'По заказам', 'Просрочка', 'Сейчас'], axisLabel: { color: AX }, axisLine: { lineStyle: { color: GRID } } },
+      yAxis: { type: 'value', axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
+      tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' } }, TIP),
+      series: [
+        { type: 'bar', stack: 'w', itemStyle: { color: 'rgba(255,255,255,0.03)' }, data: base, tooltip: { show: false }, silent: true },
+        { type: 'bar', stack: 'w', barWidth: '48%', itemStyle: { borderRadius: [8, 8, 0, 0] },
+          data: [
+            { value: d.start, itemStyle: { color: gradient('#48BB78', '#2f9e63') } },
+            { value: d.byOrder, itemStyle: { color: gradient('#ED8936', '#c56a21') } },
+            { value: d.byExpired, itemStyle: { color: gradient('#F56565', '#c93e3e') } },
+            { value: d.current, itemStyle: { color: gradient('#48BB78', '#2f9e63') } }
+          ], label: { show: true, position: 'top', color: '#E2E8F0', fontSize: 10 } }
+      ]
+    });
+  }
+
+  function renderHeatmap(chart, d) {
+    var max = d.data && d.data.length ? Math.max.apply(null, d.data.map(function (x) { return x[2]; })) : 1;
+    chart.setOption({
+      grid: { left: 10, right: 14, top: 10, bottom: 40, containLabel: true },
+      xAxis: { type: 'category', data: d.days, axisLabel: { color: AX }, splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.015)', 'rgba(255,255,255,0)'] } } },
+      yAxis: { type: 'category', data: d.products, axisLabel: { color: AX, fontSize: 10 } },
+      visualMap: { min: 0, max: max, calculable: true, orient: 'horizontal', left: 'center', bottom: 0, inRange: { color: ['#1d3a2a', '#ED8936', '#F56565'] }, textStyle: { color: AX } },
+      tooltip: Object.assign({ position: 'top' }, TIP),
+      series: [{ type: 'heatmap', data: d.data, label: { show: true, color: '#E2E8F0', fontSize: 9 }, itemStyle: { borderRadius: 4, borderColor: '#111318', borderWidth: 1 }, emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,.6)' } } }]
+    });
+  }
+
+  function renderStopForecast(chart, d) {
+    var rows = (d.dishes || []).slice(0, 12);
+    chart.setOption({
+      grid: { left: 10, right: 12, top: 18, bottom: 24, containLabel: true },
+      xAxis: { type: 'category', data: rows.map(function (x) { return x.Dish; }), axisLabel: { color: AX, fontSize: 10, interval: 0, rotate: 20 }, axisLine: { lineStyle: { color: GRID } } },
+      yAxis: { type: 'value', name: 'дней до стопа', nameTextStyle: { color: AX }, axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
+      tooltip: Object.assign({ trigger: 'axis', formatter: function (params) { var x = rows[params[0].dataIndex]; return '<b>' + x.Dish + '</b><br>' + x.LimitingProduct + '<br>запас ' + x.Stock + ' · расход ' + x.DailyUse + '/день<br>' + x.DaysUntilStop + ' дн.'; } }, TIP),
+      series: [{ type: 'bar', barWidth: '48%', data: rows.map(function (x) { return { value: x.DaysUntilStop, itemStyle: { color: x.AlreadyStopped ? '#F56565' : x.DaysUntilStop < 2 ? '#ED8936' : '#48BB78', borderRadius: [8,8,0,0] } }; }), label: { show: true, position: 'top', color: '#E2E8F0', fontSize: 9, formatter: function (p) { return p.value + 'д'; } } }]
+    });
+  }
+
+  function renderLossShare(chart, d) {
+    chart.setOption({
+      tooltip: Object.assign({ trigger: 'item', formatter: function (p) { return p.name + '<br><b>' + p.value + ' ₽</b> · ' + p.percent + '%'; } }, TIP),
+      legend: { bottom: 0, textStyle: { color: AX } },
+      series: [{ type: 'pie', radius: ['48%', '72%'], center: ['50%', '44%'],
+        itemStyle: { borderRadius: 6, borderColor: '#111318', borderWidth: 2 },
+        label: { color: '#E2E8F0', fontSize: 10 },
+        data: [
+          { name: 'Использовано в заказах', value: d.values[0], itemStyle: { color: '#48BB78' } },
+          { name: 'Списано просроченным', value: d.values[1], itemStyle: { color: '#F56565' } },
+          { name: 'Остаток на складе', value: d.values[2], itemStyle: { color: '#ED8936' } }
+        ] }]
+    });
+  }
+
+  function drawSparkline(canvas) {
+    var ctx = canvas.getContext('2d');
+    var w = canvas.width = 100, h = canvas.height = 34;
+    ctx.clearRect(0, 0, w, h);
+    ctx.beginPath();
+    var seed = Number(canvas.closest('[data-count]')?.dataset.count || 4);
+    for (var x = 0; x <= w; x += 3) {
+      var y = h - 3 - Math.abs(Math.sin(x * .14 + seed) * (h - 9));
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
+    ctx.strokeStyle = getComputedStyle(canvas).color || '#ED8936';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
 
-    /* ---------- Пульс заказов: smooth area + градиент + glow ---------- */
-    function renderPulse(chart, d) {
-        chart.setOption({
-            grid: { left: 8, right: 14, top: 18, bottom: 24, containLabel: true },
-            xAxis: { type: 'category', data: d.labels, boundaryGap: false, axisLabel: { color: AX }, axisLine: { lineStyle: { color: GRID } } },
-            yAxis: { type: 'value', axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
-            tooltip: Object.assign({ trigger: 'axis' }, TIP),
-            series: [{
-                name: 'заказы', type: 'line', smooth: true, symbol: 'circle', symbolSize: 8, data: d.values,
-                lineStyle: { width: 3, color: '#ED8936', shadowColor: 'rgba(237,137,54,.6)', shadowBlur: 14 },
-                itemStyle: { color: '#F6AD55', borderColor: '#ED8936', borderWidth: 2, shadowColor: 'rgba(237,137,54,.8)', shadowBlur: 10 },
-                areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(237,137,54,.45)' }, { offset: 1, color: 'rgba(237,137,54,0)' }] } }
-            }]
-        });
-    }
+  var renders = {
+    river: renderRiver,
+    pulse: renderPulse,
+    waterfall: renderWaterfall,
+    heatmap: renderHeatmap,
+    stopForecast: renderStopForecast,
+    lossShare: renderLossShare,
+    productionHeatmap: renderHeatmap
+  };
 
-    /* ---------- Водопад списаний ---------- */
-    function renderWaterfall(chart, d) {
-        var base = [0, d.start - d.byOrder, d.start - d.byOrder - d.byExpired, 0];
-        var vals = [d.start, d.byOrder, d.byExpired, d.current];
-        function grad(c1, c2) { return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c1 }, { offset: 1, color: c2 }] }; }
-        chart.setOption({
-            grid: { left: 8, right: 8, top: 24, bottom: 24, containLabel: true },
-            xAxis: { type: 'category', data: ['Утро', 'По заказам', 'Просрочка', 'Сейчас'], axisLabel: { color: AX }, axisLine: { lineStyle: { color: GRID } } },
-            yAxis: { type: 'value', axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
-            tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' } }, TIP),
-            series: [
-                { type: 'bar', stack: 'w', itemStyle: { color: 'rgba(255,255,255,0.03)' }, data: base, tooltip: { show: false }, silent: true },
-                {
-                    type: 'bar', stack: 'w', barWidth: '46%', itemStyle: { borderRadius: [8, 8, 0, 0] },
-                    data: [
-                        { value: vals[0], itemStyle: { color: grad('#48BB78', '#2f9e63') } },
-                        { value: vals[1], itemStyle: { color: grad('#ED8936', '#c56a21') } },
-                        { value: vals[2], itemStyle: { color: grad('#F56565', '#c93e3e') } },
-                        { value: vals[3], itemStyle: { color: grad('#48BB78', '#2f9e63') } }
-                    ],
-                    label: { show: true, position: 'top', color: '#E2E8F0', fontSize: 10 }
-                }
-            ]
-        });
-    }
+  var empties = {
+    river: function (d) { return !d || !d.length; },
+    pulse: function (d) { return !d || !d.values || !hasData(d.values); },
+    waterfall: function (d) { return !d || (d.byOrder === 0 && d.byExpired === 0); },
+    heatmap: function (d) { return !d || !d.data || !d.data.length; },
+    stopForecast: function (d) { return !d || !d.dishes || !d.dishes.length; },
+    lossShare: function (d) { return !d || !d.values || !hasData(d.values); },
+    productionHeatmap: function (d) { return !d || !d.data || !d.data.length; }
+  };
 
-    /* ---------- Карта просрочки ---------- */
-    function renderHeatmap(chart, d) {
-        var max = d.data.length ? Math.max.apply(null, d.data.map(function (x) { return x[2]; })) : 1;
-        chart.setOption({
-            grid: { left: 8, right: 14, top: 8, bottom: 34, containLabel: true },
-            xAxis: { type: 'category', data: d.days, axisLabel: { color: AX }, splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.015)', 'rgba(255,255,255,0)'] } } },
-            yAxis: { type: 'category', data: d.products, axisLabel: { color: AX, fontSize: 10 } },
-            visualMap: {
-                min: 0, max: max, calculable: true, orient: 'horizontal', left: 'center', bottom: 0,
-                inRange: { color: ['#1d3a2a', '#ED8936', '#F56565'] }, textStyle: { color: AX }
-            },
-            tooltip: Object.assign({ position: 'top' }, TIP),
-            series: [{
-                type: 'heatmap', data: d.data, label: { show: true, color: '#E2E8F0', fontSize: 9 },
-                itemStyle: { borderRadius: 4, borderColor: '#171a21', borderWidth: 1 },
-                emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } }
-            }]
-        });
-    }
-
-    var renders = { river: renderRiver, pulse: renderPulse, waterfall: renderWaterfall, heatmap: renderHeatmap };
-
-    function isEmpty(d, type) {
-        if (type === 'river') return !d || !d.length;
-        if (type === 'heatmap') return !d || !d.data || !d.data.length;
-        if (type === 'pulse') return !d || !d.values || !d.values.some(function (v) { return v > 0; });
-        if (type === 'waterfall') return !d || (d.byOrder === 0 && d.byExpired === 0);
-        return false;
-    }
-
-    function initOne(cfg) {
-        var el = document.getElementById(cfg.el);
-        if (!el) return;
-        fetch(cfg.url)
-            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-            .then(function (d) {
-                hide(cfg.skel);
-                if (isEmpty(d, cfg.type)) { show(cfg.empty); return; }
-                el.style.display = 'block';
-                var chart = echarts.init(el);
-                renders[cfg.type](chart, d);
-                attachResizer(chart, el);
-            })
-            .catch(function (e) {
-                hide(cfg.skel);
-                var err = document.getElementById(cfg.err);
-                if (err) { err.textContent = 'Не удалось загрузить данные: ' + e.message; err.style.display = 'flex'; }
-            });
-    }
-
-    /* ---------- мини-спарклайн KPI (canvas, случайная волна для объёма) ---------- */
-    function drawSparkline(cv) {
-        var c = cv.getContext('2d'), W = cv.width = 90, H = cv.height = 34;
-        c.clearRect(0, 0, W, H);
-        c.beginPath();
-        var seed = cv.closest('.sv-kpi-p').querySelector('[data-count]')?.dataset.count || '3';
-        var n = parseInt(seed, 10) || 1;
-        for (var x = 0; x <= W; x += 3) {
-            var y = H - 4 - (Math.sin(x * 0.15 + n) * 0.5 + 0.5) * (H - 10);
-            x === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
-        }
-        c.strokeStyle = '#ED8936'; c.lineWidth = 1.5; c.stroke();
-    }
-
-    window.SvCharts = {
-        initAll: function (map) { Object.keys(map).forEach(function (k) { initOne(map[k]); }); },
-        drawSparkline: drawSparkline
-    };
+  window.SvCharts = {
+    initAll: function (map) {
+      Object.keys(map).forEach(function (key) {
+        var cfg = map[key];
+        initChart({ el: cfg.el, skel: cfg.skel, empty: cfg.empty, error: cfg.error, url: cfg.url, render: renders[key], isEmpty: empties[key] });
+      });
+    },
+    drawSparkline: drawSparkline
+  };
 })();
