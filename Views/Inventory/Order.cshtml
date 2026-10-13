@@ -27,7 +27,7 @@
 
 <div class="sv-order-layout">
     <section class="sv-card fade-up">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <div class="sv-section-title mb-0">Меню</div>
             <div class="sv-order-cats">
                 @foreach (var c in categories)
@@ -47,7 +47,8 @@
                         <div class="sv-menu-meta"><span>@($"{d.Price:0}") ₽</span><span>заказ</span></div>
                         <div class="sv-qty-control">
                             <button type="button" data-delta="-1" aria-label="Меньше">−</button>
-                            <input type="number" name="qty" value="0" min="0" data-dish-id="@d.Id" />
+                            <span class="sv-qty-led" data-led>0</span>
+                            <input type="number" name="qty" value="0" min="0" data-dish-id="@d.Id" hidden />
                             <button type="button" data-delta="1" aria-label="Больше">+</button>
                         </div>
                         <input type="hidden" name="dishId" value="@d.Id" />
@@ -55,10 +56,10 @@
                 }
             </div>
             <div class="sv-order-submitbar">
-                <div><div class="sv-kicker">Позиций</div><b id="orderCount">0</b></div>
+                <div><div class="sv-kicker">Позиций</div><b id="orderCount" class="sv-led" style="color:var(--a1)">0</b></div>
                 <div><div class="sv-kicker">Сумма</div><b id="orderSum">0 ₽</b></div>
                 <span class="sv-muted flex-grow-1">Списание по FEFO — сначала самые ранние партии</span>
-                <button class="btn-sv-primary" type="submit" id="orderSubmit">Отправить на кухню →</button>
+                <button class="btn-sv-primary" type="submit" id="orderSubmit" disabled>Отправить на кухню →</button>
             </div>
         </form>
     </section>
@@ -84,6 +85,7 @@
                         <span class="sv-muted">#@o.Id</span>
                         <span class="sv-badge @(o.Status == "accepted" ? "sv-badge-green" : "sv-badge-red")">@(o.Status == "accepted" ? "принят" : "отклонён")</span>
                         <span>@o.ItemCount поз.</span>
+                        <span style="color:var(--tx);font-weight:700">@($"{o.Sum:0} ₽")</span>
                         <span class="sv-muted">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
                     </div>
                 }
@@ -107,14 +109,19 @@
             const qty = Math.max(0, Number(input.value || 0));
             count += qty;
             sum += qty * (prices[input.dataset.dishId] || 0);
-            input.closest('.sv-menu-card').classList.toggle('is-selected', qty > 0);
+            const card = input.closest('.sv-menu-card');
+            card.classList.toggle('is-selected', qty > 0);
+            const led = card.querySelector('[data-led]');
+            led.textContent = qty;
+            led.style.color = qty > 0 ? 'var(--a1)' : '#4a505c';
+            led.style.textShadow = qty > 0 ? '0 0 10px var(--a1)' : 'none';
         });
         document.getElementById('orderCount').textContent = count;
         document.getElementById('orderSum').textContent = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(sum) + ' ₽';
         document.getElementById('orderSubmit').disabled = count === 0;
     }
     form.querySelectorAll('button[data-delta]').forEach(button => button.addEventListener('click', function () {
-        const input = this.parentElement.querySelector('input');
+        const input = this.parentElement.querySelector('input[name=qty]');
         input.value = Math.max(0, Number(input.value || 0) + Number(this.dataset.delta));
         updateTotals();
     }));

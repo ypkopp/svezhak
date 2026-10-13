@@ -292,8 +292,8 @@ public class InventoryController(
         });
     }
 
-    // GET /Inventory/Stock?expiringOnly=true — остатки по партиям
-    public async Task<IActionResult> Stock(bool expiringOnly = false)
+    // GET /Inventory/Stock?expiringOnly=true&category= — остатки по партиям
+    public async Task<IActionResult> Stock(bool expiringOnly = false, string? category = null)
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
@@ -306,11 +306,14 @@ public class InventoryController(
 
         if (expiringOnly)
             query = query.Where(b => b.ExpiresAt > now && b.ExpiresAt < now.AddHours(48));
+        if (!string.IsNullOrEmpty(category))
+            query = query.Where(b => b.Product!.Category == category);
 
         var stock = (await query.OrderBy(b => b.ExpiresAt).ToListAsync())
             .Select(b => new
             {
                 Product = b.Product!.Name,
+                Category = b.Product.Category,
                 b.Product!.Unit,
                 Delivery = b.Delivery!.Number,
                 b.QtyInitial,
@@ -321,7 +324,15 @@ public class InventoryController(
             })
             .ToList();
 
+        // Категории для фильтра-чипов
+        ViewBag.Categories = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .Select(p => p.Category)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToListAsync();
         ViewBag.ExpiringOnly = expiringOnly;
+        ViewBag.Category = category;
         ViewBag.Stock = stock;
         return View();
     }
@@ -340,10 +351,14 @@ public class InventoryController(
 
         var products = await db.Products
             .Where(p => p.RestaurantId == rid)
-            .OrderBy(p => p.Name)
+            .OrderBy(p => p.Category).ThenBy(p => p.Name)
             .ToListAsync();
 
+        // Сумма поставки по закупочным ценам
+        var sums = deliveries.ToDictionary(d => d.Id, d => d.Batches.Sum(b => b.QtyInitial * b.Product.PurchasePrice));
+
         ViewBag.Deliveries = deliveries;
+        ViewBag.DeliverySums = sums;
         ViewBag.Products = products;
         return View();
     }

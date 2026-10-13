@@ -459,6 +459,47 @@ a:hover { color:var(--tx); }
 .sv-prof-k { color:var(--mut); font:600 11px var(--mono); text-transform:uppercase; letter-spacing:.1em; }
 .sv-prof-row b { font-size:13px; }
 
+/* --- Страницы: склад/поставки/заказ/стоп-лист по прототипу --- */
+.sv-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:9px; flex:none; }
+.sv-sticker-bob { animation:svBob 4s ease-in-out infinite; }
+.sv-fbar { display:grid; grid-template-columns:repeat(18,1fr); gap:2px; height:13px; min-width:110px; }
+.sv-fbar i { border-radius:2px; background:#1f232c; }
+.sv-used { display:flex; align-items:center; gap:8px; min-width:90px; }
+.sv-used div { flex:1; height:4px; border-radius:4px; background:#262b35; overflow:hidden; }
+.sv-used i { display:block; height:100%; background:#7c8595; }
+.sv-used em { font:600 11px var(--mono); font-style:normal; color:var(--mut); min-width:32px; }
+.sv-deliv-item { display:inline-flex; align-items:center; font-size:12px; color:#aab2c0; padding:5px 9px; border-radius:8px; background:#ffffff06; white-space:nowrap; }
+.sv-deliv-item b { font:700 11.5px var(--mono); color:var(--tx); margin-left:5px; }
+.sv-deliv-item .sv-dot { margin-right:6px; width:7px; height:7px; }
+.sv-deliv-sum { font:800 12px var(--mono); color:var(--gr); }
+.sv-qty-led { font:700 15px var(--mono); color:#4a505c; min-width:26px; text-align:center; }
+.sv-pill4 { font:800 11px var(--mono); padding:3px 8px; border-radius:999px; color:var(--c); background:color-mix(in oklab,var(--c) 14%,transparent); white-space:nowrap; }
+.sv-yuzu-st { position:absolute; right:14px; width:52px; mix-blend-mode:lighten; filter:drop-shadow(0 0 12px #ED8936); animation:svBob 2.6s ease-in-out infinite; }
+
+/* стоп-лист: пустое состояние + кандидаты */
+.sv-stop-empty { display:flex; align-items:center; gap:18px; padding:10px 0; }
+.sv-stop-art { position:relative; width:130px; height:120px; flex:none; border-radius:16px; background:radial-gradient(circle at 50% 80%,#48BB7830,transparent 70%),#0b0d11; overflow:hidden; }
+.sv-stop-chef { position:absolute; left:50%; bottom:-26px; width:110px; transform:translateX(-50%); }
+.sv-stop-st { position:absolute; right:6px; top:6px; width:40px; mix-blend-mode:lighten; filter:drop-shadow(0 0 9px #48BB78); animation:svBob 3s ease-in-out infinite; }
+.sv-stop-tx b { font:700 18px var(--disp); color:var(--gr); }
+.sv-stop-tx p { color:#aab2c0; font-size:13px; margin:6px 0 0; }
+
+/* hot offers: карточки по sl-card */
+.sv-sl-list { display:flex; flex-direction:column; gap:8px; }
+.sv-sl-card { display:grid; grid-template-columns:40px 1fr 96px; gap:12px; align-items:center; padding:13px; border-radius:16px; background:#ffffff04; transition:.2s; }
+.sv-sl-card:hover { background:#ffffff08; }
+.sv-sl-rank { font:800 15px var(--mono); color:#545b68; }
+.sv-sl-rank.is-top { color:var(--a1); text-shadow:0 0 12px var(--a1); }
+.sv-sl-top { display:flex; align-items:center; gap:10px; }
+.sv-sl-top b { font-size:14px; margin-right:auto; }
+.sv-sl-top .price { font:600 12px var(--mono); color:#b6bdc9; }
+.sv-sl-chain { margin-top:7px; font-size:11px; color:var(--mut); line-height:1.45; }
+.sv-sl-score { position:relative; height:3px; background:#262b35; border-radius:3px; margin-top:11px; }
+.sv-sl-score i { display:block; height:100%; border-radius:3px; background:var(--g1); box-shadow:0 0 8px var(--a1); }
+.sv-sl-score span { position:absolute; right:0; top:-15px; font:600 10px var(--mono); color:var(--mut); }
+.sv-sl-btn { height:36px; border:0; border-radius:11px; background:#ffffff08; color:var(--a1); font-size:12px; font-weight:800; box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--a1) 45%,transparent); white-space:nowrap; }
+.sv-sl-btn.on { background:var(--g1); color:#160a02; }
+
 @media(max-width:1240px) { .sv-login-layout { grid-template-columns:1fr; } .sv-login-art { min-height:360px; } .sv-login-side { min-height:580px; } }
 @media(max-width:1150px) { .sv-handoff-sidebar { width:210px; } .sv-app-shell { grid-template-columns:210px minmax(0,1fr); } .sv-global-search { width:260px; } .sv-profile span { display:none; } }
 @media(max-width:900px) { .sv-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .sv-advisor-grid { grid-template-columns:1fr; } .sv-delivery-layout,.sv-order-layout { grid-template-columns:1fr; } .sv-hero { grid-template-columns:1fr; } .sv-hero-art { min-height:180px; } .sv-hero-art img { height:190px; } .sv-week-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .sv-day-col { min-height:160px; } }

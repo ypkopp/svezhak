@@ -8,6 +8,13 @@
         "списать" => "var(--ye)",
         _ => "var(--mut)"
     };
+    Func<string, string> catIcon = c => c switch
+    {
+        "продать срочно" => "st-hot.png",
+        "заказать" => "st-box.png",
+        "списать" => "st-hourglass.png",
+        _ => "st-stop.png"
+    };
 }
 
 <div class="sv-title-row fade-up">
@@ -17,6 +24,7 @@
         <div class="sv-page-sub mb-0">Инсайты по горящим партиям, стоп-листу, расходу и остаткам.</div>
     </div>
     <div class="d-flex align-items-center gap-2">
+        <img src="~/img/brand/chef-2-sm.png" style="width:36px" alt="Юзу" />
         <span class="sv-badge @(Model.UsedAi ? "sv-badge-accent" : "sv-badge-muted")">@(Model.UsedAi ? "AI-инсайты" : "локальные правила")</span>
         <span class="sv-ai-note">обновлено @Model.GeneratedAtUtc.ToLocalTime().ToString("HH:mm")</span>
     </div>
@@ -35,9 +43,9 @@ else
         {
             var color = catColor(item.Category);
             <article class="sv-advisor-card sv-hover-card fade-up" data-category="@item.Category" data-severity="@item.Severity">
-                <img src="~/img/brand/@item.Icon" alt="" />
+                <img src="~/img/brand/@catIcon(item.Category)" alt="" />
                 <div>
-                    <div class="sv-advisor-top">
+                    <div class="sv-advisor-meta">
                         <div class="sv-advisor-category" style="color:@color">@item.Category</div>
                         <span class="sv-badge @(item.Severity == "high" ? "sv-badge-red" : item.Severity == "medium" ? "sv-badge-yellow" : "sv-badge-muted")">@item.Severity</span>
                     </div>

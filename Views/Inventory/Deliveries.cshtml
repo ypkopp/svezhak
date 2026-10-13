@@ -3,6 +3,7 @@
     ViewData["Title"] = "Поставки";
     var deliveries = (List<Delivery>)ViewBag.Deliveries;
     var products = (List<Product>)ViewBag.Products;
+    var sums = (Dictionary<int, decimal>)ViewBag.DeliverySums;
 }
 
 <div class="sv-title-row fade-up">
@@ -13,16 +14,22 @@
     <img class="sv-sticker" src="~/img/brand/st-box.png" alt="" />
 </div>
 
-@if (TempData["DeliveryOk"] is string ok) { <div class="sv-form-success mb-3">@ok</div> }
+@if (TempData["DeliveryOk"] is string ok) { <div class="sv-form-success mb-3 d-flex align-items-center gap-2"><img src="~/img/brand/chef-1-sm.png" style="width:38px" alt="" />@ok</div> }
 @if (TempData["DeliveryError"] is string err) { <div class="sv-form-alert mb-3">@err</div> }
 
 <div class="sv-delivery-layout">
     <section class="sv-card fade-up">
-        <div class="sv-section-title">📦 Приёмка поставки</div>
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="sv-section-title mb-0">Приёмка поставки</div>
+            <img src="~/img/brand/st-box.png" style="width:44px;mix-blend-mode:lighten;margin:-8px -4px -8px 0" alt="" />
+        </div>
         <form asp-action="Deliveries" method="post">
             @Html.AntiForgeryToken()
             <div class="mb-3"><label class="sv-label">Номер поставки</label><input name="number" class="sv-input" placeholder="D-004" required /></div>
-            <div class="sv-label mb-2">Позиции</div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="sv-label">Позиции</div>
+                <div class="sv-ai-note">сумма: <b id="delivSum" style="color:var(--gr)">0 ₽</b></div>
+            </div>
             <div id="deliveryLines"></div>
             <button type="button" id="addLine" class="btn-sv-ghost btn-sm mb-3">+ строка</button>
             <button type="submit" class="btn-sv-primary w-100">Принять поставку</button>
@@ -36,15 +43,20 @@
         @if (deliveries.Any())
         {
             <div class="sv-timeline">
-                @foreach (var d in deliveries)
+                @foreach (var (d, i) in deliveries.Select((x, i) => (x, i)))
                 {
                     <div class="sv-timeline-item">
                         <div class="sv-timeline-dot"></div>
-                        <div class="sv-timeline-head"><b>@d.Number</b><span class="sv-muted mono">@d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span></div>
+                        <div class="sv-timeline-head">
+                            <b>@d.Number</b>
+                            <span class="sv-badge sv-badge-muted">поставка</span>
+                            <span class="sv-muted mono" style="margin-left:auto">@d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                            <span class="sv-deliv-sum">@($"{sums[d.Id]:N0} ₽")</span>
+                        </div>
                         <div class="d-flex flex-wrap gap-1">
                             @foreach (var b in d.Batches)
                             {
-                                <span class="sv-badge sv-badge-muted">@b.Product?.Name <b>@($"{b.QtyInitial:0.##}") @b.Product?.Unit</b></span>
+                                <span class="sv-deliv-item"><span class="sv-dot" style="background:var(--a1)"></span>@b.Product?.Name <b>@($"{b.QtyInitial:0.##}") @b.Product?.Unit</b></span>
                             }
                         </div>
                     </div>
@@ -60,16 +72,26 @@
 
 @section Scripts {
     <script>
-    const products = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(products.Select(p => new { p.Id, p.Name, p.Unit })));
+    const products = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(products.Select(p => new { p.Id, p.Name, p.Unit, p.Category, price = p.PurchasePrice })));
     const lines = document.getElementById('deliveryLines');
+    function updateSum() {
+        let sum = 0;
+        lines.querySelectorAll('.sv-dynamic-line').forEach(row => {
+            const sel = row.querySelector('select'), qty = Number(row.querySelector('input[name=qty]').value || 0);
+            const p = products.find(x => x.Id == sel.value);
+            if (p && qty > 0) sum += qty * p.price;
+        });
+        document.getElementById('delivSum').textContent = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(sum) + ' ₽';
+    }
     function addLine() {
         const row = document.createElement('div');
         row.className = 'sv-dynamic-line';
         row.innerHTML = `
-            <select name="productId" class="sv-select" required><option value="">— продукт —</option>${products.map(p => `<option value="${p.Id}">${p.Name} (${p.Unit})</option>`).join('')}</select>
+            <select name="productId" class="sv-select" required><option value="">— продукт —</option>${products.map(p => `<option value="${p.Id}">${p.Name} · ${p.Category} (${p.Unit})</option>`).join('')}</select>
             <input name="qty" type="number" step="0.01" min="0.01" class="sv-input" placeholder="кол-во" required />
             <input name="shelfHours" type="number" step="1" min="1" class="sv-input" placeholder="часов" required />
-            <button type="button" class="btn-sv-ghost px-2" aria-label="Удалить" onclick="this.parentElement.remove()">×</button>`;
+            <button type="button" class="btn-sv-ghost px-2" aria-label="Удалить" onclick="this.parentElement.remove();updateSum()">×</button>`;
+        row.querySelectorAll('select,input').forEach(x => x.addEventListener('input', updateSum));
         lines.appendChild(row);
     }
     document.getElementById('addLine').addEventListener('click', addLine);

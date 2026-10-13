@@ -2,6 +2,7 @@
     ViewData["Title"] = "Стоп-лист";
     var stopList = (List<SmartInventory.Services.OrderService.StopListItem>)ViewBag.StopList;
     var hotOffers = (IEnumerable<dynamic>)ViewBag.HotOffers;
+    Func<double, string> sem = h => h < 12 ? "#F56565" : h < 24 ? "#ECC94B" : "#48BB78";
 }
 
 <div class="sv-title-row fade-up">
@@ -12,14 +13,15 @@
 </div>
 
 <div class="sv-delivery-layout">
+    @* ===== Стоп-лист ===== *@
     <section class="sv-card fade-up">
         <div class="d-flex align-items-center gap-2 mb-3">
-            <img src="~/img/brand/chef-3-sm.png" style="width:42px" alt="" />
-            <div><div class="sv-section-title mb-0">🚫 Стоп-лист</div><span class="sv-muted" style="font-size:11px">не хватает ингредиентов</span></div>
+            <img src="~/img/brand/st-stop.png" style="width:36px;mix-blend-mode:lighten" alt="" />
+            <div><div class="sv-section-title mb-0">Стоп-лист</div><span class="sv-muted" style="font-size:11px">не хватает ингредиентов</span></div>
+            <span class="sv-badge @(stopList.Any() ? "sv-badge-red" : "sv-badge-green")" style="margin-left:auto">@stopList.Count блюд</span>
         </div>
         @if (stopList.Any())
         {
-            <div class="sv-muted mb-2" style="font-size:12px">@stopList.Count блюд(о) в стоп-листе</div>
             @foreach (var s in stopList)
             {
                 <div class="mb-3 pb-3" style="border-bottom:1px solid #ffffff0c">
@@ -35,28 +37,47 @@
         }
         else
         {
-            <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Стоп-лист пуст — все блюда доступны. 🎉</p></div>
+            <div class="sv-stop-empty">
+                <div class="sv-stop-art">
+                    <img class="sv-stop-chef" src="~/img/brand/chef-4-sm.png" alt="" />
+                    <img class="sv-stop-st" src="~/img/brand/st-check.png" alt="" />
+                </div>
+                <div class="sv-stop-tx"><b>Стоп-лист пуст</b><p>Все блюда меню доступны — ингредиентов хватает.</p></div>
+            </div>
         }
     </section>
 
+    @* ===== Hot Offers ===== *@
     <section class="sv-card fade-up">
         <div class="d-flex align-items-center gap-2 mb-3">
             <img src="~/img/brand/chef-2-sm.png" style="width:42px" alt="" />
-            <div><div class="sv-section-title mb-0">🔥 Hot Offers</div><span class="sv-muted" style="font-size:11px">продать до истечения срока</span></div>
+            <div><div class="sv-section-title mb-0">Hot offers</div><span class="sv-muted" style="font-size:11px">продать до истечения срока</span></div>
+            <img src="~/img/brand/st-hot.png" class="sv-yuzu-st" alt="" />
         </div>
         @if (hotOffers.Any())
         {
-            @foreach (var h in hotOffers)
-            {
-                <div class="sv-advisor-card mb-3" style="grid-template-columns:1fr">
-                    <div>
-                        <div class="sv-advisor-top"><strong style="color:var(--a1)">@h.Name</strong><span class="sv-badge sv-badge-accent">@($"{h.HoursLeft:0.#}") ч</span></div>
-                        <div class="sv-muted mt-1" style="font-size:12px">@h.Reason</div>
-                        <div class="sv-score-bar"><i style="width:@Math.Min(100, h.Score * 2500)%"></i></div>
-                        <div class="mt-1"><span class="sv-badge sv-badge-muted">score @($"{h.Score * 1000:0.##}")</span></div>
+            <div class="sv-recs-yuzu mb-3">
+                <img src="~/img/brand/chef-2-sm.png" alt="Юзу" />
+                <div class="sv-recs-say"><b>Юзу</b>Сортирую по score: чем раньше истекает ингредиент и чем больше его в блюде — тем выше. Первые три спасут горящие партии.</div>
+            </div>
+            <div class="sv-sl-list">
+                @foreach (var (h, i) in hotOffers.Select((x, i) => (x, i)))
+                {
+                    <div class="sv-sl-card">
+                        <div class="sv-sl-rank @(i < 3 ? "is-top" : "")">@($"{i + 1:00}")</div>
+                        <div class="sv-sl-main">
+                            <div class="sv-sl-top">
+                                <b>@h.Name</b>
+                                <span class="price">@($"{h.Price:0}") ₽</span>
+                                <span class="sv-pill4" style="--c:@sem((double)h.HoursLeft)">@($"{h.HoursLeft:0.#}") ч</span>
+                            </div>
+                            <div class="sv-sl-chain">@h.Reason</div>
+                            <div class="sv-sl-score"><i style="width:@Math.Min(100, h.Score * 2500)%"></i><span class="mono">score @($"{h.Score * 1000:0.##}")</span></div>
+                        </div>
+                        <button class="sv-sl-btn" type="button" data-push>в акцию</button>
                     </div>
-                </div>
-            }
+                }
+            </div>
         }
         else
         {
@@ -66,6 +87,9 @@
 </div>
 
 @section Scripts {
-    <script>document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });</script>
+    <script>
+        document.querySelectorAll('[data-push]').forEach(function(b){b.addEventListener('click',function(){var on=this.classList.toggle('on');this.textContent=on?'✓ в акции':'в акцию';});});
+        document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+    </script>
     @await Html.PartialAsync("_InventoryRealtime")
 }
