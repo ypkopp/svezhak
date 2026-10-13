@@ -1,0 +1,10 @@
+@* Фирменная линия пульса. Атрибут alert=true → класс pulse--alert. *@
+@{
+    var alert = (ViewData["PulseAlert"] as bool?) ?? false;
+}
+<span class="sv-pulse @(alert ? "pulse--alert" : "")" aria-hidden="true">
+    <svg viewBox="0 0 120 26" preserveAspectRatio="none" width="120">
+        <path class="pulse-path" d="M0 13 H30 L36 13 L40 4 L45 22 L50 8 L55 13 H120" />
+        <path class="pulse-path pulse-peak" d="M40 4 L45 22 L50 8" />
+    </svg>
+</span>

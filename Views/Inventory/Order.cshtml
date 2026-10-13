@@ -10,13 +10,18 @@
 
 @if (TempData["OrderOk"] is string ok)
 {
-    <div class="sv-alert sv-alert-success mb-3">@ok</div>
+    <div class="sv-alert sv-alert-success mb-3 d-flex align-items-center gap-2">
+        <img src="~/img/brand/chef-1-sm.png" style="width:38px" alt="" /> @ok
+    </div>
 }
 @if (TempData["OrderError"] is string err)
 {
     <div class="sv-alert sv-alert-danger mb-3">
-        <strong>Заказ отклонён — дефицит:</strong>
-        <ul class="mb-0 mt-2">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <img src="~/img/brand/chef-3-sm.png" style="width:38px" alt="" />
+            <strong>Заказ отклонён — дефицит:</strong>
+        </div>
+        <ul class="mb-0 mt-1">
             @foreach (var line in err.Split(';'))
             {
                 <li>@line.Trim()</li>

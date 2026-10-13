@@ -140,7 +140,110 @@ public class InventoryController(
         ViewBag.Burning = burning;
         ViewBag.Recommended = recommended;
         ViewBag.Now = now;
+        // Для пульса и приветствия
+        ViewBag.HasAlert = stopList.Count > 0 || live.Any(b => b.ExpiresAt < now.AddHours(12));
+        ViewBag.ThreatCount = live.Count(b => b.ExpiresAt < now.AddHours(24));
         return View();
+    }
+
+    // GET /Inventory/ChartData/river — партии для «реки свежести»
+    [HttpGet]
+    public async Task<IActionResult> ChartDataRiver()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+
+        var batches = await db.Batches
+            .Include(b => b.Product)
+            .Include(b => b.Delivery)
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now)
+            .OrderBy(b => b.ExpiresAt)
+            .Take(12)
+            .Select(b => new
+            {
+                name = b.Product!.Name,
+                delivery = b.Delivery!.Number,
+                qty = b.QtyRemaining,
+                unit = b.Product!.Unit,
+                hoursLeft = Math.Round((b.ExpiresAt - now).TotalHours, 1),
+            })
+            .ToListAsync();
+
+        return Json(batches);
+    }
+
+    // GET /Inventory/ChartData/waterfall — водопад списаний за сегодня
+    [HttpGet]
+    public async Task<IActionResult> ChartDataWaterfall()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+        var dayStart = now.Date;
+
+        var startQty = await db.Batches
+            .Where(b => b.RestaurantId == rid)
+            .SumAsync(b => b.QtyInitial);
+
+        var writeOrder = await db.WriteOffs
+            .Where(w => w.RestaurantId == rid && w.Reason == "order" && w.CreatedAt >= dayStart)
+            .SumAsync(w => (decimal?)w.Qty) ?? 0;
+        var writeExpired = await db.WriteOffs
+            .Where(w => w.RestaurantId == rid && w.Reason == "expired" && w.CreatedAt >= dayStart)
+            .SumAsync(w => (decimal?)w.Qty) ?? 0;
+
+        var currentQty = await db.Batches
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now)
+            .SumAsync(b => b.QtyRemaining);
+
+        return Json(new
+        {
+            start = Math.Round(startQty, 2),
+            byOrder = Math.Round(writeOrder, 2),
+            byExpired = Math.Round(writeExpired, 2),
+            current = Math.Round(currentQty, 2),
+        });
+    }
+
+    // GET /Inventory/ChartData/expiryHeatmap — карта просрочки: дни × продукты
+    [HttpGet]
+    public async Task<IActionResult> ChartDataExpiryHeatmap()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+        var horizon = now.AddDays(7);
+
+        var rows = await db.Batches
+            .Include(b => b.Product)
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now && b.ExpiresAt <= horizon)
+            .GroupBy(b => new { b.Product!.Name, Day = b.ExpiresAt.Date })
+            .Select(g => new
+            {
+                product = g.Key.Name,
+                day = g.Key.Day,
+                qty = g.Sum(b => b.QtyRemaining),
+            })
+            .ToListAsync();
+
+        var products = rows.Select(r => r.product).Distinct().OrderBy(x => x).ToList();
+        var days = Enumerable.Range(0, 7).Select(i => now.Date.AddDays(i)).ToList();
+
+        // heatmap-матрица для ECharts: [x=день, y=продукт, value=qty]
+        var data = rows.Select(r => new object[]
+        {
+            days.FindIndex(d => d == r.day),
+            products.IndexOf(r.product),
+            Math.Round(r.qty, 2),
+        }).ToList();
+
+        return Json(new
+        {
+            products,
+            days = days.Select(d => d.ToString("dd.MM")).ToList(),
+            data,
+        });
     }
 
     // GET /Inventory/Stock?expiringOnly=true — остатки по партиям

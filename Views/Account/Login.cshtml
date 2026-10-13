@@ -4,8 +4,7 @@
 
 <div class="sv-login-wrap">
     <div class="sv-card sv-login-card">
-        <img src="~/img/brand/logo-1a-sm.png" asp-append-version="true" alt="СВЕЖАК" class="sv-login-logo" />
-        <div class="sv-login-title">СВЕЖАК</div>
+        <img src="~/img/brand/logo-3b.png" asp-append-version="true" alt="СВЕЖАК" class="sv-login-logo" />
 
         <form asp-controller="Account" asp-action="Login" method="post">
             @Html.AntiForgeryToken()
@@ -19,3 +18,4 @@
         </form>
     </div>
 </div>
+<div class="mt-3" style="width:190px; margin:0 auto">@await Html.PartialAsync("_Pulse")</div>
