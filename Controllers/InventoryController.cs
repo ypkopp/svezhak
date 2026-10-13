@@ -476,8 +476,9 @@ public class InventoryController(
         return View();
     }
 
-    // POST /Inventory/ResetDemo — сброс демо-данных
+    // POST /Inventory/ResetDemo — сброс демо-данных (только админ)
     [HttpPost]
+    [AuthorizeRole(AppRole.Admin)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetDemo()
     {

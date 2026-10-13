@@ -39,6 +39,9 @@ a:hover { color:var(--tx); }
 .sv-sidebar-shift div { padding-bottom:12px; display:flex; flex-direction:column; gap:2px; }
 .sv-sidebar-shift span,.sv-sidebar-shift small { font-size:10px; color:var(--mut); }
 .sv-sidebar-shift strong { font-size:12px; }
+.sv-sidebar-shift-cta { text-decoration:none; border:1px dashed color-mix(in oklab,var(--a1) 40%,transparent); transition:background .18s,border-color .18s; }
+.sv-sidebar-shift-cta:hover { background:linear-gradient(160deg,color-mix(in oklab,var(--a1) 30%,transparent),transparent 70%); }
+.sv-sidebar-shift-cta small { color:var(--a1); }
 .sv-sidebar-foot { display:flex; flex-direction:column; margin-top:10px; }
 .sv-sidebar-action { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; font-size:13px; font-weight:700; color:var(--mut); background:none; border:0; text-align:left; }
 .sv-sidebar-action:hover { background:#ffffff07; color:var(--tx); }

@@ -1,0 +1,25 @@
+@model SmartInventory.Components.ShiftWidgetModel
+
+@if (Model.Current is { } cur)
+{
+    <div class="sv-sidebar-shift" title="Активная смена">
+        <img src="~/img/brand/chef-1-sm.png" alt="" />
+        <div>
+            <span>Смена <em class="sv-badge sv-badge-green" style="font-size:8px;vertical-align:1px">Live</em></span>
+            <strong>@cur.Name · @cur.Position</strong>
+            <small>до @cur.EndTime.ToString("HH\\:mm") · @cur.OnDutyCount чел. на смене</small>
+        </div>
+    </div>
+}
+else if (Model.IsAdmin)
+{
+    <a class="sv-sidebar-shift sv-sidebar-shift-cta" asp-controller="Admin" asp-action="Schedule" title="Смен не запланировано">
+        <img src="~/img/brand/chef-1-sm.png" alt="" />
+        <div>
+            <span>Смена</span>
+            <strong>Смен нет</strong>
+            <small>Настроить расписание →</small>
+        </div>
+    </a>
+}
+@* для не-админа без смен блок просто скрывается *@

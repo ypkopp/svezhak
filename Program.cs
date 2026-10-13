@@ -30,6 +30,7 @@ builder.Services.AddScoped<IAuthorizationHandler, ManageRestaurantAuthorizationH
 builder.Services.AddScoped<IAuthorizationHandler, ManageOrganizationAuthorizationHandler>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<HotOffersService>();
+builder.Services.AddScoped<ShiftService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient(nameof(AdvisorService));
 builder.Services.AddScoped<AdvisorService>();
