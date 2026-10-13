@@ -1,6 +1,7 @@
 @{
     ViewData["Title"] = "Склад";
     var stock = (IEnumerable<dynamic>)ViewBag.Stock;
+    var groups = (IEnumerable<dynamic>)ViewBag.Groups;
     var categories = (List<string>)ViewBag.Categories;
     var curCat = (string?)ViewBag.Category;
     bool expiringOnly = ViewBag.ExpiringOnly;
@@ -8,17 +9,25 @@
     var hot = stock.Count(b => b.ExpiresAt <= now.AddHours(12));
     var warm = stock.Count(b => b.ExpiresAt > now.AddHours(12) && b.ExpiresAt < now.AddHours(24));
     var ok = stock.Count(b => b.ExpiresAt >= now.AddHours(24));
+    Func<string, string> catImg = c => c switch
+    {
+        "Рыба" => "cat-fish.png", "Мясо" => "cat-meat.png", "Овощи" => "cat-veg.png",
+        "Молочное" => "cat-dairy.png", "Бакалея" => "cat-grocery.png", "Соусы" => "cat-sauce.png",
+        _ => "st-fridge.png"
+    };
 }
 
 <div class="sv-title-row fade-up">
     <div>
         <h1 class="sv-page-title">Склад</h1>
-        <div class="sv-page-sub mb-0">Остатки по партиям, сортировка FEFO. Горящие партии выделены светофором.</div>
+        <div class="sv-page-sub mb-0">Партии сгруппированы по продукту — внутри по FEFO. Порчу списывай вручную.</div>
     </div>
     <img class="sv-sticker sv-sticker-bob" src="~/img/brand/st-fridge.png" alt="" />
 </div>
 
-@* Шапка-лампы по прототипу (v4 Sklad) *@
+@if (TempData["StockOk"] is string sok) { <div class="sv-form-success mb-3">@sok</div> }
+@if (TempData["StockError"] is string serr) { <div class="sv-form-alert mb-3">@serr</div> }
+
 <section class="sv-card fade-up mb-3">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div class="sv-stock-summary mb-0" style="flex:1;min-width:280px">
@@ -39,43 +48,56 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div class="sv-section-title mb-0">Партии на складе</div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
-            @* Фильтр по категориям *@
             <div class="d-flex gap-1 flex-wrap">
                 <a class="sv-chip @(curCat == null ? "active" : "")" href="@Url.Action("Stock", new { expiringOnly })">Все</a>
                 @foreach (var c in categories)
                 {
-                    <a class="sv-chip @(curCat == c ? "active" : "")" href="@Url.Action("Stock", new { expiringOnly, category = c })">@c</a>
+                    <a class="sv-chip @(curCat == c ? "active" : "")" href="@Url.Action("Stock", new { expiringOnly, category = c })"><img src="~/img/brand/@catImg(c)" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px" alt="" />@c</a>
                 }
             </div>
             <label class="sv-toggle"><input type="checkbox" id="expToggle" @(expiringOnly ? "checked" : "") /> &lt;48ч</label>
         </div>
     </div>
-    @if (stock.Any())
+    @if (groups.Any())
     {
-        <div class="sv-table-wrap">
-            <table class="sv-table">
-                <thead><tr><th>Продукт</th><th>Категория</th><th>Поставка</th><th>Остаток</th><th>Израсходовано</th><th>Годен до</th><th>Свежесть</th><th>Осталось</th></tr></thead>
-                <tbody>
-                @foreach (var b in stock)
-                {
-                    var used = b.QtyInitial > 0 ? 1 - (b.QtyRemaining / b.QtyInitial) : 0;
-                    var freshH = (b.ExpiresAt - now).TotalHours;
-                    var lit = Math.Max(1, (int)Math.Round(Math.Min(freshH, 72) / 72 * 18));
-                    var fc = b.ExpiresAt <= now.AddHours(12) ? "#F56565" : b.ExpiresAt < now.AddHours(24) ? "#ECC94B" : "#48BB78";
-                    <tr class="@b.RowClass">
-                        <td><i class="sv-dot" style="background:@fc;box-shadow:0 0 8px @fc"></i>@b.Product</td>
-                        <td><span class="sv-badge sv-badge-muted">@b.Category</span></td>
-                        <td><span class="sv-product-tag">@b.Delivery</span></td>
-                        <td><b>@($"{b.QtyRemaining:0.##}") @b.Unit</b></td>
-                        <td><div class="sv-used"><div><i style="width:@($"{used * 100:0}")%"></i></div><em>@($"{used * 100:0}")%</em></div></td>
-                        <td class="sv-muted">@b.ExpiresAt.ToLocalTime().ToString("dd.MM HH:mm")</td>
-                        <td><div class="sv-fbar">@for (var i = 0; i < 18; i++) { <i style="@(i < lit ? $"background:{fc};box-shadow:0 0 5px {fc}" : "")"></i> }</div></td>
-                        <td><b style="color:@fc">@b.HoursText</b></td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+        @foreach (var g in groups)
+        {
+            <div class="sv-prod-group">
+                <div class="sv-prod-head">
+                    <img src="~/img/brand/@catImg(g.Category)" class="sv-prod-ic" alt="" />
+                    <b>@g.Product</b>
+                    <span class="sv-badge sv-badge-muted">@g.Category</span>
+                    <span class="sv-prod-total">@($"{g.Total:0.##}") @g.Unit</span>
+                </div>
+                <div class="sv-table-wrap">
+                    <table class="sv-table sv-batch-table">
+                        <tbody>
+                        @foreach (var b in g.Batches)
+                        {
+                            var used = b.QtyInitial > 0 ? 1 - (b.QtyRemaining / b.QtyInitial) : 0;
+                            var freshH = (b.ExpiresAt - now).TotalHours;
+                            var lit = Math.Max(1, (int)Math.Round(Math.Min(freshH, 72) / 72 * 18));
+                            var fc = b.ExpiresAt <= now.AddHours(12) ? "#F56565" : b.ExpiresAt < now.AddHours(24) ? "#ECC94B" : "#48BB78";
+                            <tr class="@b.RowClass">
+                                <td><span class="sv-product-tag">@b.Delivery</span></td>
+                                <td><b>@($"{b.QtyRemaining:0.##}") @g.Unit</b></td>
+                                <td><div class="sv-used"><div><i style="width:@($"{used * 100:0}")%"></i></div><em>@($"{used * 100:0}")%</em></div></td>
+                                <td class="sv-muted">@b.ExpiresAt.ToLocalTime().ToString("dd.MM HH:mm")</td>
+                                <td><div class="sv-fbar">@for (var i = 0; i < 18; i++) { <i style="@(i < lit ? $"background:{fc};box-shadow:0 0 5px {fc}" : "")"></i> }</div></td>
+                                <td><b style="color:@fc">@b.HoursText</b></td>
+                                <td>
+                                    <button type="button" class="sv-wo-btn" title="Списать вручную" data-wo
+                                        data-batch="@b.Id" data-name="@g.Product" data-unit="@g.Unit" data-max="@($"{b.QtyRemaining:0.###}")">
+                                        <img src="~/img/brand/st-stop.png" alt="" />
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
     }
     else
     {
@@ -83,13 +105,56 @@
     }
 </div>
 
+@* ===== Модалка ручного списания ===== *@
+<div class="sv-modal-wrap" id="woModal" hidden>
+    <div class="sv-modal" role="dialog" aria-modal="true" aria-label="Списать партию">
+        <div class="sv-modal-head"><b>Списать партию</b><button type="button" id="woClose" aria-label="Закрыть">×</button></div>
+        <form asp-action="WriteOff" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="batchId" id="woBatch" />
+            <div class="sv-modal-body" style="text-align:left">
+                <div class="sv-surface-caption mb-3">«<span id="woName"></span>» — спишется с остатка партии. Причина и количество ниже.</div>
+                <label class="sv-label d-block mb-1">Количество (<span id="woUnit"></span>, макс <span id="woMax"></span>)</label>
+                <input class="sv-input mb-3" type="number" name="qty" id="woQty" step="0.01" min="0.01" required />
+                <label class="sv-label d-block mb-1">Причина</label>
+                <select class="sv-select mb-3" name="reason">
+                    <option value="manual">Порча / брак</option>
+                    <option value="expired">Истёк срок</option>
+                    <option value="manual">Прочее</option>
+                </select>
+                <label class="sv-label d-block mb-1">Комментарий</label>
+                <input class="sv-input" type="text" name="comment" placeholder="например: помята упаковка" maxlength="300" />
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ffffff10;padding:14px 18px;display:flex;gap:10px;justify-content:flex-end">
+                <button type="button" class="btn-sv-ghost" id="woCancel">Отмена</button>
+                <button type="submit" class="btn-sv-danger-outline">Списать</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        document.getElementById('expToggle').addEventListener('change', function () {
-            var cat = '@curCat';
-            location.href = '@Url.Action("Stock", "Inventory")' + '?expiringOnly=' + this.checked + (cat ? '&category=' + encodeURIComponent(cat) : '');
+    document.getElementById('expToggle').addEventListener('change', function () {
+        var cat = '@curCat';
+        location.href = '@Url.Action("Stock", "Inventory")' + '?expiringOnly=' + this.checked + (cat ? '&category=' + encodeURIComponent(cat) : '');
+    });
+    // модалка списания
+    var woModal = document.getElementById('woModal');
+    document.querySelectorAll('[data-wo]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('woBatch').value = this.dataset.batch;
+            document.getElementById('woName').textContent = this.dataset.name;
+            document.getElementById('woUnit').textContent = this.dataset.unit;
+            document.getElementById('woMax').textContent = this.dataset.max;
+            var q = document.getElementById('woQty');
+            q.value = this.dataset.max; q.max = this.dataset.max;
+            woModal.hidden = false;
         });
-        document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+    });
+    ['woClose','woCancel'].forEach(function(id){var b=document.getElementById(id);if(b)b.addEventListener('click',function(){woModal.hidden=true;});});
+    woModal.addEventListener('click',function(e){if(e.target===woModal)woModal.hidden=true;});
+    document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
     </script>
     @await Html.PartialAsync("_InventoryRealtime")
 }

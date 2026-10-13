@@ -21,7 +21,11 @@
         <h1 class="sv-page-title">Сотрудники</h1>
         <div class="sv-page-sub mb-0">Access-коды входа для вашего ресторана. Код показывается один раз при создании.</div>
     </div>
-    <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#createEmployeeModal">＋ Новый сотрудник</button>
+    <div class="d-flex align-items-center gap-2">
+        <a class="sv-chip" href="@Url.Action("Schedule","Admin")">Расписание</a>
+        <a class="sv-chip" href="@Url.Action("Restaurants","Admin")">Рестораны</a>
+        <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#createEmployeeModal">＋ Новый сотрудник</button>
+    </div>
 </div>
 
 @if (ViewBag.Error is string err && !string.IsNullOrEmpty(err))

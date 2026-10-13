@@ -37,9 +37,20 @@
     </section>
 
     <section class="sv-card fade-up">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="sv-section-title mb-0">Журнал поставок</div><span class="sv-ai-note">@deliveries.Count записей</span>
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <div class="sv-section-title mb-0">Журнал поставок</div>
+            <span class="sv-ai-note">@deliveries.Count записей</span>
         </div>
+        @if (((List<DateTime>)ViewBag.Months).Count > 1)
+        {
+            <div class="d-flex gap-1 flex-wrap mb-3">
+                @foreach (var m in (List<DateTime>)ViewBag.Months)
+                {
+                    var isCur = m == (DateTime)ViewBag.ActiveMonth;
+                    <a class="sv-chip @(isCur ? "active" : "")" href="@Url.Action("Deliveries", new { month = m.ToString("yyyy-MM") })">@m.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"))</a>
+                }
+            </div>
+        }
         @if (deliveries.Any())
         {
             <div class="sv-timeline">

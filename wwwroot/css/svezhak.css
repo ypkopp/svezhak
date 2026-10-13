@@ -473,7 +473,10 @@ a:hover { color:var(--tx); }
 .sv-deliv-item b { font:700 11.5px var(--mono); color:var(--tx); margin-left:5px; }
 .sv-deliv-item .sv-dot { margin-right:6px; width:7px; height:7px; }
 .sv-deliv-sum { font:800 12px var(--mono); color:var(--gr); }
-.sv-qty-led { font:700 15px var(--mono); color:#4a505c; min-width:26px; text-align:center; }
+.sv-qty-led { font:700 15px var(--mono); color:#4a505c; min-width:34px; max-width:46px; text-align:center; background:none; border:0; outline:0; -moz-appearance:textfield; appearance:textfield; }
+.sv-qty-led::-webkit-outer-spin-button,.sv-qty-led::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+.sv-qty-led.on { color:var(--a1); text-shadow:0 0 10px var(--a1); }
+.sv-qty-led:focus { color:var(--a1); }
 .sv-pill4 { font:800 11px var(--mono); padding:3px 8px; border-radius:999px; color:var(--c); background:color-mix(in oklab,var(--c) 14%,transparent); white-space:nowrap; }
 .sv-yuzu-st { position:absolute; right:14px; width:52px; mix-blend-mode:lighten; filter:drop-shadow(0 0 12px #ED8936); animation:svBob 2.6s ease-in-out infinite; }
 
@@ -527,6 +530,25 @@ a:hover { color:var(--tx); }
 .sv-qr-box img,.sv-qr-box canvas { border-radius:12px; }
 .sv-theme-knob img { width:26px; height:26px; object-fit:contain; }
 .sv-login-logo { display:block; width:min(100%,340px); height:auto; object-fit:contain; margin:0 auto 26px; }
+
+/* --- герой с key-visual, группы продуктов, архив, кнопка списания --- */
+.sv-hero-art { position:relative; min-height:230px; overflow:hidden; border-radius:0 20px 20px 0; }
+.sv-hero-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 55%; opacity:.5; }
+.sv-hero-bg-fade { position:absolute; inset:0; background:linear-gradient(90deg,#14161cf2 8%,#14161c66 45%,transparent 75%),linear-gradient(0deg,#14161c 4%,transparent 50%); }
+.sv-hero-radar { position:absolute; left:0; bottom:0; right:90px; top:0; z-index:1; }
+.sv-hero-chef { z-index:2; }
+.sv-prod-group { margin-bottom:14px; border:1px solid #ffffff0a; border-radius:14px; overflow:hidden; }
+.sv-prod-head { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#ffffff05; border-bottom:1px solid #ffffff08; }
+.sv-prod-head b { font-size:13px; }
+.sv-prod-ic { width:26px; height:26px; object-fit:contain; }
+.sv-prod-total { margin-left:auto; font:800 13px var(--mono); color:var(--a1); }
+.sv-batch-table td { border-left:0!important; }
+.sv-wo-btn { width:30px; height:30px; padding:0; border:0; border-radius:9px; background:#F5656515; display:grid; place-items:center; transition:background .15s; }
+.sv-wo-btn:hover { background:#F5656530; }
+.sv-wo-btn img { width:17px; height:17px; object-fit:contain; mix-blend-mode:lighten; }
+.sv-arch-day { margin-bottom:14px; }
+.sv-arch-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 6px; border-bottom:1px solid #ffffff0e; margin-bottom:4px; }
+.sv-arch-head b { font:700 13px var(--mono); color:var(--tx); }
 
 @media(max-width:1240px) { .sv-login-layout { grid-template-columns:1fr; } .sv-login-art { min-height:360px; } .sv-login-side { min-height:580px; } }
 @media(max-width:1150px) { .sv-handoff-sidebar { width:210px; } .sv-app-shell { grid-template-columns:210px minmax(0,1fr); } .sv-global-search { width:260px; } .sv-profile span { display:none; } }

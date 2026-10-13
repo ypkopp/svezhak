@@ -145,9 +145,13 @@ public class WriteOff
 
     public decimal Qty { get; set; }
 
-    // "order" / "expired"
+    // "order" / "expired" / "manual"
     [MaxLength(20)]
     public string Reason { get; set; } = null!;
+
+    // Комментарий к ручному списанию (порча, брак, истёк срок)
+    [MaxLength(300)]
+    public string? Comment { get; set; }
 
     // Заполняется для списаний по заказу
     public int? OrderId { get; init; }

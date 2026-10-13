@@ -130,6 +130,57 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         return RedirectToAction(nameof(Employees));
     }
 
+    // ---------- Рестораны ----------
+
+    // GET /Admin/Restaurants
+    [HttpGet("Restaurants")]
+    public async Task<IActionResult> Restaurants(string? sort = null)
+    {
+        var orgId = await GetOrganizationIdAsync();
+        if (orgId is null) return Forbid();
+
+        var list = await db.Restaurants.AsNoTracking()
+            .Where(r => r.OrganizationId == orgId)
+            .ToListAsync();
+
+        list = sort switch
+        {
+            "address" => list.OrderBy(r => r.Address).ToList(),
+            _ => list.OrderBy(r => r.Id).ToList(),
+        };
+
+        ViewBag.Restaurants = list;
+        ViewBag.Sort = sort;
+        ViewBag.Error = TempData["Error"];
+        ViewBag.Ok = TempData["Ok"];
+        return View();
+    }
+
+    // POST /Admin/Restaurants/Create — добавить ресторан
+    [HttpPost("Restaurants/Create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateRestaurant(string address)
+    {
+        var orgId = await GetOrganizationIdAsync();
+        if (orgId is null) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(address))
+        {
+            TempData["Error"] = "Укажите адрес ресторана.";
+            return RedirectToAction(nameof(Restaurants));
+        }
+
+        db.Restaurants.Add(new Restaurant
+        {
+            OrganizationId = orgId.Value,
+            Address = address.Trim(),
+            ManagerId = "pending",
+        });
+        await db.SaveChangesAsync();
+        TempData["Ok"] = $"Ресторан «{address.Trim()}» добавлен.";
+        return RedirectToAction(nameof(Restaurants));
+    }
+
     private static string GenerateCode()
     {
         // 8 символов: читаемый набор без неоднозначных (0/O, 1/I)

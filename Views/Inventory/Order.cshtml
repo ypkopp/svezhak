@@ -47,8 +47,7 @@
                         <div class="sv-menu-meta"><span>@($"{d.Price:0}") ₽</span><span>заказ</span></div>
                         <div class="sv-qty-control">
                             <button type="button" data-delta="-1" aria-label="Меньше">−</button>
-                            <span class="sv-qty-led" data-led>0</span>
-                            <input type="number" name="qty" value="0" min="0" data-dish-id="@d.Id" hidden />
+                            <input type="number" name="qty" value="0" min="0" step="1" data-dish-id="@d.Id" data-qty class="sv-qty-led" inputmode="numeric" />
                             <button type="button" data-delta="1" aria-label="Больше">+</button>
                         </div>
                         <input type="hidden" name="dishId" value="@d.Id" />
@@ -65,8 +64,12 @@
     </section>
 
     <section class="sv-card fade-up">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
             <div class="sv-section-title mb-0">Журнал заказов</div>
+            <div class="d-flex gap-1">
+                <a class="sv-chip @(!((bool)ViewBag.ShowArchive) ? "active" : "")" href="@Url.Action("Order")">Сегодня</a>
+                <a class="sv-chip @(((bool)ViewBag.ShowArchive) ? "active" : "")" href="@Url.Action("Order", new { archive = true })"><img src="~/img/brand/st-archive.png" style="width:13px;height:13px;margin-right:4px;vertical-align:-2px" alt="" />Архив</a>
+            </div>
             <span class="sv-ai-note"><b style="color:var(--gr)">@journal.Count(x => x.Status == "accepted")</b> принято · <b style="color:var(--rd)">@journal.Count(x => x.Status != "accepted")</b> отклонено</span>
         </div>
         <div class="sv-spark-bars" aria-hidden="true">
@@ -77,22 +80,54 @@
             }
         </div>
         <div>
-            @if (journal.Any())
+            @if (!(bool)ViewBag.ShowArchive)
             {
-                @foreach (var o in journal)
+                @* Журнал сегодняшнего дня *@
+                if (journal.Any())
                 {
-                    <div class="sv-journal-row">
-                        <span class="sv-muted">#@o.Id</span>
-                        <span class="sv-badge @(o.Status == "accepted" ? "sv-badge-green" : "sv-badge-red")">@(o.Status == "accepted" ? "принят" : "отклонён")</span>
-                        <span>@o.ItemCount поз.</span>
-                        <span style="color:var(--tx);font-weight:700">@($"{o.Sum:0} ₽")</span>
-                        <span class="sv-muted">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
-                    </div>
+                    @foreach (var o in journal)
+                    {
+                        <div class="sv-journal-row">
+                            <span class="sv-muted">#@o.Id</span>
+                            <span class="sv-badge @(o.Status == "accepted" ? "sv-badge-green" : "sv-badge-red")">@(o.Status == "accepted" ? "принят" : "отклонён")</span>
+                            <span>@o.ItemCount поз.</span>
+                            <span style="color:var(--tx);font-weight:700">@($"{o.Sum:0} ₽")</span>
+                            <span class="sv-muted">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Сегодня заказов ещё не было.</p></div>
                 }
             }
             else
             {
-                <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Заказов ещё не было.</p></div>
+                @* Архив: заказы старше 24ч, группировка по датам *@
+                var archive = (IEnumerable<dynamic>)ViewBag.Archive;
+                if (!archive.Any())
+                {
+                    <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Архив пуст — старых заказов нет.</p></div>
+                }
+                foreach (var day in archive)
+                {
+                    <div class="sv-arch-day">
+                        <div class="sv-arch-head">
+                            <b>@(day.Date == DateTime.Today.AddDays(-1) ? "Вчера" : ((DateTime)day.Date).ToString("dd.MM.yyyy"))</b>
+                            <span class="sv-ai-note"><b style="color:var(--gr)">@day.Accepted</b> принято · <b style="color:var(--rd)">@day.Rejected</b> отклонено · <b>@($"{day.Sum:0} ₽")</b></span>
+                        </div>
+                        @foreach (var o in day.Orders)
+                        {
+                            <div class="sv-journal-row">
+                                <span class="sv-muted">#@o.Id</span>
+                                <span class="sv-badge @(o.Status == "accepted" ? "sv-badge-green" : "sv-badge-red")">@(o.Status == "accepted" ? "принят" : "отклонён")</span>
+                                <span>@o.ItemCount поз.</span>
+                                <span style="color:var(--tx);font-weight:700">@($"{o.Sum:0} ₽")</span>
+                                <span class="sv-muted">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                }
             }
         </div>
     </section>
@@ -100,40 +135,63 @@
 
 @section Scripts {
     <script>
-    const form = document.getElementById('orderForm');
-    const inputs = [...form.querySelectorAll('input[name=qty]')];
-    const prices = {@Html.Raw("{" + string.Join(",", dishes.Select(d => $"\"{d.Id}\":{d.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)}")) + "}")};
-    function updateTotals() {
-        let count = 0, sum = 0;
-        inputs.forEach(input => {
-            const qty = Math.max(0, Number(input.value || 0));
-            count += qty;
-            sum += qty * (prices[input.dataset.dishId] || 0);
+    (function () {
+        const form = document.getElementById('orderForm');
+        const prices = {@Html.Raw("{" + string.Join(",", dishes.Select(d => $"\"{d.Id}\":{d.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)}")) + "}")};
+        const countEl = document.getElementById('orderCount');
+        const sumEl = document.getElementById('orderSum');
+        const submitEl = document.getElementById('orderSubmit');
+
+        function qtyOf(input) {
+            const v = Math.floor(Number(input.value));
+            return Number.isFinite(v) && v > 0 ? v : 0;
+        }
+        function styleCard(input, qty) {
             const card = input.closest('.sv-menu-card');
-            card.classList.toggle('is-selected', qty > 0);
-            const led = card.querySelector('[data-led]');
-            led.textContent = qty;
-            led.style.color = qty > 0 ? 'var(--a1)' : '#4a505c';
-            led.style.textShadow = qty > 0 ? '0 0 10px var(--a1)' : 'none';
+            if (card) card.classList.toggle('is-selected', qty > 0);
+            input.classList.toggle('on', qty > 0);
+        }
+        function updateTotals() {
+            let count = 0, sum = 0;
+            form.querySelectorAll('input[data-qty]').forEach(input => {
+                const qty = qtyOf(input);
+                count += qty;
+                sum += qty * (prices[input.dataset.dishId] || 0);
+                styleCard(input, qty);
+            });
+            countEl.textContent = count;
+            sumEl.textContent = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(sum) + ' ₽';
+            submitEl.disabled = count === 0;
+        }
+
+        // Делегирование на форму — работает и для динамического контента
+        form.addEventListener('click', function (e) {
+            const btn = e.target.closest('button[data-delta]');
+            if (!btn) return;
+            const input = btn.parentElement.querySelector('input[data-qty]');
+            input.value = Math.max(0, qtyOf(input) + Number(btn.dataset.delta));
+            updateTotals();
         });
-        document.getElementById('orderCount').textContent = count;
-        document.getElementById('orderSum').textContent = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(sum) + ' ₽';
-        document.getElementById('orderSubmit').disabled = count === 0;
-    }
-    form.querySelectorAll('button[data-delta]').forEach(button => button.addEventListener('click', function () {
-        const input = this.parentElement.querySelector('input[name=qty]');
-        input.value = Math.max(0, Number(input.value || 0) + Number(this.dataset.delta));
+        form.addEventListener('input', function (e) {
+            if (e.target.matches('input[data-qty]')) updateTotals();
+        });
+        // Enter в поле qty не отправляет форму — просто пересчёт
+        form.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.target.matches('input[data-qty]')) { e.preventDefault(); updateTotals(); }
+        });
+        form.addEventListener('submit', function (e) { if (submitEl.disabled) e.preventDefault(); });
+
+        // Категории
+        document.querySelectorAll('.sv-order-cats button').forEach(button => button.addEventListener('click', function () {
+            document.querySelectorAll('.sv-order-cats button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const cat = this.dataset.cat;
+            document.querySelectorAll('.sv-menu-card').forEach(card => card.style.display = (cat === 'Все' || card.dataset.cat === cat) ? '' : 'none');
+        }));
+
         updateTotals();
-    }));
-    inputs.forEach(input => input.addEventListener('input', updateTotals));
-    document.querySelectorAll('.sv-order-cats button').forEach(button => button.addEventListener('click', function () {
-        document.querySelectorAll('.sv-order-cats button').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        const cat = this.dataset.cat;
-        document.querySelectorAll('.sv-menu-card').forEach(card => card.style.display = cat === 'Все' || card.dataset.cat === cat ? '' : 'none');
-    }));
-    updateTotals();
-    document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+        document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+    })();
     </script>
     @await Html.PartialAsync("_InventoryRealtime")
 }

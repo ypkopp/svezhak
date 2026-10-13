@@ -29,9 +29,11 @@
         </div>
     </div>
     <div class="sv-hero-art">
+        <img class="sv-hero-bg" src="~/img/brand/kv-warehouse.png" asp-append-version="true" alt="" />
+        <div class="sv-hero-bg-fade"></div>
         <div class="sv-hero-radar" id="heroRadar"></div>
-        <div class="sv-hero-hud"><div class="sv-kicker">до конца смены</div><b id="shiftCountdown" style="color:var(--a1);font-family:var(--mono)">--:--</b></div>
         <img class="sv-hero-chef" src="~/img/brand/chef-3-sm.png" asp-append-version="true" alt="Сора" />
+        <div class="sv-hero-hud"><div class="sv-kicker">до конца смены</div><b id="shiftCountdown" style="color:var(--a1);font-family:var(--mono)">--:--</b></div>
     </div>
     <div class="sv-hero-kpis" style="grid-column:1/-1">
         <div class="sv-hero-kpi"><span>позиций на складе</span><b data-count="@ViewBag.KpiPositions" style="--metric:var(--gr)">@ViewBag.KpiPositions</b></div>

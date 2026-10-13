@@ -309,19 +309,30 @@ public class InventoryController(
         if (!string.IsNullOrEmpty(category))
             query = query.Where(b => b.Product!.Category == category);
 
-        var stock = (await query.OrderBy(b => b.ExpiresAt).ToListAsync())
-            .Select(b => new
+        var batches = await query.OrderBy(b => b.ExpiresAt).ToListAsync();
+
+        // Группы по продукту (каждая партия — отдельная строка внутри группы, FEFO)
+        var groups = batches
+            .GroupBy(b => b.ProductId)
+            .Select(g => new
             {
-                Product = b.Product!.Name,
-                Category = b.Product.Category,
-                b.Product!.Unit,
-                Delivery = b.Delivery!.Number,
-                b.QtyInitial,
-                b.QtyRemaining,
-                b.ExpiresAt,
-                RowClass = SemaphoreClass(b.ExpiresAt, now),
-                HoursText = HoursLeftText(b.ExpiresAt, now),
+                Product = g.First().Product!.Name,
+                Category = g.First().Product.Category,
+                Unit = g.First().Product.Unit,
+                Total = g.Sum(b => b.QtyRemaining),
+                Earliest = g.Min(b => b.ExpiresAt),
+                Batches = g.OrderBy(b => b.ExpiresAt).Select(b => new
+                {
+                    b.Id,
+                    Delivery = b.Delivery!.Number,
+                    b.QtyInitial,
+                    b.QtyRemaining,
+                    b.ExpiresAt,
+                    RowClass = SemaphoreClass(b.ExpiresAt, now),
+                    HoursText = HoursLeftText(b.ExpiresAt, now),
+                }).ToList(),
             })
+            .OrderBy(g => g.Earliest)
             .ToList();
 
         // Категории для фильтра-чипов
@@ -333,21 +344,76 @@ public class InventoryController(
             .ToListAsync();
         ViewBag.ExpiringOnly = expiringOnly;
         ViewBag.Category = category;
-        ViewBag.Stock = stock;
+        ViewBag.Groups = groups;
+        // Плоский список для счётчиков-ламп
+        ViewBag.Stock = groups.SelectMany(g => g.Batches).ToList();
         return View();
     }
 
-    // GET /Inventory/Deliveries — журнал + форма приёма
-    public async Task<IActionResult> Deliveries()
+    // POST /Inventory/WriteOff — ручное списание партии (порча раньше срока)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> WriteOff(int batchId, decimal qty, string reason, string? comment)
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
 
-        var deliveries = await db.Deliveries
+        var batch = await db.Batches
+            .Include(b => b.Product)
+            .FirstOrDefaultAsync(b => b.Id == batchId && b.RestaurantId == rid);
+        if (batch is null) return NotFound();
+
+        if (qty <= 0 || qty > batch.QtyRemaining)
+        {
+            TempData["StockError"] = $"Некорректное количество — на складе {batch.QtyRemaining:0.##} {batch.Product.Unit}.";
+            return RedirectToAction(nameof(Stock));
+        }
+
+        batch.QtyRemaining -= qty;
+        db.WriteOffs.Add(new WriteOff
+        {
+            RestaurantId = rid.Value,
+            BatchId = batch.Id,
+            ProductId = batch.ProductId,
+            Qty = qty,
+            Reason = string.IsNullOrWhiteSpace(reason) ? "manual" : reason.Trim().ToLower(),
+            Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(),
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+        await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
+
+        TempData["StockOk"] = $"Списано {qty:0.##} {batch.Product.Unit} «{batch.Product.Name}» ({reason}).";
+        return RedirectToAction(nameof(Stock));
+    }
+
+    // GET /Inventory/Deliveries?month=2026-10 — журнал по месяцам + форма приёма
+    public async Task<IActionResult> Deliveries(string? month = null)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var all = await db.Deliveries
             .Where(d => d.RestaurantId == rid)
             .Include(d => d.Batches).ThenInclude(b => b.Product)
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync();
+
+        // Вкладки по месяцам: «Текущий месяц» + все месяцы с поставками
+        var monthGroups = all
+            .GroupBy(d => new DateTime(d.CreatedAt.Year, d.CreatedAt.Month, 1))
+            .OrderByDescending(g => g.Key)
+            .ToList();
+        var currentMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+
+        // Активный месяц: по умолчанию — текущий (или первый имеющийся)
+        DateTime? activeMonth = null;
+        if (!string.IsNullOrEmpty(month) && DateTime.TryParse(month + "-01", out var m)) activeMonth = m;
+        else if (month == "current" || month is null) activeMonth = monthGroups.Any(g => g.Key == currentMonth) ? currentMonth : monthGroups.FirstOrDefault()?.Key;
+
+        var deliveries = activeMonth.HasValue
+            ? monthGroups.Where(g => g.Key == activeMonth).SelectMany(g => g).ToList()
+            : all;
 
         var products = await db.Products
             .Where(p => p.RestaurantId == rid)
@@ -360,6 +426,9 @@ public class InventoryController(
         ViewBag.Deliveries = deliveries;
         ViewBag.DeliverySums = sums;
         ViewBag.Products = products;
+        ViewBag.Months = monthGroups.Select(g => g.Key).ToList();
+        ViewBag.ActiveMonth = activeMonth;
+        ViewBag.CurrentMonth = currentMonth;
         return View();
     }
 
@@ -408,21 +477,22 @@ public class InventoryController(
         return RedirectToAction(nameof(Deliveries));
     }
 
-    // GET /Inventory/Order — форма заказа + журнал
-    public async Task<IActionResult> Order()
+    // GET /Inventory/Order — форма заказа + журнал (сегодня) + архив по датам
+    public async Task<IActionResult> Order(bool archive = false)
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+        var today = now.Date;
 
         var dishes = await db.Dishes
             .Where(d => d.RestaurantId == rid && d.IsActive)
             .OrderBy(d => d.Name)
             .ToListAsync();
 
-        var journal = await db.Orders
+        var all = await db.Orders
             .Where(o => o.RestaurantId == rid)
             .OrderByDescending(o => o.CreatedAt)
-            .Take(20)
             .Select(o => new
             {
                 o.Id,
@@ -434,8 +504,26 @@ public class InventoryController(
             })
             .ToListAsync();
 
+        // Сегодня — оперативный журнал; старше — в архив, сгруппировано по датам
+        var todayOrders = all.Where(o => o.CreatedAt >= today).ToList();
+        var archiveGroups = all
+            .Where(o => o.CreatedAt < today)
+            .GroupBy(o => o.CreatedAt.Date)
+            .OrderByDescending(g => g.Key)
+            .Select(g => new
+            {
+                Date = g.Key,
+                Orders = g.OrderByDescending(o => o.CreatedAt).ToList(),
+                Accepted = g.Count(o => o.Status == "accepted"),
+                Rejected = g.Count(o => o.Status != "accepted"),
+                Sum = g.Where(o => o.Status == "accepted").Sum(o => o.Sum),
+            })
+            .ToList();
+
         ViewBag.Dishes = dishes;
-        ViewBag.Journal = journal;
+        ViewBag.Journal = todayOrders;
+        ViewBag.Archive = archiveGroups;
+        ViewBag.ShowArchive = archive;
         return View();
     }
 

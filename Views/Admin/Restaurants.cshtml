@@ -1,0 +1,76 @@
+@using SmartInventory.Models.Structure
+@{
+    ViewData["Title"] = "Рестораны";
+    var list = (List<Restaurant>)ViewBag.Restaurants;
+    var sort = (string?)ViewBag.Sort;
+}
+
+<div class="sv-title-row fade-up">
+    <div>
+        <div class="sv-kicker">Админ · точки</div>
+        <h1 class="sv-page-title">Рестораны</h1>
+        <div class="sv-page-sub mb-0">Точки вашей организации. Склад и расписание ведутся по активному ресторану.</div>
+    </div>
+    <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#addRestModal">＋ Добавить</button>
+</div>
+
+@if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
+@if (ViewBag.Error is string err) { <div class="sv-form-alert mb-3">@err</div> }
+
+<div class="sv-card fade-up">
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <div class="sv-section-title mb-0">Точки организации</div>
+        <div class="d-flex gap-1">
+            <a class="sv-chip @(sort != "address" ? "active" : "")" href="@Url.Action("Restaurants")">по дате</a>
+            <a class="sv-chip @(sort == "address" ? "active" : "")" href="@Url.Action("Restaurants", new { sort = "address" })">по адресу</a>
+        </div>
+    </div>
+    @if (list.Count == 0)
+    {
+        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Ресторанов пока нет.</p></div>
+    }
+    else
+    {
+        <div class="sv-table-wrap">
+            <table class="sv-table">
+                <thead><tr><th>ID</th><th>Адрес</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var r in list)
+                {
+                    <tr>
+                        <td class="sv-muted">#@r.Id</td>
+                        <td><b>@r.Address</b></td>
+                        <td><span class="sv-badge sv-badge-green">активна</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="addRestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:linear-gradient(165deg,#1b1e27f2,#111318f2);border:1px solid var(--bd);border-radius:20px;color:var(--tx)">
+            <form asp-action="CreateRestaurant" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="border-color:#ffffff10">
+                    <div><div class="sv-kicker">Новая точка</div><h5 class="modal-title" style="font:700 17px var(--disp)">Добавить ресторан</h5></div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="sv-label d-block mb-1">Адрес / название</label>
+                    <input class="sv-input" type="text" name="address" placeholder="ул. Тверская, 12" required maxlength="100" />
+                </div>
+                <div class="modal-footer" style="border-color:#ffffff10">
+                    <button type="button" class="btn-sv-ghost" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn-sv-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>
+}
