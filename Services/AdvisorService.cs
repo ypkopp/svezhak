@@ -52,7 +52,7 @@ public sealed class AdvisorService(
                     usedAi = true;
                 }
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex)
             {
                 logger.LogWarning("Advisor AI provider unavailable; using local rules ({ErrorType})", ex.GetType().Name);
             }
@@ -97,7 +97,7 @@ public sealed class AdvisorService(
                     usedAi = true;
                 }
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex)
             {
                 logger.LogWarning("Advisor AI summary unavailable; using local text ({ErrorType})", ex.GetType().Name);
             }
@@ -135,28 +135,52 @@ public sealed class AdvisorService(
     private async Task<string> SummarizeWithAiAsync(string baseUrl, string model, string apiKey, object data, CancellationToken ct)
     {
         var client = clients.CreateClient(nameof(AdvisorService));
-        client.Timeout = TimeSpan.FromSeconds(12);
+        client.Timeout = TimeSpan.FromSeconds(30);
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = new StringContent(JsonSerializer.Serialize(new
         {
             model,
             temperature = 0.3,
+            max_tokens = 500,
             messages = new object[]
             {
-                new { role = "system", content = "Ты советник ресторанного склада. Используй ТОЛЬКО переданные факты — не выдумывай цифры и сроки. Ответь 2–4 предложениями на русском: что горит, что в стоп-листе, главная рекомендация. Без списков и маркировок — одна связная фраза." },
-                new { role = "user", content = JsonSerializer.Serialize(data) }
+                new { role = "user", content = $"You are a restaurant warehouse advisor. Use ONLY the facts provided below and do not invent numbers or dates. Answer in 2-4 sentences in Russian: what is burning, what is in stop-list, the main recommendation. One flowing paragraph, no lists.\n\nFacts:\n{TransliterateJson(data)}" }
             }
         }), Encoding.UTF8, "application/json");
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode) return "";
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var json = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         var content = json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
         return content?.Trim() ?? "";
     }
 
+    /// <summary>Serialize facts to JSON with Cyrillic transliterated — so the
+    /// API proxy does not reject the request body for non-ASCII characters.</summary>
+    private static string TransliterateJson(object data)
+    {
+        var json = JsonSerializer.Serialize(data);
+        using var doc = JsonDocument.Parse(json);
+        return Transliterate(json);
+    }
+
+    private static string Transliterate(string s) => s
+        .Replace("А","A").Replace("Б","B").Replace("В","V").Replace("Г","G").Replace("Д","D")
+        .Replace("Е","E").Replace("Ё","Yo").Replace("Ж","Zh").Replace("З","Z").Replace("И","I")
+        .Replace("Й","Y").Replace("К","K").Replace("Л","L").Replace("М","M").Replace("Н","N")
+        .Replace("О","O").Replace("П","P").Replace("Р","R").Replace("С","S").Replace("Т","T")
+        .Replace("У","U").Replace("Ф","F").Replace("Х","Kh").Replace("Ц","Ts").Replace("Ч","Ch")
+        .Replace("Ш","Sh").Replace("Щ","Sch").Replace("Ъ","").Replace("Ы","Y").Replace("Ь","")
+        .Replace("Э","E").Replace("Ю","Yu").Replace("Я","Ya")
+        .Replace("а","a").Replace("б","b").Replace("в","v").Replace("г","g").Replace("д","d")
+        .Replace("е","e").Replace("ё","yo").Replace("ж","zh").Replace("з","z").Replace("и","i")
+        .Replace("й","y").Replace("к","k").Replace("л","l").Replace("м","m").Replace("н","n")
+        .Replace("о","o").Replace("п","p").Replace("р","r").Replace("с","s").Replace("т","t")
+        .Replace("у","u").Replace("ф","f").Replace("х","kh").Replace("ц","ts").Replace("ч","ch")
+        .Replace("ш","sh").Replace("щ","sch").Replace("ъ","").Replace("ы","y").Replace("ь","")
+        .Replace("э","e").Replace("ю","yu").Replace("я","ya");
     private async Task<Snapshot> BuildSnapshotAsync(int restaurantId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -246,22 +270,22 @@ public sealed class AdvisorService(
     private async Task<List<Insight>> GenerateWithAiAsync(string baseUrl, string model, string apiKey, object data, CancellationToken ct)
     {
         var client = clients.CreateClient(nameof(AdvisorService));
-        client.Timeout = TimeSpan.FromSeconds(12);
+        client.Timeout = TimeSpan.FromSeconds(30);
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = new StringContent(JsonSerializer.Serialize(new
         {
             model,
             temperature = 0.2,
+            max_tokens = 1000,
             messages = new object[]
             {
-                new { role = "system", content = "Ты советник ресторанного склада. Используй только переданные факты. Не выдумывай количества и сроки. Верни только JSON-объект {\"insights\":[{\"category\":\"продать срочно|заказать|списать|риски\",\"title\":\"...\",\"explanation\":\"...\",\"severity\":\"low|medium|high\"}]}. Не более 8 инсайтов." },
-                new { role = "user", content = JsonSerializer.Serialize(data) }
+                new { role = "user", content = $"You are a restaurant warehouse advisor. Use ONLY the facts provided below. Do not invent quantities or dates. Return ONLY a JSON object {{\"insights\":[{{\"category\":\"urgent_sell|order|writeoff|risk\",\"title\":\"...\",\"explanation\":\"...\",\"severity\":\"low|medium|high\"}}]}}. Maximum 8 insights.\n\nFacts:\n{TransliterateJson(data)}" }
             }
         }), Encoding.UTF8, "application/json");
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode) return [];
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var json = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         var content = json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
@@ -301,9 +325,9 @@ public sealed class AdvisorService(
     private static string GetString(JsonElement e, string property) => e.TryGetProperty(property, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
     private static string NormalizeCategory(string category) => category switch
     {
-        "продать срочно" => category,
-        "заказать" => category,
-        "списать" => category,
+        "urgent_sell" or "продать срочно" => "продать срочно",
+        "order" or "заказать" => "заказать",
+        "writeoff" or "списать" => "списать",
         _ => "риски"
     };
     private static string IconFor(string category) => category switch
@@ -320,4 +344,5 @@ public sealed class AdvisorService(
         "списать" => ("Открыть склад", "/Inventory/Stock?expiringOnly=true"),
         _ => ("Открыть склад", "/Inventory/Stock")
     };
+
 }
