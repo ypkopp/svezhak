@@ -29,6 +29,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddScoped<IAuthorizationHandler, ManageRestaurantAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ManageOrganizationAuthorizationHandler>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<HotOffersService>();
 
 // SignalR + свип просрочки + шина событий склада
 builder.Services.AddSignalR();

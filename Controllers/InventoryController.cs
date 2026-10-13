@@ -17,6 +17,7 @@ namespace SmartInventory.Controllers;
 public class InventoryController(
     ApplicationDbContext db,
     OrderService orders,
+    HotOffersService hotOffersService,
     IServiceProvider services,
     InventoryEventBus eventBus) : Controller
 {
@@ -87,38 +88,24 @@ public class InventoryController(
             .GroupBy(b => b.ProductId)
             .ToDictionary(g => g.Key, g => g.OrderBy(b => b.ExpiresAt).ToList());
 
-        var hotOffers = new List<object>();
-        foreach (var dish in dishes)
-        {
-            // Ближайший срок годности среди ингредиентов блюда
-            var minHours = dish.RecipeItems
-                .Select(ri => batchesByProduct.GetValueOrDefault(ri.ProductId)?.FirstOrDefault()?.ExpiresAt)
-                .Where(e => e.HasValue)
-                .Select(e => (e!.Value - now).TotalHours)
-                .DefaultIfEmpty(double.MaxValue)
-                .Min();
-            if (minHours is < 24 and > 0)
-            {
-                hotOffers.Add(new { dish.Name, dish.Price, HoursLeft = minHours });
-            }
-        }
+        // Hot offers — из HotOffersService (заменяет заглушку-приоритет)
+        var hotOffersList = await hotOffersService.GetTopAsync(rid.Value, 10);
+        var dishById = dishes.ToDictionary(d => d.Id);
+        double HoursLeftOf(int dishId) => dishById.GetValueOrDefault(dishId)?.RecipeItems
+            .Select(ri => batchesByProduct.GetValueOrDefault(ri.ProductId)?.FirstOrDefault()?.ExpiresAt)
+            .Where(e => e.HasValue)
+            .Select(e => (e!.Value - now).TotalHours)
+            .DefaultIfEmpty(double.MaxValue)
+            .Min() ?? double.MaxValue;
 
-        // Рекомендуем продать: приоритет = 1 / часов до ближайшего срока ингредиента
-        var recommended = dishes
-            .Select(d =>
-            {
-                var hours = d.RecipeItems
-                    .Select(ri => batchesByProduct.GetValueOrDefault(ri.ProductId)?.FirstOrDefault()?.ExpiresAt)
-                    .Where(e => e.HasValue)
-                    .Select(e => (e!.Value - now).TotalHours)
-                    .DefaultIfEmpty(double.MaxValue)
-                    .Min();
-                return new { d.Name, d.Price, HoursLeft = hours, Priority = 1.0 / Math.Max(hours, 0.01) };
-            })
-            .Where(x => x.HoursLeft > 0 && x.HoursLeft < double.MaxValue)
-            .OrderByDescending(x => x.Priority)
-            .Take(5)
-            .ToList();
+        var recommended = hotOffersList.Take(5).Select(h => new
+        {
+            Name = h.DishName,
+            Price = dishById.GetValueOrDefault(h.DishId)?.Price ?? 0m,
+            h.Score,
+            h.Reason,
+            HoursLeft = HoursLeftOf(h.DishId),
+        }).ToList();
 
         var burning = live
             .OrderBy(b => b.ExpiresAt)
@@ -137,7 +124,7 @@ public class InventoryController(
         ViewBag.KpiPositions = live.Select(b => b.ProductId).Distinct().Count();
         ViewBag.KpiExpiring = expiring24;
         ViewBag.KpiStopList = stopList.Count;
-        ViewBag.KpiHotOffers = hotOffers.Count;
+        ViewBag.KpiHotOffers = hotOffersList.Count;
         ViewBag.Burning = burning;
         ViewBag.Recommended = recommended;
         ViewBag.Now = now;
@@ -432,29 +419,24 @@ public class InventoryController(
             .GroupBy(b => b.ProductId)
             .ToDictionary(g => g.Key, g => g.OrderBy(b => b.ExpiresAt).ToList());
 
-        var stopIds = stopList.Select(s => s.DishId).ToHashSet();
-        var hotOffers = dishes
-            .Where(d => !stopIds.Contains(d.Id))
-            .Select(d =>
-            {
-                var nearest = d.RecipeItems
-                    .Select(ri => batchesByProduct.GetValueOrDefault(ri.ProductId)?.FirstOrDefault())
-                    .Where(b => b is not null)
-                    .OrderBy(b => b!.ExpiresAt)
-                    .FirstOrDefault();
-                if (nearest is null) return null;
-                var hours = (nearest.ExpiresAt - now).TotalHours;
-                if (hours >= 24 || hours <= 0) return null;
-                return new
-                {
-                    d.Name,
-                    d.Price,
-                    Reason = $"{nearest.Product?.Name} — осталось {hours:0.#} ч",
-                    HoursLeft = hours,
-                };
-            })
-            .Where(x => x is not null)
-            .ToList();
+        // Hot offers — из HotOffersService с человекочитаемым объяснением
+        var hotOffersList = await hotOffersService.GetTopAsync(rid.Value, 10);
+        var dishById = dishes.ToDictionary(d => d.Id);
+        double HoursLeftOf(int dishId) => dishById.GetValueOrDefault(dishId)?.RecipeItems
+            .Select(ri => batchesByProduct.GetValueOrDefault(ri.ProductId)?.FirstOrDefault()?.ExpiresAt)
+            .Where(e => e.HasValue)
+            .Select(e => (e!.Value - now).TotalHours)
+            .DefaultIfEmpty(double.MaxValue)
+            .Min() ?? double.MaxValue;
+
+        var hotOffers = hotOffersList.Select(h => new
+        {
+            Name = h.DishName,
+            Price = dishById.GetValueOrDefault(h.DishId)?.Price ?? 0m,
+            h.Score,
+            h.Reason,
+            HoursLeft = HoursLeftOf(h.DishId),
+        }).ToList();
 
         ViewBag.StopList = stopList;
         ViewBag.HotOffers = hotOffers;
