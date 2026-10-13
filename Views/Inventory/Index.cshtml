@@ -4,36 +4,34 @@
     var now = (DateTime)ViewBag.Now;
     var hasAlert = (bool)ViewBag.HasAlert;
     int threat = ViewBag.ThreatCount, stopCount = ViewBag.KpiStopList;
+    var ai = (SmartInventory.Services.AdvisorService.SummaryResult)ViewBag.AiSummary;
+    Func<string, string> sevColor = s => s == "high" ? "var(--rd)" : s == "medium" ? "var(--ye)" : "var(--mut)";
 }
 
+@* ============ HERO: одна мысль + радар (v3 Hero3) ============ *@
 <section class="sv-card sv-hero fade-up">
     <div class="sv-hero-copy">
         <div class="sv-kicker"><span class="sv-live-dot"></span> Тревога · обновлено @now.ToLocalTime().ToString("HH:mm")</div>
-        <h1>
-            Под угрозой <span class="sv-gradient-text">@threat партий</span>.<br />
-            @(stopCount > 0 ? Html.Raw($"В стоп-листе <span class=\"sv-gradient-text\">{stopCount} блюд</span>.") : Html.Raw("Стоп-лист пуст."))
-        </h1>
-
-<script>
-// Count-up для KPI-чисел — безопасный fallback, если shell-скрипт не успел
-document.addEventListener('DOMContentLoaded', function () {
-  setTimeout(function () {
-    document.querySelectorAll('[data-count]').forEach(function (el) {
-      var target = Number(el.dataset.count || 0);
-      el.textContent = String(target);
-    });
-  }, 50);
-});
-</script>
-        <p>Река свежести, расход по часам и рекомендации продать — в одном экране. FEFO списывает самые ранние партии автоматически.</p>
+        <h1>Под угрозой <span class="sv-gradient-text">@threat партий</span>.</h1>
+        <p>
+            @if (ViewBag.NextExpiryProduct is string np)
+            {
+                @:«@np» уходит через @($"{(double)ViewBag.NextExpiryHours:0.#}") ч — это @($"{(decimal)ViewBag.NextExpiryQty:0.##}") @ViewBag.NextExpiryUnit и ~@($"{(decimal)ViewBag.NextExpiryRub:N0}") ₽ себестоимости. Сора уже нашла блюда, которые его съедят.
+            }
+            else
+            {
+                @:Все партии свежие — срочных угроз нет. Склад под контролем, FEFO следит за порядком списаний.
+            }
+        </p>
         <div class="d-flex flex-wrap gap-2">
-            <a class="btn-sv-primary" href="#riverWrap">Смотреть реку</a>
+            <a class="btn-sv-primary" href="#riverWrap"><img src="~/img/brand/st-hot.png" style="width:18px;height:18px;mix-blend-mode:lighten" alt="" /> Включить @ViewBag.KpiHotOffers hot offers</a>
             <a class="btn-sv-ghost" asp-action="Stock">Открыть склад →</a>
         </div>
     </div>
     <div class="sv-hero-art">
-        <div class="sv-hero-hud"><div class="sv-kicker">TARGET LOCK</div><b style="color:var(--rd);font-family:var(--mono)">06:42</b></div>
-        <img src="~/img/brand/chef-3-sm.png" asp-append-version="true" alt="Сора" />
+        <div class="sv-hero-radar" id="heroRadar"></div>
+        <div class="sv-hero-hud"><div class="sv-kicker">до конца смены</div><b id="shiftCountdown" style="color:var(--a1);font-family:var(--mono)">--:--</b></div>
+        <img class="sv-hero-chef" src="~/img/brand/chef-3-sm.png" asp-append-version="true" alt="Сора" />
     </div>
     <div class="sv-hero-kpis" style="grid-column:1/-1">
         <div class="sv-hero-kpi"><span>позиций на складе</span><b data-count="@ViewBag.KpiPositions" style="--metric:var(--gr)">@ViewBag.KpiPositions</b></div>
@@ -45,47 +43,51 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @if (TempData["OrderOk"] is string ok) { <div class="sv-alert sv-alert-success mb-3">@ok</div> }
 
-@{ var ai = (SmartInventory.Services.AdvisorService.SummaryResult)ViewBag.AiSummary; }
+@* ============ ИИ-анализ смены (структура: маскот + текст + чипы по severity) ============ *@
 <section class="sv-card sv-ai-block fade-up">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <div class="d-flex align-items-center gap-2">
-            <img src="~/img/brand/chef-2-sm.png" style="width:38px" alt="" />
-            <div class="sv-section-title mb-0">ИИ-анализ смены</div>
-        </div>
-        <span class="sv-ai-note @(ai.UsedAi ? "sv-badge sv-badge-accent" : "sv-badge sv-badge-muted")">
-            @(ai.UsedAi ? $"ИИ · обновлено {ai.GeneratedAtUtc.ToLocalTime():HH:mm}" : "ИИ временно недоступен — локальные правила")
-        </span>
-    </div>
-    <p class="sv-ai-text">@ai.Text</p>
-    @if (ai.Highlights.Count > 0)
-    {
-        <div class="d-flex flex-wrap gap-2 mt-2">
-            @foreach (var h in ai.Highlights)
+    <div class="sv-ai-layout">
+        <img class="sv-ai-chef" src="~/img/brand/chef-2-sm.png" alt="Юзу" />
+        <div class="sv-ai-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <div class="sv-section-title mb-0" style="color:var(--a1)">ИИ-анализ смены</div>
+                <span class="sv-badge @(ai.UsedAi ? "sv-badge-accent" : "sv-badge-muted")">@(ai.UsedAi ? $"ИИ · {ai.GeneratedAtUtc.ToLocalTime():HH:mm}" : "локальные правила")</span>
+            </div>
+            <p class="sv-ai-text">@ai.Text</p>
+            @if (ai.Highlights.Count > 0)
             {
-                <a class="sv-chip" href="@h.ActionUrl" title="@h.Explanation">@h.Title <span class="sv-muted">· @h.Category</span></a>
+                <div class="sv-ai-chips">
+                    @foreach (var h in ai.Highlights)
+                    {
+                        <a class="sv-ai-chip" href="@h.ActionUrl" style="--c:@sevColor(h.Severity)" title="@h.Explanation">
+                            <span class="sv-ai-chip-dot"></span>@h.Title <em>@h.Category</em>
+                        </a>
+                    }
+                </div>
             }
         </div>
-    }
+    </div>
 </section>
 
+@* ============ Путь продукта (v4 FlowStrip) ============ *@
 <div class="sv-flow-card fade-up">
     <div class="sv-flow">
         <img src="~/img/brand/info-flow.png" asp-append-version="true" alt="Путь продукта" />
         <div class="sv-flow-fade"></div>
-        <div class="sv-flow-pin" style="--pin:var(--gr);left:14%;top:28%"><span>Приёмка</span><b>2</b><small>поставки сегодня</small></div>
-        <div class="sv-flow-pin" style="--pin:var(--ye);left:50%;top:13%"><span>Холодильник</span><b>@ViewBag.KpiPositions</b><small>позиций</small></div>
-        <div class="sv-flow-pin" style="--pin:var(--or);left:86%;top:32%"><span>Кухня</span><b>@ViewBag.KpiExpiring</b><small>горит сейчас</small></div>
+        <div class="sv-flow-pin" style="--pin:var(--gr);left:14%;top:28%"><span>01 · Приёмка</span><b>2</b><small>поставки сегодня</small></div>
+        <div class="sv-flow-pin" style="--pin:var(--ye);left:50%;top:13%"><span>02 · Холодильник</span><b>@ViewBag.KpiPositions</b><small>позиций</small></div>
+        <div class="sv-flow-pin" style="--pin:var(--or);left:86%;top:32%"><span>03 · Кухня</span><b>@ViewBag.KpiExpiring</b><small>горит сейчас</small></div>
         <div class="sv-flow-loss"><img src="~/img/brand/st-hourglass.png" alt="" /><div><span class="sv-kicker">Утекло в мусор</span><b>18,6 кг · 6,9%</b></div></div>
     </div>
 </div>
 
+@* ============ Река свежести (кастомная — ECharts) ============ *@
 <div class="sv-river fade-up">
     <div class="sv-river-head">
         <div>
             <div class="sv-k">Река свежести · 72 ч вперёд</div>
             <div class="sv-river-title">Каждая партия — точка на оси времени. <span>Чем левее, тем срочнее.</span></div>
         </div>
-        <div class="sv-chart-hint">Точки — партии; по цвету видно срочность (красный <12ч, оранжевый 12–24ч, зелёный дальше).</div>
+        <div class="sv-legend"><span style="--c:#F56565">&lt; 12 ч</span><span style="--c:#ECC94B">12–24 ч</span><span style="--c:#48BB78">&gt; 24 ч</span></div>
     </div>
     <div class="sv-chart-wrap" id="riverWrap">
         <div id="riverSkel" class="sv-chart-skel"></div>
@@ -95,32 +97,37 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </div>
 
+@* ============ Осциллограф + LED-водопад (split 1.3 / 1) ============ *@
 <div class="sv-grid-12">
     <div class="sv-card sv-col-7 fade-up">
-        <div class="sv-section-title">Пульс заказов · 24 часа</div>
-        <div class="sv-chart-hint">Заказы по часам за последние сутки — видно, когда кухня нагружена.</div>
-        <div class="sv-chart-wrap"><div id="pulseSkel" class="sv-chart-skel"></div><div id="orderPulse" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="pulseEmpty">Заказов за сутки не было.</div><div class="sv-chart-error" id="pulseError"></div></div>
+        <div class="sv-section-title">Осциллограф заказов · 24 ч <span class="sv-live-dot"></span></div>
+        <div class="sv-chart-hint">Сегодня сплошной, вчера пунктиром. Луч-развёртка бежит по графику.</div>
+        <div class="sv-osc-wrap" id="orderOsc"></div>
     </div>
     <div class="sv-card sv-col-5 fade-up">
-        <div class="sv-section-title">Водопад списаний · сегодня</div>
-        <div class="sv-chart-hint">Сколько продукта было утром → ушло в заказы → списано по просрочке → осталось.</div>
-        <div class="sv-chart-wrap"><div id="waterfallSkel" class="sv-chart-skel"></div><div id="waterfall" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="waterfallEmpty">Списаний за сегодня не было.</div><div class="sv-chart-error" id="waterfallError"></div></div>
+        <div class="sv-section-title">Масса склада · сегодня</div>
+        <div class="sv-chart-hint">LED-ячейки: утро → по заказам → просрочка → сейчас.</div>
+        <div id="massWf"></div>
+        <div class="sv-wf3" id="massWfFoot"><span class="sv-muted">Списаний за сегодня не было.</span></div>
     </div>
-    <div class="sv-card sv-col-7 fade-up">
-        <div class="sv-section-title">Карта просрочки · 7 дней</div>
-        <div class="sv-chart-hint">Интенсивность = количество, сгорающее в этот день по каждому продукту.</div>
-        <div class="sv-chart-wrap"><div id="heatmapSkel" class="sv-chart-skel"></div><div id="heatmap" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="heatmapEmpty">Ничего не сгорает в ближайшие 7 дней.</div><div class="sv-chart-error" id="heatmapError"></div></div>
+    <div class="sv-card sv-col-7 fade-up sv-term-card">
+        <div class="sv-section-title">Карта просрочки · 7 дней <span class="sv-ai-note">tty1</span></div>
+        <div id="termHeat"></div>
     </div>
     <div class="sv-card sv-col-5 fade-up">
         <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="sv-section-title mb-0">💡 Рекомендуем продать · топ-5</div>
+            <div class="sv-section-title mb-0" style="color:var(--a1)"><img src="~/img/brand/st-hot.png" style="width:15px;height:15px;mix-blend-mode:lighten;vertical-align:-2px" alt="" /> Рекомендуем продать</div>
             <span class="sv-section-title mb-0" style="color:var(--a1)"><span id="hotCount">0</span> в hot offer</span>
         </div>
-        <div class="sv-chart-hint">Блюда с самыми горящими ингредиентами — score по срочности и расходу.</div>
-        @foreach (var r in recommended)
+        <div class="sv-recs-yuzu">
+            <img src="~/img/brand/chef-2-sm.png" alt="Юзу" />
+            <div class="sv-recs-say"><b>Юзу</b>Эти блюда съедят горящие ингредиенты до списания — включай их в акцию.</div>
+        </div>
+        @foreach (var (r, i) in recommended.Select((x, i) => (x, i)))
         {
             var col = r.HoursLeft < 12 ? "#F56565" : r.HoursLeft < 24 ? "#ED8936" : "#48BB78";
             <div class="sv-rec">
+                <span class="sv-rec-n" style="@(i < 3 ? "color:var(--a1)" : "")">@($"{i + 1:00}")</span>
                 <div><b>@r.Name</b><span>@r.Reason</span></div>
                 <span class="price">@($"{r.Price:0}") ₽</span>
                 <span class="sv-pill" style="color:@col">@($"{r.HoursLeft:0.#}") ч</span>
@@ -134,12 +141,12 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
     <div class="sv-card sv-col-7 fade-up">
         <div class="sv-section-title">Прогноз стоп-листа</div>
-        <div class="sv-chart-hint">При текущем расходе эти блюда встанут в стоп-лист через N часов/дней.</div>
+        <div class="sv-chart-hint">При текущем расходе эти блюда встанут в стоп-лист через N дней.</div>
         <div class="sv-chart-wrap"><div id="forecastSkel" class="sv-chart-skel"></div><div id="stopForecast" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="forecastEmpty">Прогноз не строится — история заказов пуста.</div><div class="sv-chart-error" id="forecastError"></div></div>
     </div>
     <div class="sv-card sv-col-5 fade-up">
         <div class="sv-section-title">Доля потерь · 30 дней</div>
-        <div class="sv-chart-hint">Соотношение проданного, списанного и просроченного за 30 дней.</div>
+        <div class="sv-chart-hint">Соотношение проданного, списанного и просроченного.</div>
         <div class="sv-chart-wrap"><div id="lossSkel" class="sv-chart-skel"></div><div id="lossShare" class="sv-chart" style="display:none"></div><div class="sv-chart-empty" id="lossEmpty">Нет данных для расчёта.</div><div class="sv-chart-error" id="lossError"></div></div>
     </div>
 </div>
@@ -147,16 +154,37 @@ document.addEventListener('DOMContentLoaded', function () {
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <script src="~/js/svezhak-charts.js" asp-append-version="true"></script>
+<script src="~/js/svezhak-proto.js" asp-append-version="true"></script>
 <script>
 (function(){
+    // Река (ECharts), прогноз и доля потерь — через SvCharts
     SvCharts.initAll({
         river: { el:'riverChart', skel:'riverSkel', empty:'riverEmpty', error:'riverError', url:'@Url.Action("ChartDataRiver","Inventory")' },
-        pulse: { el:'orderPulse', skel:'pulseSkel', empty:'pulseEmpty', error:'pulseError', url:'@Url.Action("ChartDataOrderPulse","Inventory")' },
-        waterfall: { el:'waterfall', skel:'waterfallSkel', empty:'waterfallEmpty', error:'waterfallError', url:'@Url.Action("ChartDataWaterfall","Inventory")' },
-        heatmap: { el:'heatmap', skel:'heatmapSkel', empty:'heatmapEmpty', error:'heatmapError', url:'@Url.Action("ChartDataExpiryHeatmap","Inventory")' },
         stopForecast: { el:'stopForecast', skel:'forecastSkel', empty:'forecastEmpty', error:'forecastError', url:'@Url.Action("StopForecast","InventoryAnalytics")' },
         lossShare: { el:'lossShare', skel:'lossSkel', empty:'lossEmpty', error:'lossError', url:'@Url.Action("LossShare","InventoryAnalytics")' }
     });
+    // Прототипные виджеты
+    SvProto.radar('heroRadar', '@Url.Action("ChartDataRiver","Inventory")');
+    SvProto.osc('orderOsc', '@Url.Action("ChartDataOrderPulse","Inventory")');
+    SvProto.waterfall('massWf', '@Url.Action("ChartDataWaterfall","Inventory")');
+    SvProto.termHeat('termHeat', '@Url.Action("ChartDataExpiryHeatmap","Inventory")');
+
+    // До конца смены — живой обратный отсчёт
+    (function () {
+        var end = '@(ViewBag.ShiftEndLocal?.ToString("HH\\:mm") ?? "")';
+        var node = document.getElementById('shiftCountdown');
+        function tick() {
+            if (!end) { node.textContent = 'смена не задана'; return; }
+            var parts = end.split(':'), now = new Date(), t = new Date();
+            t.setHours(+parts[0], +parts[1], 0, 0);
+            var ms = t - now;
+            if (ms <= 0) { node.textContent = 'смена завершена'; return; }
+            var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), s = Math.floor(ms % 60000 / 1000);
+            node.textContent = (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+        }
+        tick(); setInterval(tick, 1000);
+    })();
+
     document.querySelectorAll('.sv-push').forEach(function (button) {
         button.addEventListener('click', function () {
             var active = button.classList.toggle('on');

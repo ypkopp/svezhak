@@ -133,6 +133,27 @@ public class InventoryController(
         ViewBag.HasAlert = stopList.Count > 0 || live.Any(b => b.ExpiresAt < now.AddHours(12));
         ViewBag.ThreatCount = live.Count(b => b.ExpiresAt < now.AddHours(24));
 
+        // Герой: ближайшая партия (продукт, срок, масса, оценка ₽) — одна мысль
+        var next = live.OrderBy(b => b.ExpiresAt).FirstOrDefault();
+        if (next is not null)
+        {
+            var price = next.Product?.PurchasePrice ?? 0;
+            ViewBag.NextExpiryProduct = next.Product?.Name;
+            ViewBag.NextExpiryHours = (next.ExpiresAt - now).TotalHours;
+            ViewBag.NextExpiryQty = next.QtyRemaining;
+            ViewBag.NextExpiryUnit = next.Product?.Unit;
+            ViewBag.NextExpiryRub = Math.Round(next.QtyRemaining * price, 0);
+        }
+
+        // До конца текущей смены (виджет «Смена» в сайдбаре — синхронно)
+        var todayShift = await db.Shifts.AsNoTracking()
+            .Where(s => s.RestaurantId == rid && s.Date == DateOnly.FromDateTime(now))
+            .OrderByDescending(s => s.EndTime)
+            .Select(s => (TimeOnly?)s.EndTime)
+            .FirstOrDefaultAsync();
+        if (todayShift is TimeOnly endTime)
+            ViewBag.ShiftEndLocal = endTime;
+
         // ИИ-анализ смены — текстовое резюме (fallback на локальные правила)
         ViewBag.AiSummary = await advisorService.GetSummaryAsync(rid.Value);
         return View();
@@ -479,6 +500,65 @@ public class InventoryController(
         ViewBag.StopList = stopList;
         ViewBag.HotOffers = hotOffers;
         return View();
+    }
+
+    // GET /Inventory/Notifications — события для колокольчика в топбаре
+    [HttpGet]
+    public async Task<IActionResult> Notifications()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+        var items = new List<object>();
+
+        // Истекает < 12 ч
+        var expiring = await db.Batches
+            .Include(b => b.Product)
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now && b.ExpiresAt <= now.AddHours(12))
+            .OrderBy(b => b.ExpiresAt)
+            .Take(4)
+            .Select(b => new { name = b.Product!.Name, hours = (b.ExpiresAt - now).TotalHours, qty = b.QtyRemaining, unit = b.Product.Unit })
+            .ToListAsync();
+        foreach (var e in expiring)
+            items.Add(new { kind = "expiring", icon = "st-hourglass.png", title = $"«{e.name}» истекает", text = $"{e.hours:0.#} ч · {e.qty:0.##} {e.unit}", severity = e.hours < 4 ? "high" : "medium", url = "/Inventory/Stock?expiringOnly=true" });
+
+        // Стоп-лист
+        var stop = await orders.GetStopListAsync(rid.Value);
+        foreach (var s in stop.Take(3))
+            items.Add(new { kind = "stop", icon = "st-stop.png", title = $"«{s.DishName}» в стоп-листе", text = "не хватает ингредиентов", severity = "high", url = "/Inventory/StopList" });
+
+        // Списано просроченным за сутки
+        var wroteOff = await db.WriteOffs
+            .Where(w => w.RestaurantId == rid && w.Reason == OrderService.ReasonExpired && w.CreatedAt >= now.AddHours(-24))
+            .SumAsync(w => (decimal?)w.Qty) ?? 0;
+        if (wroteOff > 0)
+            items.Add(new { kind = "writeoff", icon = "st-box.png", title = "Списано просроченным", text = $"{wroteOff:0.##} кг за сутки", severity = "medium", url = "/Inventory/Stock" });
+
+        return Json(new { count = items.Count, generatedAtUtc = now, items });
+    }
+
+    // GET /Inventory/Search?q= — command-palette: блюда/продукты/поставки
+    [HttpGet]
+    public async Task<IActionResult> Search(string q)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        q = (q ?? "").Trim();
+        if (q.Length < 2) return Json(new { results = Array.Empty<object>() });
+
+        var lower = q.ToLower();
+        var dishes = await db.Dishes.AsNoTracking()
+            .Where(d => d.RestaurantId == rid && d.IsActive && d.Name.ToLower().Contains(lower))
+            .Take(5).Select(d => new { type = "dish", name = d.Name, meta = $"{d.Price:0} ₽", url = "/Inventory/Order" }).ToListAsync();
+        var products = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid && p.Name.ToLower().Contains(lower))
+            .Take(5).Select(p => new { type = "product", name = p.Name, meta = p.Category, url = "/Inventory/Stock" }).ToListAsync();
+        var deliveries = await db.Deliveries.AsNoTracking()
+            .Where(d => d.RestaurantId == rid && d.Number.ToLower().Contains(lower))
+            .Take(5).Select(d => new { type = "delivery", name = d.Number, meta = "поставка", url = "/Inventory/Deliveries" }).ToListAsync();
+
+        var results = dishes.Cast<object>().Concat(products).Concat(deliveries).ToList();
+        return Json(new { results });
     }
 
     // POST /Inventory/ResetDemo — сброс демо-данных (только админ)

@@ -356,6 +356,73 @@ a:hover { color:var(--tx); }
 .sv-shift-card:hover .sv-shift-del button { opacity:1; }
 .sv-shift-del button:hover { background:var(--rd); color:#fff; }
 
+/* --- Дашборд: радар героя, осциллограф, LED-водопад, термо-карта, ИИ-блок --- */
+.sv-radar-svg { position:absolute; left:0; bottom:0; width:calc(100% - 120px); height:auto; overflow:visible; }
+.sv-radar-ax { font:600 9px var(--mono); fill:#5b6372; }
+.sv-radar-lb { font:700 10.5px var(--ui); paint-order:stroke; stroke:#11131a; stroke-width:4px; }
+.sv-radar-ping { animation:svPing 1.8s ease-out infinite; }
+@keyframes svPing { 0% { transform:scale(.4); opacity:1; } 100% { transform:scale(1.8); opacity:0; } }
+.sv-radar-sweep { transform-origin:0 0; animation:svSweep 5s linear infinite; }
+@keyframes svSweep { to { transform:rotate(360deg); } }
+.sv-hero-art { position:relative; min-height:220px; }
+.sv-hero-chef { position:absolute; right:-6px; bottom:-12px; width:150px; pointer-events:none; filter:drop-shadow(0 0 30px #F5656544) drop-shadow(0 10px 20px #000); animation:svBob 3.4s ease-in-out infinite; }
+.sv-hero-hud { position:absolute; right:14px; top:8px; z-index:1; padding:9px 12px; border-radius:12px; background:#0f1115d9; box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--a1) 40%,transparent); text-align:right; }
+.sv-hero-hud b { font-size:16px; letter-spacing:.06em; text-shadow:0 0 12px currentColor; }
+@keyframes svBob { 50% { transform:translateY(-8px) rotate(-3deg); } }
+
+/* Осциллограф */
+.sv-osc-wrap { position:relative; min-height:210px; border-radius:16px; background:#090b0e; overflow:hidden; }
+.sv-osc-ax { font:600 9px var(--mono); fill:#5b6372; }
+.sv-osc-scan { position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,#ffffff05 0 1px,transparent 1px 4px); }
+.sv-osc-head { filter:drop-shadow(0 0 6px currentColor); }
+
+/* LED-водопад */
+.sv-wf { display:flex; flex-direction:column; gap:9px; }
+.sv-wf-row { display:grid; grid-template-columns:78px 1fr 86px; gap:10px; align-items:center; }
+.sv-wf-l { font:600 10px var(--mono); color:var(--mut); text-transform:uppercase; letter-spacing:.08em; }
+.sv-wf-cells { display:grid; grid-template-columns:repeat(40,1fr); gap:2px; height:13px; }
+.sv-wf-cells i { border-radius:2px; background:#1f232c; }
+.sv-wf-cells i.on { animation:svCellIn .3s both; }
+@keyframes svCellIn { from { opacity:0; transform:scaleY(.2); } to { opacity:1; transform:none; } }
+.sv-wf-v { font:700 13px var(--mono); text-align:right; }
+.sv-wf-v small { color:var(--mut); font-weight:600; }
+.sv-wf3 { margin-top:14px; padding:10px 12px; border-radius:12px; background:linear-gradient(90deg,#F565651c,transparent); font-size:12.5px; color:#c9ced8; display:flex; align-items:center; gap:8px; }
+.sv-wf3 b { color:#F56565; }
+
+/* Терминальная карта просрочки */
+.sv-term-card { background:linear-gradient(160deg,#0b120ecc,#111318cc); }
+.sv-th-grid { display:grid; gap:5px 4px; align-items:center; font-family:var(--mono); }
+.sv-th-d { font:600 9px var(--mono); color:#5b6372; text-align:center; }
+.sv-th-p { font:600 10px var(--mono); color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color .15s; }
+.sv-th-p.on { color:#48BB78; }
+.sv-th-c { font-size:11px; letter-spacing:1px; text-align:center; cursor:default; user-select:none; transition:transform .12s; }
+.sv-th-c.hv { transform:scale(1.4); }
+.sv-th-foot { margin-top:12px; font:600 11px var(--mono); color:#48BB78; }
+.sv-th-prompt { color:#2f9e63; margin-right:6px; }
+.sv-th-out b { color:#E2E8F0; }
+.sv-th-caret { animation:svBlink 1s steps(2) infinite; }
+
+/* ИИ-блок */
+.sv-ai-layout { display:grid; grid-template-columns:64px 1fr; gap:14px; align-items:start; }
+.sv-ai-chef { width:64px; margin-top:-4px; mix-blend-mode:lighten; filter:drop-shadow(0 0 14px var(--glow)); animation:svBob 4s ease-in-out infinite; }
+.sv-ai-body { min-width:0; }
+.sv-ai-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.sv-ai-chip { display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:999px; background:color-mix(in oklab,var(--c,var(--a1)) 12%,transparent); border:1px solid color-mix(in oklab,var(--c,var(--a1)) 40%,transparent); color:var(--tx); font-size:11px; font-weight:700; text-decoration:none; }
+.sv-ai-chip:hover { background:color-mix(in oklab,var(--c,var(--a1)) 22%,transparent); }
+.sv-ai-chip-dot { width:7px; height:7px; border-radius:50%; background:var(--c,var(--a1)); box-shadow:0 0 7px var(--c,var(--a1)); }
+.sv-ai-chip em { font-style:normal; color:var(--mut); font-weight:600; }
+
+/* Рекомендации */
+.sv-legend { display:flex; gap:14px; }
+.sv-legend span { font:600 11px var(--mono); color:var(--mut); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.sv-legend span::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--c); box-shadow:0 0 8px var(--c); }
+.sv-recs-yuzu { display:flex; align-items:flex-end; gap:12px; height:80px; margin:0 0 12px; padding:0 14px; border-radius:16px; overflow:hidden; background:linear-gradient(100deg,color-mix(in oklab,var(--a1) 22%,transparent),#ffffff04 70%); }
+.sv-recs-yuzu img { width:92px; margin-bottom:-56px; flex:none; }
+.sv-recs-say { align-self:center; font-size:12px; line-height:1.4; color:#e9ecf1; font-weight:600; }
+.sv-recs-say b { display:block; font:700 9px var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--a1); margin-bottom:3px; }
+.sv-rec-n { font:800 12px var(--mono); color:#545b68; }
+.sv-led { font-family:var(--mono); font-weight:700; }
+
 @media(max-width:1240px) { .sv-login-layout { grid-template-columns:1fr; } .sv-login-art { min-height:360px; } .sv-login-side { min-height:580px; } }
 @media(max-width:1150px) { .sv-handoff-sidebar { width:210px; } .sv-app-shell { grid-template-columns:210px minmax(0,1fr); } .sv-global-search { width:260px; } .sv-profile span { display:none; } }
 @media(max-width:900px) { .sv-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .sv-advisor-grid { grid-template-columns:1fr; } .sv-delivery-layout,.sv-order-layout { grid-template-columns:1fr; } .sv-hero { grid-template-columns:1fr; } .sv-hero-art { min-height:180px; } .sv-hero-art img { height:190px; } .sv-week-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .sv-day-col { min-height:160px; } }
