@@ -129,10 +129,10 @@
     var rows = (d.dishes || []).slice(0, 12);
     chart.setOption({
       grid: { left: 10, right: 12, top: 18, bottom: 24, containLabel: true },
-      xAxis: { type: 'category', data: rows.map(function (x) { return x.Dish; }), axisLabel: { color: AX, fontSize: 10, interval: 0, rotate: 20 }, axisLine: { lineStyle: { color: GRID } } },
+      xAxis: { type: 'category', data: rows.map(function (x) { return x.dish; }), axisLabel: { color: AX, fontSize: 10, interval: 0, rotate: 20 }, axisLine: { lineStyle: { color: GRID } } },
       yAxis: { type: 'value', name: 'дней до стопа', nameTextStyle: { color: AX }, axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
-      tooltip: Object.assign({ trigger: 'axis', formatter: function (params) { var x = rows[params[0].dataIndex]; return '<b>' + x.Dish + '</b><br>' + x.LimitingProduct + '<br>запас ' + x.Stock + ' · расход ' + x.DailyUse + '/день<br>' + x.DaysUntilStop + ' дн.'; } }, TIP),
-      series: [{ type: 'bar', barWidth: '48%', data: rows.map(function (x) { return { value: x.DaysUntilStop, itemStyle: { color: x.AlreadyStopped ? '#F56565' : x.DaysUntilStop < 2 ? '#ED8936' : '#48BB78', borderRadius: [8,8,0,0] } }; }), label: { show: true, position: 'top', color: '#E2E8F0', fontSize: 9, formatter: function (p) { return p.value + 'д'; } } }]
+      tooltip: Object.assign({ trigger: 'axis', formatter: function (params) { var x = rows[params[0].dataIndex]; return '<b>' + x.dish + '</b><br>' + x.limitingProduct + '<br>запас ' + x.stock + ' · расход ' + x.dailyUse + '/день<br>' + x.daysUntilStop + ' дн.'; } }, TIP),
+      series: [{ type: 'bar', barWidth: '48%', data: rows.map(function (x) { return { value: x.daysUntilStop, itemStyle: { color: x.alreadyStopped ? '#F56565' : x.daysUntilStop < 2 ? '#ED8936' : '#48BB78', borderRadius: [8,8,0,0] } }; }), label: { show: true, position: 'top', color: '#E2E8F0', fontSize: 9, formatter: function (p) { return p.value + 'д'; } } }]
     });
   }
 

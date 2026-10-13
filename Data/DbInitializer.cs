@@ -25,6 +25,8 @@ public static class DbInitializer
         // наполнен ли уже склад. Это отдельный блок, чтобы демо-учётки
         // появлялись и на уже засиденной БД.
         await SeedStaffAsync(db);
+        // Категории и закупочные цены добиваем тоже идемпотентно.
+        await BackfillProductMetaAsync(db);
 
         // Сидим только пустую БД: если склад уже наполнен — ничего не трогаем
         if (await db.Products.AnyAsync())
@@ -83,28 +85,29 @@ public static class DbInitializer
         var rid = restaurant.Id;
 
         // === Продукты (18) ===
-        Product P(string name, string unit) => new() { RestaurantId = rid, Name = name, Unit = unit };
+        Product P(string name, string unit, string category, decimal price) =>
+            new() { RestaurantId = rid, Name = name, Unit = unit, Category = category, PurchasePrice = price };
 
         var products = new Dictionary<string, Product>
         {
-            ["salmon"] = P("Лосось филе", "кг"),
-            ["cream_cheese"] = P("Крем-чиз", "кг"),
-            ["rice"] = P("Рис для суши", "кг"),
-            ["nori"] = P("Нори", "шт"),
-            ["avocado"] = P("Авокадо", "шт"),
-            ["chicken"] = P("Куриное филе", "кг"),
-            ["beef"] = P("Говядина", "кг"),
-            ["tomato"] = P("Томаты", "кг"),
-            ["mozzarella"] = P("Моцарелла", "кг"),
-            ["dough"] = P("Тесто для пиццы", "кг"),
-            ["lettuce"] = P("Салат листовой", "кг"),
-            ["cucumber"] = P("Огурцы", "кг"),
-            ["shrimp"] = P("Креветки", "кг"),
-            ["eel"] = P("Угорь", "кг"),
-            ["tobiko"] = P("Икра тобико", "кг"),
-            ["soy_sauce"] = P("Соевый соус", "л"),
-            ["ginger"] = P("Имбирь маринованный", "кг"),
-            ["wasabi"] = P("Васаби", "кг"),
+            ["salmon"] = P("Лосось филе", "кг", "Рыба", 1450m),
+            ["cream_cheese"] = P("Крем-чиз", "кг", "Молочное", 780m),
+            ["rice"] = P("Рис для суши", "кг", "Бакалея", 160m),
+            ["nori"] = P("Нори", "шт", "Сухие", 18m),
+            ["avocado"] = P("Авокадо", "шт", "Овощи", 95m),
+            ["chicken"] = P("Куриное филе", "кг", "Мясо", 320m),
+            ["beef"] = P("Говядина", "кг", "Мясо", 780m),
+            ["tomato"] = P("Томаты", "кг", "Овощи", 220m),
+            ["mozzarella"] = P("Моцарелла", "кг", "Молочное", 720m),
+            ["dough"] = P("Тесто для пиццы", "кг", "Бакалея", 210m),
+            ["lettuce"] = P("Салат листовой", "кг", "Овощи", 380m),
+            ["cucumber"] = P("Огурцы", "кг", "Овощи", 180m),
+            ["shrimp"] = P("Креветки", "кг", "Рыба", 980m),
+            ["eel"] = P("Угорь", "кг", "Рыба", 2100m),
+            ["tobiko"] = P("Икра тобико", "кг", "Рыба", 3400m),
+            ["soy_sauce"] = P("Соевый соус", "л", "Соусы", 420m),
+            ["ginger"] = P("Имбирь маринованный", "кг", "Соусы", 460m),
+            ["wasabi"] = P("Васаби", "кг", "Соусы", 1600m),
         };
         db.Products.AddRange(products.Values);
         await db.SaveChangesAsync();
@@ -236,6 +239,46 @@ public static class DbInitializer
             B(staleDelivery, "dough", 3m, 30));        // ещё живое
 
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>Категория и закупочная цена продукта по имени — для добивки существующих БД.</summary>
+    private static readonly Dictionary<string, (string Category, decimal Price)> ProductMeta =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Лосось филе"] = ("Рыба", 1450m),
+            ["Креветки"] = ("Рыба", 980m),
+            ["Угорь"] = ("Рыба", 2100m),
+            ["Икра тобико"] = ("Рыба", 3400m),
+            ["Куриное филе"] = ("Мясо", 320m),
+            ["Говядина"] = ("Мясо", 780m),
+            ["Авокадо"] = ("Овощи", 95m),
+            ["Томаты"] = ("Овощи", 220m),
+            ["Салат листовой"] = ("Овощи", 380m),
+            ["Огурцы"] = ("Овощи", 180m),
+            ["Крем-чиз"] = ("Молочное", 780m),
+            ["Моцарелла"] = ("Молочное", 720m),
+            ["Рис для суши"] = ("Бакалея", 160m),
+            ["Тесто для пиццы"] = ("Бакалея", 210m),
+            ["Нори"] = ("Сухие", 18m),
+            ["Соевый соус"] = ("Соусы", 420m),
+            ["Имбирь маринованный"] = ("Соусы", 460m),
+            ["Васаби"] = ("Соусы", 1600m),
+        };
+
+    /// <summary>Добивает Category/PurchasePrice у продуктов, у которых они ещё не заданы.</summary>
+    private static async Task BackfillProductMetaAsync(ApplicationDbContext db)
+    {
+        var products = await db.Products.ToListAsync();
+        var changed = false;
+        foreach (var p in products)
+        {
+            if (!ProductMeta.TryGetValue(p.Name, out var meta)) continue;
+            if (p.Category == "Прочее" || string.IsNullOrEmpty(p.Category))
+            { p.Category = meta.Category; changed = true; }
+            if (p.PurchasePrice <= 0)
+            { p.PurchasePrice = meta.Price; changed = true; }
+        }
+        if (changed) await db.SaveChangesAsync();
     }
 
     /// <summary>

@@ -59,6 +59,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             (typeof(Batch), [nameof(Batch.QtyInitial), nameof(Batch.QtyRemaining)]),
             (typeof(Dish), [nameof(Dish.Price)]),
+            (typeof(Product), [nameof(Product.PurchasePrice)]),
             (typeof(RecipeItem), [nameof(RecipeItem.Quantity)]),
             (typeof(WriteOff), [nameof(WriteOff.Qty)]),
         };

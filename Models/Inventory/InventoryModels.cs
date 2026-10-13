@@ -14,6 +14,13 @@ public class Product
     // "кг", "л", "шт"
     [MaxLength(10)]
     public string Unit { get; set; } = null!;
+
+    // Категория склада: "Рыба"/"Мясо"/"Овощи"/"Молочное"/"Бакалея"/"Соусы"/"Сухие"
+    [MaxLength(30)]
+    public string Category { get; set; } = "Прочее";
+
+    // Закупочная цена за единицу (для суммы поставки и водопада потерь)
+    public decimal PurchasePrice { get; set; }
 }
 
 public class Delivery

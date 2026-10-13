@@ -165,7 +165,7 @@ public class InventoryController(
         return Json(batches);
     }
 
-    // GET /Inventory/ChartData/orderPulse — заказы по часам за последние 24 ч
+    // GET /Inventory/ChartData/orderPulse — заказы по часам за последние 24 ч + вчера для сравнения
     [HttpGet]
     public async Task<IActionResult> ChartDataOrderPulse()
     {
@@ -173,25 +173,29 @@ public class InventoryController(
         if (rid is null) return Forbid();
         var now = DateTime.UtcNow;
         var from = now.AddHours(-24);
+        var fromYesterday = from.AddDays(-1);
 
         var rows = await db.Orders
-            .Where(o => o.RestaurantId == rid && o.CreatedAt >= from)
+            .Where(o => o.RestaurantId == rid && o.CreatedAt >= fromYesterday)
             .Select(o => o.CreatedAt)
             .ToListAsync();
 
-        // bucket по часам
+        // bucket по часам: сегодня и те же часы сутки назад
         var buckets = new int[24];
+        var yesterday = new int[24];
         for (var i = 0; i < 24; i++)
         {
             var bucketStart = from.AddHours(i);
             buckets[i] = rows.Count(t => t >= bucketStart && t < bucketStart.AddHours(1));
+            var yStart = bucketStart.AddDays(-1);
+            yesterday[i] = rows.Count(t => t >= yStart && t < yStart.AddHours(1));
         }
 
         var labels = Enumerable.Range(0, 24)
             .Select(i => from.AddHours(i).ToLocalTime().ToString("HH:mm"))
             .ToList();
 
-        return Json(new { labels, values = buckets });
+        return Json(new { labels, values = buckets, yesterday });
     }
 
     // GET /Inventory/ChartData/waterfall — водопад списаний за сегодня
@@ -389,7 +393,8 @@ public class InventoryController(
                 o.Status,
                 o.RejectReason,
                 o.CreatedAt,
-                ItemCount = o.Items.Count,
+                ItemCount = o.Items.Sum(i => i.Qty),
+                Sum = o.Items.Sum(i => i.Qty * i.Dish.Price),
             })
             .ToListAsync();
 

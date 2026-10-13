@@ -67,7 +67,16 @@ public sealed class InventoryAnalyticsController(ApplicationDbContext db, OrderS
             periodDays = 7,
             estimate = true,
             methodology = "Прогноз по среднему расходу принятых заказов за 7 дней; при нулевой истории прогноз не строится.",
-            dishes = result.OrderBy(x => x.DaysUntilStop).Take(20)
+            // camelCase — фронтенд-график читает именно эти имена
+            dishes = result.OrderBy(x => x.DaysUntilStop).Take(20).Select(x => new
+            {
+                dish = x.Dish,
+                daysUntilStop = x.DaysUntilStop,
+                limitingProduct = x.LimitingProduct,
+                stock = x.Stock,
+                dailyUse = x.DailyUse,
+                alreadyStopped = x.AlreadyStopped,
+            })
         });
     }
 
