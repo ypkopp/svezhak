@@ -3,9 +3,7 @@
   var root = document.documentElement;
   var stored = localStorage.getItem('sv-theme') || 'A';
 
-  // Мини-лого в кнобе переключателя: A — скан, B — стебель
-  var KNOB = { A: '/img/brand/logo-1a-sm.png', B: '/img/brand/logo-1b-sm.png' };
-
+  // LED-логотип один — вариант B «Стебель» получаем hue-rotate (оранж→зелень ~+95°).
   function applyTheme(theme) {
     var isB = theme === 'B';
     root.classList.toggle('theme-b', isB);
@@ -18,22 +16,16 @@
     document.querySelectorAll('[data-theme-sub]').forEach(function (el) {
       el.textContent = isB ? 'Стебель · зелень' : 'Скан · оранж';
     });
-    document.querySelectorAll('[data-theme-knob]').forEach(function (el) {
-      el.src = KNOB[isB ? 'B' : 'A'];
-    });
-    // Логотип в сайдбаре меняется по теме (данные data-src-a/b заданы в разметке)
+    // Все LED-логотипы: в теме B поворачиваем hue к зелёному
     document.querySelectorAll('[data-theme-logo]').forEach(function (el) {
-      var src = isB ? el.dataset.srcB : el.dataset.srcA;
-      if (src) el.src = src;
+      el.style.filter = isB ? 'hue-rotate(96deg) saturate(.95)' : '';
     });
   }
   applyTheme(stored);
 
   document.addEventListener('click', function (event) {
     var toggle = event.target.closest('[data-theme-toggle]');
-    if (toggle) {
-      applyTheme(root.dataset.theme === 'B' ? 'A' : 'B');
-    }
+    if (toggle) applyTheme(root.dataset.theme === 'B' ? 'A' : 'B');
   });
 
   function pad(value) { return String(value).padStart(2, '0'); }
@@ -46,55 +38,106 @@
   updateClock();
   window.setInterval(updateClock, 1000);
 
-  /* ================= ⌘K — command palette ================= */
-  var searchInput = document.querySelector('[data-global-search]');
-  var searchDrop = document.getElementById('searchDrop');
-  var searchTimer = null;
+  /* ================= ⌘K — палитра быстрых действий ================= */
+  var ACTIONS = [
+    { t: 'Новый заказ', hint: 'оформить заказ', icon: '▤', url: '/Inventory/Order' },
+    { t: 'Новая поставка', hint: 'принять партию', icon: '⇩', url: '/Inventory/Deliveries' },
+    { t: 'Открыть склад', hint: 'остатки по партиям', icon: '▦', url: '/Inventory/Stock' },
+    { t: 'Стоп-лист', hint: 'что нельзя продавать', icon: '⊘', url: '/Inventory/StopList' },
+    { t: 'Советник', hint: 'ИИ-инсайты склада', icon: '✦', url: '/Inventory/Advisor' },
+    { t: 'Дашборд', hint: 'обзор смены', icon: '⌂', url: '/Inventory' },
+    { t: 'Сотрудники', hint: 'управление доступом', icon: '⚙', url: '/Admin/Employees' },
+    { t: 'Расписание', hint: 'смены недели', icon: '⚙', url: '/Admin/Schedule' },
+    { t: 'Рестораны', hint: 'управление точками', icon: '⚙', url: '/Admin/Restaurants' },
+    { t: 'Сменить тему', hint: 'A «Скан» ↔ B «Стебель»', icon: '◐', action: 'theme' },
+    { t: 'QR для кухни', hint: 'стоп-лист на телефон', icon: '⌗', action: 'qr' },
+    { t: 'Сбросить демо', hint: 'перезагрузить данные', icon: '↺', action: 'reset' },
+    { t: 'Выйти', hint: 'завершить смену', icon: '↪', action: 'logout' }
+  ];
+  var palette = document.getElementById('cmdPalette');
+  var cmdInput = document.getElementById('cmdInput');
+  var cmdList = document.getElementById('cmdList');
+  var cmdSel = 0;
 
-  function closeSearch() { if (searchDrop) { searchDrop.hidden = true; searchDrop.innerHTML = ''; } }
-  function renderResults(list) {
-    if (!searchDrop) return;
-    if (!list.length) {
-      searchDrop.innerHTML = '<div class="sv-search-empty">Ничего не найдено</div>';
-      searchDrop.hidden = false;
-      return;
-    }
-    var icons = { dish: '▤', product: '▦', delivery: '⇩' };
-    searchDrop.innerHTML = list.map(function (r) {
-      return '<a class="sv-search-item" href="' + r.url + '"><span class="sv-search-ic">' + (icons[r.type] || '⌕') + '</span><span class="sv-search-name">' + r.name + '</span><span class="sv-search-meta">' + (r.meta || '') + '</span></a>';
+  function openPalette() {
+    if (!palette) return;
+    palette.hidden = false;
+    cmdInput.value = '';
+    renderCmd('');
+    setTimeout(function () { cmdInput.focus(); }, 10);
+  }
+  function closePalette() { if (palette) palette.hidden = true; }
+  function renderCmd(q) {
+    q = (q || '').toLowerCase();
+    var list = ACTIONS.filter(function (a) { return !q || a.t.toLowerCase().includes(q) || a.hint.toLowerCase().includes(q); });
+    if (!list.length) { cmdList.innerHTML = '<div class="sv-cmd-empty">Ничего не найдено</div>'; return; }
+    cmdSel = Math.min(cmdSel, list.length - 1);
+    cmdList.innerHTML = list.map(function (a, i) {
+      return '<button type="button" class="sv-cmd-item' + (i === cmdSel ? ' sel' : '') + '" data-i="' + i + '"><span class="sv-cmd-ic">' + a.icon + '</span><span class="sv-cmd-t">' + a.t + '</span><span class="sv-cmd-h">' + a.hint + '</span></button>';
     }).join('');
-    searchDrop.hidden = false;
-  }
-  function doSearch(q) {
-    if (!q || q.length < 2) { closeSearch(); return; }
-    fetch('/Inventory/Search?q=' + encodeURIComponent(q))
-      .then(function (r) { return r.json(); })
-      .then(function (d) { renderResults(d.results || []); })
-      .catch(function () { closeSearch(); });
-  }
-  if (searchInput) {
-    searchInput.addEventListener('input', function () {
-      clearTimeout(searchTimer);
-      var q = this.value.trim();
-      searchTimer = setTimeout(function () { doSearch(q); }, 200);
+    cmdList.querySelectorAll('.sv-cmd-item').forEach(function (b, i) {
+      b.addEventListener('click', function () { run(list[i]); });
+      b.addEventListener('mouseenter', function () { cmdSel = i; markSel(list); });
     });
-    searchInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { this.blur(); closeSearch(); }
-      if (e.key === 'Enter') {
-        var first = searchDrop && searchDrop.querySelector('.sv-search-item');
-        if (first) { window.location.href = first.href; }
-      }
-    });
-    document.addEventListener('click', function (e) {
-      if (!e.target.closest('#searchWrap')) closeSearch();
+    cmdList._items = list;
+  }
+  function markSel(list) {
+    cmdList.querySelectorAll('.sv-cmd-item').forEach(function (b, i) { b.classList.toggle('sel', i === cmdSel); });
+  }
+  function run(a) {
+    if (!a) return;
+    if (a.url) { window.location.href = a.url; return; }
+    closePalette();
+    if (a.action === 'theme') applyTheme(root.dataset.theme === 'B' ? 'A' : 'B');
+    else if (a.action === 'qr') openQr();
+    else if (a.action === 'reset') { var f = document.querySelector('form[action*="ResetDemo"]'); if (f) f.requestSubmit(); }
+    else if (a.action === 'logout') { var lf = document.querySelector('form[action*="Logout"]'); if (lf) lf.requestSubmit(); }
+  }
+
+  var trigger = document.getElementById('cmdTrigger');
+  if (trigger) {
+    trigger.addEventListener('click', openPalette);
+    trigger.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPalette(); } });
+  }
+  if (cmdInput) {
+    cmdInput.addEventListener('input', function () { cmdSel = 0; renderCmd(this.value); });
+    cmdInput.addEventListener('keydown', function (e) {
+      var list = cmdList._items || [];
+      if (e.key === 'Escape') { closePalette(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); cmdSel = Math.min(cmdSel + 1, list.length - 1); markSel(list); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); cmdSel = Math.max(cmdSel - 1, 0); markSel(list); }
+      else if (e.key === 'Enter') { e.preventDefault(); run(list[cmdSel]); }
     });
   }
-  document.addEventListener('keydown', function (event) {
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-      event.preventDefault();
-      if (searchInput) { searchInput.focus(); searchInput.select(); }
-    }
+  if (palette) palette.addEventListener('click', function (e) { if (e.target === palette) closePalette(); });
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); if (palette && !palette.hidden) closePalette(); else openPalette(); }
+    if (e.key === 'Escape' && palette && !palette.hidden) closePalette();
   });
+
+  /* ================= QR для кухни ================= */
+  var qrModal = document.getElementById('qrModal');
+  var qrBox = document.getElementById('qrBox');
+  var qrLink = document.getElementById('qrLink');
+  function openQr() {
+    if (!qrModal) return;
+    qrModal.hidden = false;
+    var url = location.origin + '/Inventory/StopList';
+    if (qrLink) { qrLink.href = url; qrLink.textContent = url; }
+    if (qrBox && typeof QRCode !== 'undefined') {
+      qrBox.innerHTML = '';
+      new QRCode(qrBox, { text: url, width: 200, height: 200, colorDark: '#0f1115', colorLight: '#F3EEE4', correctLevel: QRCode.CorrectLevel.M });
+    } else if (qrBox) {
+      qrBox.innerHTML = '<div class="sv-bell-empty">QR-библиотека не загрузилась — ссылка ниже.</div>';
+    }
+  }
+  var qrBtn = document.getElementById('qrBtn');
+  if (qrBtn) qrBtn.addEventListener('click', openQr);
+  var qrClose = document.getElementById('qrClose');
+  if (qrClose) qrClose.addEventListener('click', function () { qrModal.hidden = true; });
+  if (qrModal) qrModal.addEventListener('click', function (e) { if (e.target === qrModal) qrModal.hidden = true; });
+  var qrPrint = document.getElementById('qrPrint');
+  if (qrPrint) qrPrint.addEventListener('click', function () { window.print(); });
 
   /* ================= Колокольчик — уведомления ================= */
   var bellBtn = document.getElementById('bellBtn');
@@ -104,21 +147,13 @@
   var bellRead = document.getElementById('bellRead');
   var NOTIF_KEY = 'sv-notif-read';
   var bellData = null;
-
   function sevColor(s) { return s === 'high' ? 'var(--rd)' : s === 'medium' ? 'var(--ye)' : 'var(--mut)'; }
   function renderBell(items) {
     if (!bellList) return;
     if (!items.length) { bellList.innerHTML = '<div class="sv-bell-empty">Всё спокойно — нет новых событий.</div>'; return; }
     bellList.innerHTML = items.map(function (n) {
-      return '<a class="sv-bell-item" href="' + n.url + '" style="--c:' + sevColor(n.severity) + '">' +
-        '<img src="/img/brand/' + n.icon + '" alt=""/>' +
-        '<span class="sv-bell-tx"><b>' + n.title + '</b><small>' + n.text + '</small></span>' +
-        '<i class="sv-bell-dotc"></i></a>';
+      return '<a class="sv-bell-item" href="' + n.url + '" style="--c:' + sevColor(n.severity) + '"><img src="/img/brand/' + n.icon + '" alt=""/><span class="sv-bell-tx"><b>' + n.title + '</b><small>' + n.text + '</small></span><i class="sv-bell-dotc"></i></a>';
     }).join('');
-  }
-  function unreadCount(items) {
-    var read = Number(localStorage.getItem(NOTIF_KEY) || 0);
-    return items.filter(function (n, i) { return i >= read; }).length;
   }
   function loadBell() {
     fetch('/Inventory/Notifications')
@@ -126,12 +161,10 @@
       .then(function (d) {
         bellData = d.items || [];
         renderBell(bellData);
-        var unread = unreadCount(bellData);
-        if (bellDot) bellDot.hidden = unread === 0;
+        var read = Number(localStorage.getItem(NOTIF_KEY) || 0);
+        if (bellDot) bellDot.hidden = bellData.length <= read;
       })
-      .catch(function () {
-        if (bellList) bellList.innerHTML = '<div class="sv-bell-empty">Не удалось загрузить.</div>';
-      });
+      .catch(function () { if (bellList) bellList.innerHTML = '<div class="sv-bell-empty">Не удалось загрузить.</div>'; });
   }
   if (bellBtn) {
     bellBtn.addEventListener('click', function (e) {
@@ -140,16 +173,13 @@
       if (bellDrop) bellDrop.hidden = open;
       if (!open && !bellData) loadBell();
     });
-    document.addEventListener('click', function (e) {
-      if (bellDrop && !e.target.closest('.sv-bell-wrap')) bellDrop.hidden = true;
-    });
+    document.addEventListener('click', function (e) { if (bellDrop && !e.target.closest('.sv-bell-wrap')) bellDrop.hidden = true; });
     if (bellRead) bellRead.addEventListener('click', function (e) {
       e.stopPropagation();
       localStorage.setItem(NOTIF_KEY, String((bellData || []).length));
       if (bellDot) bellDot.hidden = true;
       if (bellDrop) bellDrop.hidden = true;
     });
-    // подгружаем счётчик сразу
     loadBell();
   }
 

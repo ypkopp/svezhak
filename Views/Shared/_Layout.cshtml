@@ -12,6 +12,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] — СВЕЖАК</title>
+    <script>
+      // Тема применяется синхронно ДО загрузки CSS — без вспышки (FOUC).
+      (function(){try{var t=localStorage.getItem('sv-theme')||'A';var r=document.documentElement;r.classList.add(t==='B'?'theme-b':'theme-a');r.dataset.theme=t;}catch(e){}})();
+    </script>
     <script type="importmap"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,9 +33,8 @@
     <div class="sv-app-shell">
         <aside class="sv-handoff-sidebar">
             <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index">
-                <img data-theme-logo src="~/img/brand/logo-1a.png" data-src-a="@Url.Content("~/img/brand/logo-1a.png")" data-src-b="@Url.Content("~/img/brand/logo-1b.png")" asp-append-version="true" alt="СВЕЖАК" />
+                <img data-theme-logo src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
             </a>
-            <div class="sv-sidebar-caption">Склад без просрочки</div>
             <nav class="sv-handoff-nav" aria-label="Основная навигация">
                 <a asp-controller="Inventory" asp-action="Index" class="sv-handoff-nav-item@(Active("Index"))">
                     <span class="sv-nav-icon">⌂</span><span>Дашборд</span><b class="sv-nav-badge sv-badge-danger">@((int?)ViewBag.KpiExpiring ?? 0)</b>
@@ -63,15 +66,15 @@
         </aside>
         <div class="sv-main-shell">
             <header class="sv-handoff-topbar">
-                <label class="sv-global-search" id="searchWrap">
-                    <span>⌕</span>
-                    <input type="search" placeholder="Найти партию, блюдо, поставку…" data-global-search autocomplete="off" />
+                <label class="sv-global-search sv-cmd-trigger" id="cmdTrigger" role="button" tabindex="0">
+                    <span class="sv-cmd-ic">⌘</span>
+                    <span class="sv-cmd-hint">Быстрое действие…</span>
                     <kbd>⌘K</kbd>
-                    <div class="sv-search-drop" id="searchDrop" hidden></div>
                 </label>
                 <div class="sv-topbar-tools">
+                    <button class="sv-icon-button" type="button" id="qrBtn" aria-label="QR для кухни" title="QR для кухни — стоп-лист">⌗</button>
                     <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Переключить тему">
-                        <span class="sv-theme-knob"><img data-theme-knob src="~/img/brand/logo-1a-sm.png" alt="" /></span>
+                        <span class="sv-theme-knob"><img data-theme-logo src="~/img/brand/logo-led.png" alt="" /></span>
                         <span class="sv-theme-label"><strong data-theme-label>Тема A</strong><small data-theme-sub>Скан · оранж</small></span>
                     </button>
                     <span class="sv-led-clock" data-led-clock>00:00</span>
@@ -89,6 +92,27 @@
             <footer class="sv-handoff-footer">© 2026 — СВЕЖАК · мониторинг остатков и сроков годности</footer>
         </div>
     </div>
+
+    @* ===== ⌘K — палитра быстрых действий ===== *@
+    <div class="sv-cmd-palette" id="cmdPalette" hidden>
+        <div class="sv-cmd-box" role="dialog" aria-modal="true" aria-label="Быстрые действия">
+            <div class="sv-cmd-input-wrap"><span class="sv-cmd-ic">⌘</span><input id="cmdInput" type="text" placeholder="Действие…" autocomplete="off" /><kbd>Esc</kbd></div>
+            <div class="sv-cmd-list" id="cmdList"></div>
+        </div>
+    </div>
+
+    @* ===== QR для кухни — модалка ===== *@
+    <div class="sv-modal-wrap" id="qrModal" hidden>
+        <div class="sv-modal" role="dialog" aria-modal="true" aria-label="QR для кухни">
+            <div class="sv-modal-head"><b>QR для кухни</b><button type="button" id="qrClose" aria-label="Закрыть">×</button></div>
+            <div class="sv-modal-body">
+                <div id="qrBox" class="sv-qr-box"></div>
+                <p class="sv-surface-caption">Повар сканирует с телефона и видит стоп-лист — что нельзя готовить.</p>
+                <a id="qrLink" href="@Url.Action("StopList","Inventory")" class="sv-ai-note d-block mb-3" target="_blank"></a>
+                <button class="btn-sv-primary w-100" type="button" id="qrPrint">Распечатать</button>
+            </div>
+        </div>
+    </div>
 }
 else
 {
@@ -96,6 +120,7 @@ else
 }
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="~/js/svezhak-shell.js" asp-append-version="true"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)

@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Вход — СВЕЖАК";
+    ViewData["Title"] = "Вход";
 }
 
 <div class="sv-login-layout">
@@ -19,25 +19,23 @@
     <section class="sv-login-side">
         <div class="sv-login-theme">
             <button class="sv-theme-switch" type="button" data-theme-toggle>
-                <span class="sv-theme-knob"><img data-theme-knob src="~/img/brand/logo-1a-sm.png" alt="" /></span>
+                <span class="sv-theme-knob"><img data-theme-logo src="~/img/brand/logo-led.png" alt="" /></span>
                 <span class="sv-theme-label"><strong data-theme-label>Тема A</strong><small data-theme-sub>Скан · оранж</small></span>
             </button>
         </div>
         <div class="sv-login-card">
-            <img class="sv-login-logo" src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
+            <img class="sv-login-logo" data-theme-logo src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
             <div class="sv-login-heading"><b>Вход для смены</b><span>Код доступа ресторана</span></div>
             <form asp-controller="Account" asp-action="Login" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
                 <div class="sv-login-field">
-                    <img src="~/img/brand/chef-4-sm.png" style="width:20px" alt="" />
                     <input class="sv-input" type="text" name="code" placeholder="Код доступа" autocomplete="off" autofocus required />
                 </div>
                 @if (ViewBag.Error != null) { <div class="sv-login-message">@ViewBag.Error</div> }
                 <button class="btn-sv-primary w-100 mt-3" type="submit">Войти →</button>
             </form>
             <div class="sv-login-demo mt-3">Демо: <b>MANAGER1234</b> · админ <b>ADMIN1234</b></div>
-            <div class="sv-login-pulse">@await Html.PartialAsync("_Pulse")</div>
         </div>
         <div class="sv-login-foot">СКЛАД БЕЗ ПРОСРОЧКИ · © 2026</div>
     </section>
