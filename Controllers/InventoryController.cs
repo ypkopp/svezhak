@@ -470,4 +470,98 @@ public class InventoryController(
         TempData["OrderOk"] = "Демо-данные сброшены и заново загружены.";
         return RedirectToAction(nameof(Index));
     }
+
+    // ---------- Служебные эндпоинты для event-генератора ----------
+    // Доступны любому авторизованному пользователю (вход по access-коду).
+
+    // GET /Inventory/Menu — список активных блюд и продуктов (для генератора)
+    [HttpGet]
+    public async Task<IActionResult> Menu()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var dishes = await db.Dishes
+            .Where(d => d.RestaurantId == rid && d.IsActive)
+            .Select(d => new { d.Id, d.Name, d.Price })
+            .ToListAsync();
+        var products = await db.Products
+            .Where(p => p.RestaurantId == rid)
+            .Select(p => new { p.Id, p.Name, p.Unit })
+            .ToListAsync();
+
+        return Json(new { restaurantId = rid, dishes, products });
+    }
+
+    // POST /Inventory/SimulateOrder — создать заказ от генератора
+    // body: { items: [{dishId, qty}] }
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> SimulateOrder([FromBody] SimulateOrderRequest req)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        if (req?.Items is null || req.Items.Count == 0)
+            return BadRequest(new { error = "empty items" });
+
+        var items = req.Items
+            .Where(i => i.Qty > 0)
+            .Select(i => (i.DishId, i.Qty))
+            .ToList();
+        if (items.Count == 0) return BadRequest(new { error = "no positive qty" });
+
+        var result = await orders.PlaceOrderAsync(rid.Value, items);
+        await eventBus.PublishAsync(InventoryEventBus.OrderCreated, rid.Value);
+        if (result.Status == OrderService.StatusAccepted)
+            await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
+
+        return Json(new { result.OrderId, result.Status, result.RejectReason });
+    }
+
+    // POST /Inventory/SimulateDelivery — принять поставку от генератора
+    // body: { number, items: [{productId, qty, shelfHours}] }
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> SimulateDelivery([FromBody] SimulateDeliveryRequest req)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        if (req?.Items is null || req.Items.Count == 0)
+            return BadRequest(new { error = "empty items" });
+
+        var now = DateTime.UtcNow;
+        var delivery = new Delivery
+        {
+            RestaurantId = rid.Value,
+            Number = string.IsNullOrWhiteSpace(req.Number) ? $"SIM-{now:HHmmss}" : req.Number.Trim(),
+            CreatedAt = now,
+        };
+        db.Deliveries.Add(delivery);
+
+        var created = 0;
+        foreach (var it in req.Items)
+        {
+            if (it.Qty <= 0 || it.ShelfHours <= 0) continue;
+            db.Batches.Add(new Batch
+            {
+                RestaurantId = rid.Value,
+                Delivery = delivery,
+                ProductId = it.ProductId,
+                QtyInitial = it.Qty,
+                QtyRemaining = it.Qty,
+                ReceivedAt = now,
+                ExpiresAt = now.AddHours(it.ShelfHours),
+            });
+            created++;
+        }
+        await db.SaveChangesAsync();
+        await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
+
+        return Json(new { deliveryId = delivery.Id, delivery.Number, created });
+    }
 }
+
+public record SimulateOrderItem(int DishId, int Qty);
+public record SimulateOrderRequest(List<SimulateOrderItem> Items);
+public record SimulateDeliveryItem(int ProductId, decimal Qty, double ShelfHours);
+public record SimulateDeliveryRequest(string? Number, List<SimulateDeliveryItem> Items);
