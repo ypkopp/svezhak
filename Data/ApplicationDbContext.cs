@@ -46,6 +46,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .HasForeignKey(b => b.OrganizationId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Авторизация ищет по OwnerId/ManagerId — без индексов будет скан
+        modelBuilder.Entity<Organization>().HasIndex(o => o.OwnerId);
+        modelBuilder.Entity<Restaurant>().HasIndex(r => r.ManagerId);
+
         // === Складское ядро: ограничения точности и осмысленные индексы ===
 
         var decimalProps = new (Type Entity, string[] Props)[]

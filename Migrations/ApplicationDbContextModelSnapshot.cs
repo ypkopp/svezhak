@@ -333,6 +333,8 @@ namespace SmartInventory.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerId");
+
                     b.ToTable("Organizations");
                 });
 
@@ -358,6 +360,8 @@ namespace SmartInventory.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManagerId");
 
                     b.HasIndex("OrganizationId");
 

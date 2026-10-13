@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,17 +15,25 @@ public class AccountController(ApplicationDbContext db) : Controller
     }
 
     [HttpGet("Login")]
-    public IActionResult Login()
+    public IActionResult Login(string? returnUrl = null)
     {
+        // Уже вошли — сразу в продукт, а не на форму логина
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Inventory");
+        }
+
+        ViewBag.ReturnUrl = returnUrl;
         return View();
     }
 
     [HttpPost("Login")]
-    public async Task<IActionResult> Login(string code)
+    public async Task<IActionResult> Login(string code, string? returnUrl = null)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
             ViewBag.Error = "Введите код доступа.";
+            ViewBag.ReturnUrl = returnUrl;
             return View();
         }
 
@@ -35,6 +43,7 @@ public class AccountController(ApplicationDbContext db) : Controller
         if (accessCode == null || !accessCode.IsActive)
         {
             ViewBag.Error = "Неверный код доступа или доступ заблокирован.";
+            ViewBag.ReturnUrl = returnUrl;
             return View();
         }
 
@@ -48,7 +57,9 @@ public class AccountController(ApplicationDbContext db) : Controller
         {
             new(ClaimTypes.Name, accessCode.EmployeeName ?? $"User_{accessCode.Id}"),
             new(ClaimTypes.Role, accessCode.Role.ToString()),
+            // Идентификаторы разделены: код доступа, организация и субъект — разные клеймы
             new("AccessCodeId", accessCode.Id.ToString()),
+            new("OrganizationId", accessCode.OrganizationId.ToString()),
             new(ClaimTypes.NameIdentifier, accessCode.Id.ToString()),
         };
 
@@ -58,10 +69,17 @@ public class AccountController(ApplicationDbContext db) : Controller
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(claimsIdentity));
 
-        return RedirectToAction("Index", "Home");
+        // Возвращаемся туда, откуда выкинуло на логин; по умолчанию — дашборд
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return LocalRedirect(returnUrl);
+        }
+
+        return RedirectToAction("Index", "Inventory");
     }
 
     [HttpPost("Logout")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

@@ -1,27 +1,21 @@
-﻿@{
-    ViewData["Title"] = "Вход в систему";
+@{
+    ViewData["Title"] = "Вход";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <h2>@ViewData["Title"]</h2>
-        
-        <!-- Используем стандартный тег-хелпер asp-action -->
-        <form asp-controller="Account" asp-action="Login" method="post">
-            <div class="form-group mb-3">
-                <label for="code">Код доступа</label>
-                <input type="text" id="code" name="code" class="form-control" placeholder="Введите ваш код" required />
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-100">Войти</button>
-        </form>
+<div class="sv-login-wrap">
+    <div class="sv-card sv-login-card">
+        <img src="~/img/brand/logo-1a-sm.png" asp-append-version="true" alt="СВЕЖАК" class="sv-login-logo" />
+        <div class="sv-login-title">СВЕЖАК</div>
 
-        <!-- Вывод ошибки, если она передана из контроллера через ViewBag / ModelState -->
-        @if (ViewBag.Error != null)
-        {
-            <div class="alert alert-danger mt-3">
-                @ViewBag.Error
-            </div>
-        }
+        <form asp-controller="Account" asp-action="Login" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+            <input type="text" id="code" name="code" class="sv-input" placeholder="Код доступа" required autocomplete="off" autofocus />
+            @if (ViewBag.Error != null)
+            {
+                <div class="sv-login-error">@ViewBag.Error</div>
+            }
+            <button type="submit" class="btn-sv w-100 mt-3">Войти</button>
+        </form>
     </div>
 </div>

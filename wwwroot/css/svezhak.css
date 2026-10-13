@@ -180,3 +180,27 @@ a { color: var(--sv-accent); }
 a:hover { color: #f6ad55; }
 .sv-toggle { display:inline-flex; align-items:center; gap:.5rem; color: var(--sv-muted); font-size:.88rem; }
 .sv-toggle input { accent-color: var(--sv-accent); }
+
+/* Страница входа */
+.sv-login-wrap {
+    min-height: calc(100vh - 220px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sv-login-card {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    padding: 2.2rem 2rem;
+}
+.sv-login-logo { max-width: 220px; height: auto; margin: 0 auto 0.6rem; }
+.sv-login-title {
+    font-size: 1.9rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    color: var(--sv-text);
+    margin-bottom: 1.6rem;
+}
+.sv-login-card .sv-input { text-align: center; font-size: 1.05rem; letter-spacing: .05em; }
+.sv-login-error { color: var(--sv-red); font-size: .85rem; margin-top: .6rem; }

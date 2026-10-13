@@ -1,13 +1,11 @@
-<!DOCTYPE html>
+@{
+    ViewData["Title"] = "Нет доступа";
+}
 
-<html>
-<head>
-    <title>Нет доступа!</title>
-</head>
-<body>
-<div class="text-center">
-    <h1 class="display-4">ОШИБКА!</h1>
-    <p style="color: red">Нет доступа</p>
+<div class="sv-login-wrap">
+    <div class="sv-card sv-login-card">
+        <div style="font-size:3rem; font-weight:800; color:var(--sv-red)">403</div>
+        <div class="sv-page-sub mt-2">У вашей роли нет прав для этой страницы.</div>
+        <a class="btn-sv d-inline-block mt-2" asp-controller="Inventory" asp-action="Index">На дашборд</a>
+    </div>
 </div>
-</body>
-</html>

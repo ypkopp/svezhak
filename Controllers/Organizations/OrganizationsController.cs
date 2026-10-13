@@ -23,6 +23,7 @@ public class OrganizationsController(
         var organizations = await context.Organizations
             .Include(o => o.Restaurants)
             .Include(o => o.AccessCodes)
+            .AsSplitQuery()
             .ToListAsync();
 
         var viewModels = mapper.Map<List<OrganizationIndexViewModel>>(organizations);

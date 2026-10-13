@@ -32,7 +32,7 @@ public class RestaurantsController(
 
         if (userRole == AppRole.OrganizationOwner)
         {
-            var organizationIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var organizationIdClaim = User.Claims.FirstOrDefault(c => c.Type == "OrganizationId")?.Value;
 
             if (int.TryParse(organizationIdClaim, out var orgId))
             {
@@ -50,10 +50,11 @@ public class RestaurantsController(
 
         if (userRole == AppRole.RestaurantManager)
         {
-            var organizationIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            // ManagerId хранит Id access-кода менеджера — сверяем именно с AccessCodeId
+            var accessCodeIdClaim = User.Claims.FirstOrDefault(c => c.Type == "AccessCodeId")?.Value;
 
             var restaurant = await context.Restaurants
-                .Where(r => r.ManagerId == organizationIdClaim)
+                .Where(r => r.ManagerId == accessCodeIdClaim)
                 .Include(r => r.Organization)
                 .FirstOrDefaultAsync();
 
@@ -92,7 +93,9 @@ public class RestaurantsController(
     [AuthorizeRole(AppRole.ServerAdmin, AppRole.OrganizationOwner)]
     public async Task<IActionResult> Edit(int id)
     {
+        // Handler обращается к resource.Organization.OwnerId, поэтому грузим с Include
         var restaurant = await context.Restaurants
+            .Include(r => r.Organization)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (restaurant == null) return NotFound();
@@ -117,6 +120,7 @@ public class RestaurantsController(
         if (id != model.Id) return NotFound();
 
         var restaurant = await context.Restaurants
+            .Include(r => r.Organization)
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (restaurant == null) return NotFound();

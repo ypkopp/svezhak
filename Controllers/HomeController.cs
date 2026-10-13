@@ -9,7 +9,13 @@ public class HomeController : Controller
 {
     public IActionResult Index()
     {
-        return View();
+        // Корень: авторизован → дашборд продукта, иначе → вход
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Inventory");
+        }
+
+        return RedirectToAction("Login", "Account");
     }
 
     public IActionResult Privacy()
