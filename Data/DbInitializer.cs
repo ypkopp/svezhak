@@ -26,17 +26,6 @@ public static class DbInitializer
         else
             await db.Database.MigrateAsync();
 
-        // Сотрудники и доступы сидим идемпотентно — независимо от того,
-        // наполнен ли уже склад. Это отдельный блок, чтобы демо-учётки
-        // появлялись и на уже засиденной БД.
-        await SeedStaffAsync(db);
-        // Категории и закупочные цены добиваем тоже идемпотентно.
-        await BackfillProductMetaAsync(db);
-
-        // Сидим только пустую БД: если склад уже наполнен — ничего не трогаем
-        if (await db.Products.AnyAsync())
-            return;
-
         var now = DateTime.UtcNow;
 
         // === Организация и ресторан ===
@@ -87,7 +76,16 @@ public static class DbInitializer
             await db.SaveChangesAsync();
         }
 
+        // Сотрудники и доступы (админ + линейный персонал) — после org/ресторана,
+        // иначе на пустой БД org ещё не существует и блок срабатывал впустую.
+        await SeedStaffAsync(db);
+        await BackfillProductMetaAsync(db);
+
         var rid = restaurant.Id;
+
+        // Склад сидим только в пустую БД: если продукты уже есть — не трогаем
+        if (await db.Products.AnyAsync())
+            return;
 
         // === Продукты (18) ===
         Product P(string name, string unit, string category, decimal price) =>
