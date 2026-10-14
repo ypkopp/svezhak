@@ -291,6 +291,88 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
 
     // ---------- Расписание ----------
 
+    // POST /Admin/Schedule/Autofill — собрать неделю правилами (без записи): 2 смены/день, повара по кругу
+    [HttpPost("Schedule/Autofill")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AutofillSchedule(int weekOffset = 0)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var orgId = await GetOrganizationIdAsync();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)).AddDays(weekOffset * 7);
+        var days = Enumerable.Range(0, 7).Select(monday.AddDays).ToList();
+
+        var employees = await db.AccessCodes.AsNoTracking()
+            .Where(c => c.OrganizationId == orgId && c.IsActive)
+            .OrderBy(c => c.Id)
+            .ToListAsync();
+        if (employees.Count == 0) { TempData["Error"] = "Нет активных сотрудников."; return RedirectToAction(nameof(Schedule), new { weekOffset }); }
+
+        // Уже существующие смены недели — не задваиваем повара в один день
+        var existing = await db.Shifts.AsNoTracking()
+            .Where(s => s.RestaurantId == rid && s.Date >= days[0] && s.Date <= days[6])
+            .Select(s => new { s.Date, s.AccessCodeId })
+            .ToListAsync();
+        var busy = existing.GroupBy(s => s.Date).ToDictionary(g => g.Key, g => g.Select(x => x.AccessCodeId).ToHashSet());
+
+        var draft = new List<(int Day, int AccessCodeId, string Name, string Position, string Start, string End)>();
+        var slots = new[] { (new TimeOnly(9, 0), new TimeOnly(17, 0)), (new TimeOnly(17, 0), new TimeOnly(23, 0)) };
+        var idx = 0;
+        for (var d = 0; d < 7; d++)
+        {
+            var day = days[d];
+            var usedToday = busy.GetValueOrDefault(day) ?? [];
+            foreach (var (st, en) in slots)
+            {
+                // Первый свободный сотрудник по кругу (без пересечений у одного человека в день)
+                AccessCode? picked = null;
+                for (var k = 0; k < employees.Count; k++)
+                {
+                    var cand = employees[(idx + k) % employees.Count];
+                    if (!usedToday.Contains(cand.Id)) { picked = cand; idx = (idx + k + 1) % employees.Count; break; }
+                }
+                if (picked is null) continue;
+                usedToday.Add(picked.Id);
+                draft.Add((d, picked.Id, picked.EmployeeName ?? $"#{picked.Id}", "повар", st.ToString("HH:mm"), en.ToString("HH:mm")));
+            }
+        }
+        if (draft.Count == 0) { TempData["Error"] = "Некого ставить — все заняты."; return RedirectToAction(nameof(Schedule), new { weekOffset }); }
+
+        TempData["Draft"] = System.Text.Json.JsonSerializer.Serialize(draft);
+        return RedirectToAction(nameof(Schedule), new { weekOffset });
+    }
+
+    // POST /Admin/Schedule/SaveDraft — подтвердить черновик недели
+    [HttpPost("Schedule/SaveDraft")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveDraft(string draftJson, int weekOffset = 0)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var rows = System.Text.Json.JsonSerializer.Deserialize<List<DraftShift>>(draftJson) ?? [];
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)).AddDays(weekOffset * 7);
+
+        var added = 0;
+        foreach (var r in rows)
+        {
+            var date = monday.AddDays(r.Day);
+            var start = TimeOnly.Parse(r.Start); var end = TimeOnly.Parse(r.End);
+            // пропускаем, если у сотрудника уже есть пересекающаяся смена в этот день
+            var overlap = await db.Shifts.AnyAsync(s => s.RestaurantId == rid && s.AccessCodeId == r.AccessCodeId && s.Date == date && s.StartTime < end && start < s.EndTime);
+            if (overlap) continue;
+            db.Shifts.Add(new Shift { RestaurantId = rid.Value, AccessCodeId = r.AccessCodeId, Date = date, StartTime = start, EndTime = end, Position = r.Position });
+            added++;
+        }
+        await db.SaveChangesAsync();
+        TempData["Ok"] = $"Неделя собрана — добавлено {added} смен.";
+        return RedirectToAction(nameof(Schedule), new { weekOffset });
+    }
+    public sealed record DraftShift(int Day, int AccessCodeId, string Name, string Position, string Start, string End);
+
     // GET /Admin/Schedule?weekOffset=-1|0|1
     [HttpGet("Schedule")]
     public async Task<IActionResult> Schedule(int weekOffset = 0)
@@ -322,6 +404,13 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         ViewBag.Employees = employees;
         ViewBag.Positions = AllowedPositions;
         ViewBag.Error = TempData["Error"];
+        ViewBag.Ok = TempData["Ok"];
+        // Черновик недели из «Собрать неделю» — показываем пунктиром, не сохранён
+        if (TempData["Draft"] is string dj && !string.IsNullOrEmpty(dj))
+        {
+            ViewBag.Draft = System.Text.Json.JsonSerializer.Deserialize<List<DraftShift>>(dj);
+            ViewBag.DraftJson = dj;
+        }
         return View();
     }
 

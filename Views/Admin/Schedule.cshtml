@@ -27,6 +27,11 @@
         <div class="sv-page-sub mb-0">@weekStart.ToString("dd.MM") — @weekEnd.ToString("dd.MM.yyyy") · неделя @(weekOffset == 0 ? "(текущая)" : weekOffset > 0 ? $"+{weekOffset}" : weekOffset.ToString())</div>
     </div>
     <div class="d-flex align-items-center gap-2">
+        <form asp-action="AutofillSchedule" method="post" class="m-0">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="weekOffset" value="@weekOffset" />
+            <button class="btn-sv-ghost btn-sm" type="submit" title="2 смены/день, повара по кругу">⚡ Собрать неделю</button>
+        </form>
         <a class="btn-sv-ghost btn-sm" asp-action="Schedule" asp-route-weekOffset="@(weekOffset - 1)">← Пред</a>
         <a class="sv-chip" style="height:34px;text-decoration:none" asp-action="Schedule" asp-route-weekOffset="0">Сегодня</a>
         <a class="btn-sv-ghost btn-sm" asp-action="Schedule" asp-route-weekOffset="@(weekOffset + 1)">След →</a>
@@ -34,6 +39,7 @@
     </div>
 </div>
 
+@if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
 @if (ViewBag.Error is string err && !string.IsNullOrEmpty(err))
 {
     <div class="sv-alert sv-alert-danger fade-up" role="alert">@err</div>
@@ -69,7 +75,20 @@
                             </div>
                         }
                     }
-                    else
+                    @* Черновик «Собрать неделю» — пунктирные карточки, ещё не сохранены *@
+                    @if (ViewBag.Draft is List<SmartInventory.Controllers.AdminController.DraftShift> draft)
+                    {
+                        foreach (var d in draft)
+                        {
+                            if (d.Day != i) continue;
+                            <div class="sv-shift-card sv-shift-draft" style="--pos:var(--a1)">
+                                <div class="sv-shift-name">@d.Name</div>
+                                <div class="sv-shift-pos">@d.Position <span class="sv-badge sv-badge-yellow" style="font-size:8px">черновик</span></div>
+                                <div class="sv-shift-time">@d.Start–@d.End</div>
+                            </div>
+                        }
+                    }
+                    else if (dayShifts is null || dayShifts.Count == 0)
                     {
                         <div class="sv-day-empty">—</div>
                     }
@@ -78,6 +97,28 @@
         }
     </div>
 </div>
+
+@* Панель подтверждения черновика *@
+@if (ViewBag.Draft is not null)
+{
+    <div class="sv-card fade-up mt-3" style="border:1px dashed color-mix(in oklab,var(--a1) 45%,transparent)">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="sv-section-title mb-0">Черновик недели</div>
+                <span class="sv-muted" style="font-size:11px">@(((List<SmartInventory.Controllers.AdminController.DraftShift>)ViewBag.Draft).Count) смен предложено · подтверди или отклонись</span>
+            </div>
+            <div class="d-flex gap-2">
+                <form asp-action="SaveDraft" method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="weekOffset" value="@weekOffset" />
+                    <input type="hidden" name="draftJson" value="@ViewBag.DraftJson" />
+                    <button class="btn-sv-primary btn-sm" type="submit">Сохранить неделю</button>
+                </form>
+                <a class="btn-sv-ghost btn-sm" asp-action="Schedule" asp-route-weekOffset="@weekOffset">Отменить</a>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Модалка: добавить смену -->
 <div class="modal fade" id="addShiftModal" tabindex="-1" aria-hidden="true">
