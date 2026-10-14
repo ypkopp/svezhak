@@ -20,7 +20,7 @@ a:hover { color:var(--tx); }
 /* App ambient grid + glows */
 .sv-background { position:fixed; inset:0; z-index:-1; pointer-events:none; background:radial-gradient(900px 520px at 78% -8%,var(--glow),transparent 62%),radial-gradient(700px 600px at 10% 120%,#7f5af014,transparent 60%),linear-gradient(#ffffff05 1px,transparent 1px) 0 0/32px 32px,linear-gradient(90deg,#ffffff05 1px,transparent 1px) 0 0/32px 32px,#0d0f13; }
 .sv-app-shell { display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; position:relative; }
-.sv-handoff-sidebar { position:sticky; top:0; height:100vh; height:100dvh; overflow-y:auto; display:flex; flex-direction:column; padding:22px 14px 16px; background:linear-gradient(180deg,#12151bcc,#0e1014cc); backdrop-filter:blur(12px); border-right:1px solid #ffffff0d; z-index:10; scrollbar-width:thin; }
+.sv-handoff-sidebar { position:sticky; top:0; height:100vh; height:100dvh; overflow-y:auto; display:flex; flex-direction:column; padding:22px 14px 24px; background:linear-gradient(180deg,#12151bcc,#0e1014cc); backdrop-filter:blur(12px); border-right:1px solid #ffffff0d; z-index:10; scrollbar-width:thin; }
 .sv-handoff-logo { display:block; padding:4px 8px 0; }
 .sv-handoff-logo img { display:block; width:100%; height:46px; object-fit:contain; object-position:left center; }
 .sv-sidebar-caption { padding:1px 10px 27px; color:var(--mut); font:600 9px/1.2 var(--mono); letter-spacing:.21em; text-transform:uppercase; }
