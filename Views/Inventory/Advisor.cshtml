@@ -30,6 +30,15 @@
     </div>
 </div>
 
+@{
+    var cats = new[] {
+        ("продать срочно", "Продать срочно", "🔥", "var(--rd)"),
+        ("заказать", "Заказать", "📦", "var(--gr)"),
+        ("списать", "Списать", "🗑", "var(--ye)"),
+        ("риски", "Риски", "⚠", "var(--mut)")
+    };
+    var sevOrd = new Dictionary<string,int>{{"high",0},{"medium",1},{"low",2}};
+}
 @if (!Model.Insights.Any())
 {
     <div class="sv-card fade-up">
@@ -38,34 +47,58 @@
 }
 else
 {
-    <div class="sv-advisor-grid">
-        @foreach (var item in Model.Insights)
+    @* Фильтр-чипы со счётчиками *@
+    <div class="d-flex flex-wrap gap-1 mb-3" id="advFilters">
+        <button type="button" class="sv-chip active" data-adv-filter="all">Все @Model.Insights.Count()</button>
+        @foreach (var c in cats)
         {
-            var color = catColor(item.Category);
-            var action = item.Category switch
-            {
-                "продать срочно" => "Продать срочно",
-                "заказать" => "Заказать",
-                "списать" => "Списать",
-                _ => "Риск"
-            };
-            <article class="sv-adv-card sv-hover-card fade-up" data-category="@item.Category" data-severity="@item.Severity">
-                <img class="sv-adv-ic" src="~/img/brand/@catIcon(item.Category)" alt="" />
-                <div class="sv-adv-body">
-                    <div class="sv-adv-head">
-                        <div class="sv-adv-cat" style="color:@color">@action</div>
-                        <span class="sv-badge @(item.Severity == "high" ? "sv-badge-red" : item.Severity == "medium" ? "sv-badge-yellow" : "sv-badge-green")">@item.Severity</span>
-                    </div>
-                    <h3 class="sv-adv-title">@item.Title</h3>
-                    <p class="sv-adv-tx">@item.Explanation</p>
-                    <a class="sv-adv-btn" href="@item.ActionUrl" style="--c:@color">@item.ActionLabel →</a>
-                </div>
-            </article>
+            var n = Model.Insights.Count(i => i.Category == c.Item1);
+            <button type="button" class="sv-chip" data-adv-filter="@c.Item1">@c.Item3 @c.Item2 <span style="color:@c.Item4">@n</span></button>
         }
     </div>
+
+    @foreach (var c in cats)
+    {
+        var items = Model.Insights.Where(i => i.Category == c.Item1)
+            .OrderBy(i => sevOrd.GetValueOrDefault(i.Severity ?? "low", 3)).ToList();
+        if (!items.Any()) continue;
+        <div class="sv-adv-section" data-adv-section="@c.Item1">
+            <div class="sv-adv-section-h" style="color:@c.Item4">@c.Item3 @c.Item2 <span class="sv-muted" style="font-weight:600">· @items.Count</span></div>
+            <div class="sv-advisor-grid">
+                @foreach (var item in items)
+                {
+                    <article class="sv-adv-card sv-hover-card fade-up" data-severity="@item.Severity">
+                        <img class="sv-adv-ic" src="~/img/brand/@catIcon(item.Category)" alt="" />
+                        <div class="sv-adv-body">
+                            <div class="sv-adv-head">
+                                <div class="sv-adv-cat" style="color:@c.Item4">@c.Item2</div>
+                                <span class="sv-badge @(item.Severity == "high" ? "sv-badge-red" : item.Severity == "medium" ? "sv-badge-yellow" : "sv-badge-green")">@item.Severity</span>
+                            </div>
+                            <h3 class="sv-adv-title">@item.Title</h3>
+                            <p class="sv-adv-tx">@item.Explanation</p>
+                            <a class="sv-adv-btn" href="@item.ActionUrl" style="--c:@c.Item4">@item.ActionLabel →</a>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    }
 }
 
 @section Scripts {
-    <script>document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });</script>
+    <script>
+        // Фильтр по категориям — показывает нужные секции
+        document.querySelectorAll('[data-adv-filter]').forEach(function(b){
+            b.addEventListener('click',function(){
+                document.querySelectorAll('[data-adv-filter]').forEach(x=>x.classList.remove('active'));
+                this.classList.add('active');
+                var f=this.dataset.advFilter;
+                document.querySelectorAll('[data-adv-section]').forEach(function(s){
+                    s.style.display=(f==='all'||s.dataset.advSection===f)?'':'none';
+                });
+            });
+        });
+        document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+    </script>
     @await Html.PartialAsync("_InventoryRealtime")
 }

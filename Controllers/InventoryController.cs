@@ -817,14 +817,17 @@ public class InventoryController(
         return View();
     }
 
-    // GET /Inventory/Analytics — аналитика периода (30 дней): неликвиды + ходовые + ИИ-вывод
+    // GET /Inventory/Analytics?period=7|30|90|all — аналитика периода: неликвиды + ходовые + ИИ-вывод
     [HttpGet]
-    public async Task<IActionResult> Analytics()
+    public async Task<IActionResult> Analytics(string? period = "30")
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
         var now = DateTime.UtcNow;
-        var from = now.AddDays(-30);
+        var days = period switch { "7" => 7, "90" => 90, "all" => 3650, _ => 30 };
+        var from = now.AddDays(-days);
+        ViewBag.Period = days >= 3650 ? "all" : days.ToString();
+        ViewBag.PeriodLabel = days >= 3650 ? "всё время" : $"{days} дней";
 
         var products = await db.Products.AsNoTracking()
             .Where(p => p.RestaurantId == rid)
@@ -906,11 +909,13 @@ public class InventoryController(
     // POST /Inventory/AnalyticsAi — «Анализ ИИ» по статдампу периода
     [HttpPost]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> AnalyticsAi()
+    public async Task<IActionResult> AnalyticsAi(string? period = "30")
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
-        var now = DateTime.UtcNow; var from = now.AddDays(-30);
+        var now = DateTime.UtcNow;
+        var days = period switch { "7" => 7, "90" => 90, "all" => 3650, _ => 30 };
+        var from = now.AddDays(-days);
 
         var products = await db.Products.AsNoTracking()
             .Where(p => p.RestaurantId == rid)

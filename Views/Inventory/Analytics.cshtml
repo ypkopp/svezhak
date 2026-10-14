@@ -6,10 +6,18 @@
 
 <div class="sv-title-row fade-up">
     <div>
-        <h1 class="sv-page-title">Аналитика периода · 30 дней</h1>
+        <h1 class="sv-page-title">Аналитика периода · @ViewBag.PeriodLabel</h1>
         <div class="sv-page-sub mb-0">Неликвиды (доля просрочки от поступлений) и ходовые товары.</div>
     </div>
-    <button class="btn-sv-primary" type="button" id="aiAnalyze"><img src="~/img/brand/m3-avo.png" style="width:20px;margin-right:6px" alt="" />Анализ ИИ</button>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="d-flex gap-1" id="periodSeg">
+            @foreach (var p in new[]{("7","7 дней"),("30","30 дней"),("90","90 дней"),("all","Всё время")})
+            {
+                <a class="sv-chip @((string)ViewBag.Period == p.Item1 ? "active" : "")" href="@Url.Action("Analytics", new { period = p.Item1 })">@p.Item2</a>
+            }
+        </div>
+        <button class="btn-sv-primary" type="button" id="aiAnalyze" data-period="@ViewBag.Period"><img src="~/img/brand/m3-avo.png" style="width:20px;margin-right:6px" alt="" />Анализ ИИ</button>
+    </div>
 </div>
 
 <div id="aiOut" class="sv-card fade-up mb-3" hidden>
@@ -73,7 +81,7 @@ document.getElementById('aiAnalyze').addEventListener('click', async function(){
     var box=document.getElementById('aiOut'), tx=document.getElementById('aiText');
     box.hidden=false; tx.textContent='Анализирую статдамп…'; this.disabled=true;
     try{
-        var r=await fetch('/Inventory/AnalyticsAi',{method:'POST'});
+        var r=await fetch('/Inventory/AnalyticsAi?period='+this.dataset.period,{method:'POST'});
         var d=await r.json();
         tx.textContent=d.answer||'ИИ недоступен — смотри таблицу неликвидов ниже.';
     }catch(e){tx.textContent='ИИ недоступен — смотри таблицу неликвидов ниже.';}

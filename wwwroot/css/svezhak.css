@@ -705,3 +705,18 @@ a:hover { color:var(--tx); }
 .sv-chat-form button { width:44px; border:0; border-radius:12px; background:var(--g1); color:#160a02; font-size:20px; font-weight:800; cursor:pointer; }
 :root[data-mode="light"] .sv-chat-panel { background:linear-gradient(180deg,#fffffffa,#f2f4f7fa); }
 :root[data-mode="light"] .sv-chat-ai { background:#1a202c08; }
+
+/* ===== Ручной стоп по категориям — чипы-тумблеры ===== */
+.sv-stop-cat-h { font:700 10px var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--mut); margin:10px 0 6px; }
+.sv-stop-toggle { display:inline-flex; align-items:center; gap:7px; padding:5px 10px 5px 5px; border:1px solid #ffffff14; border-radius:999px; background:#ffffff05; color:var(--tx); font-size:12px; font-weight:700; cursor:pointer; transition:.15s; }
+.sv-stop-toggle:hover { border-color:color-mix(in oklab,var(--a1) 45%,transparent); }
+.sv-stop-knob { width:22px; height:12px; border-radius:999px; background:#ffffff12; position:relative; transition:.18s; flex:none; }
+.sv-stop-knob::after { content:''; position:absolute; top:2px; left:2px; width:8px; height:8px; border-radius:50%; background:var(--mut); transition:.18s; }
+.sv-stop-toggle.is-on { border-color:color-mix(in oklab,var(--a1) 60%,transparent); background:color-mix(in oklab,var(--a1) 12%,transparent); }
+.sv-stop-toggle.is-on .sv-stop-knob { background:var(--a1); }
+.sv-stop-toggle.is-on .sv-stop-knob::after { left:12px; background:#160a02; }
+.sv-stop-toggle.is-on .sv-stop-lbl { color:var(--a1); }
+
+/* Советник — секции категорий */
+.sv-adv-section { margin-bottom:22px; }
+.sv-adv-section-h { font:700 11px var(--mono); letter-spacing:.14em; text-transform:uppercase; margin-bottom:10px; }

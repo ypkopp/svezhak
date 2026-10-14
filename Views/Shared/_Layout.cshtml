@@ -36,8 +36,9 @@
 {
     <div class="sv-app-shell">
         <aside class="sv-handoff-sidebar">
-            <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index">
-                <img src="~/img/brand/svezhak-logo-dark-animated.svg" asp-append-version="true" alt="СВЕЖАК" />
+            <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index" style="display:flex;align-items:center;gap:10px;text-decoration:none">
+                <img src="~/img/brand/svezhak-icon.png" asp-append-version="true" alt="" style="width:30px;height:30px;object-fit:contain" />
+                <span style="font:800 17px var(--disp);letter-spacing:.06em;color:var(--tx)">СВЕЖАК</span>
             </a>
             <nav class="sv-handoff-nav sv-nav-offset" aria-label="Основная навигация">
                 <a asp-controller="Inventory" asp-action="Index" class="sv-handoff-nav-item@(Active("Index"))">
