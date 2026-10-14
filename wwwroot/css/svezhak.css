@@ -255,19 +255,21 @@ a:hover { color:var(--tx); }
 .sv-order-layout { grid-template-columns:1.3fr 1fr; }
 .sv-dynamic-line { display:grid; grid-template-columns:minmax(130px,1fr) 82px 78px 36px; gap:7px; margin:8px 0; }
 .sv-advisor-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-.sv-advisor-card { display:grid; grid-template-columns:52px 1fr; gap:13px; padding:18px; border:1px solid #ffffff0c; border-radius:17px; background:linear-gradient(155deg,#1b1e27e8,#111318e8); box-shadow:inset 0 1px 0 #ffffff0a,0 18px 50px -34px #000; }
-.sv-advisor-card>img { width:48px; height:48px; object-fit:contain; }
-.sv-advisor-card h3 { margin:0; font:700 13px/1.35 var(--disp); }
-.sv-advisor-card p { color:#aab2c0; font-size:12px; line-height:1.55; margin:8px 0 13px; }
-.sv-advisor-card[data-severity=high] { border-color:#F5656544; }
-.sv-advisor-card[data-severity=medium] { border-color:#ECC94B36; }
-.sv-advisor-card[data-category="продать срочно"] { background:linear-gradient(145deg,#2b1b1be8,#111318e8); }
-.sv-advisor-card[data-category="заказать"] { background:linear-gradient(145deg,#1b2824e8,#111318e8); }
-.sv-advisor-card[data-category="списать"] { background:linear-gradient(145deg,#2a2419e8,#111318e8); }
-.sv-advisor-card[data-category="риски"] { background:linear-gradient(145deg,#202332e8,#111318e8); }
-.sv-advisor-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
-.sv-advisor-category { color:var(--a1); font:700 9px var(--mono); letter-spacing:.13em; text-transform:uppercase; }
-.sv-advisor-actions { display:flex; gap:8px; align-items:center; }
+/* Карточки советника — иконка, действие-заголовок, текст, severity-бейдж, кнопка */
+.sv-adv-card { position:relative; display:grid; grid-template-columns:58px 1fr; gap:15px; padding:18px 18px 16px; border:1px solid #ffffff0c; border-left:3px solid color-mix(in oklab,var(--sev,var(--a1)) 60%,transparent); border-radius:18px; background:linear-gradient(155deg,#1b1e27e8,#111318e8); box-shadow:inset 0 1px 0 #ffffff0a,0 18px 50px -34px #000; overflow:hidden; }
+.sv-adv-card[data-severity=high] { --sev:var(--rd); }
+.sv-adv-card[data-severity=medium] { --sev:var(--ye); }
+.sv-adv-card[data-severity=low] { --sev:var(--gr); }
+.sv-adv-card[data-severity=high] { border-left-color:var(--rd); }
+.sv-adv-card[data-severity=medium] { border-left-color:var(--ye); }
+.sv-adv-ic { width:52px; height:52px; object-fit:contain; mix-blend-mode:lighten; filter:drop-shadow(0 0 12px var(--glow)); margin-top:2px; }
+.sv-adv-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:5px; }
+.sv-adv-cat { font:700 9px var(--mono); letter-spacing:.14em; text-transform:uppercase; }
+.sv-adv-title { margin:0; font:700 14px/1.35 var(--disp); }
+.sv-adv-tx { color:#aab2c0; font-size:12px; line-height:1.55; margin:8px 0 13px; }
+.sv-adv-btn { display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 14px; border-radius:11px; background:#ffffff08; color:var(--c,var(--a1)); font-size:12px; font-weight:800; box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c,var(--a1)) 45%,transparent); text-decoration:none; transition:background .15s; }
+.sv-adv-btn:hover { background:color-mix(in oklab,var(--c,var(--a1)) 15%,transparent); color:#fff; }
+@media(max-width:720px) { .sv-advisor-grid { grid-template-columns:1fr; } }
 .sv-ai-note { color:var(--mut); font:500 10px var(--mono); }
 .sv-empty { display:flex; align-items:center; gap:12px; padding:12px 0; color:var(--mut); }
 .sv-empty img { width:64px; height:64px; object-fit:contain; }

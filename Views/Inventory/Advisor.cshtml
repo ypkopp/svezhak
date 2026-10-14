@@ -42,16 +42,23 @@ else
         @foreach (var item in Model.Insights)
         {
             var color = catColor(item.Category);
-            <article class="sv-advisor-card sv-hover-card fade-up" data-category="@item.Category" data-severity="@item.Severity">
-                <img src="~/img/brand/@catIcon(item.Category)" alt="" />
-                <div>
-                    <div class="sv-advisor-meta">
-                        <div class="sv-advisor-category" style="color:@color">@item.Category</div>
-                        <span class="sv-badge @(item.Severity == "high" ? "sv-badge-red" : item.Severity == "medium" ? "sv-badge-yellow" : "sv-badge-muted")">@item.Severity</span>
+            var action = item.Category switch
+            {
+                "продать срочно" => "Продать срочно",
+                "заказать" => "Заказать",
+                "списать" => "Списать",
+                _ => "Риск"
+            };
+            <article class="sv-adv-card sv-hover-card fade-up" data-category="@item.Category" data-severity="@item.Severity">
+                <img class="sv-adv-ic" src="~/img/brand/@catIcon(item.Category)" alt="" />
+                <div class="sv-adv-body">
+                    <div class="sv-adv-head">
+                        <div class="sv-adv-cat" style="color:@color">@action</div>
+                        <span class="sv-badge @(item.Severity == "high" ? "sv-badge-red" : item.Severity == "medium" ? "sv-badge-yellow" : "sv-badge-green")">@item.Severity</span>
                     </div>
-                    <h3>@item.Title</h3>
-                    <p>@item.Explanation</p>
-                    <a class="btn-sv-ghost btn-sm" href="@item.ActionUrl">@item.ActionLabel →</a>
+                    <h3 class="sv-adv-title">@item.Title</h3>
+                    <p class="sv-adv-tx">@item.Explanation</p>
+                    <a class="sv-adv-btn" href="@item.ActionUrl" style="--c:@color">@item.ActionLabel →</a>
                 </div>
             </article>
         }
