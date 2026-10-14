@@ -65,7 +65,10 @@
       tooltip: Object.assign({ trigger: 'item', formatter: function (p) { var b = p.data.batch; return '<b>' + b.name + '</b><br>' + b.delivery + ' · ' + b.qty + ' ' + b.unit + '<br><b style="color:' + colorFor(b.hoursLeft) + '">' + b.hoursLeft + ' ч</b>'; } }, TIP),
       series: [{
         type: 'scatter', symbolSize: 16, data: data,
+        // Подписи не слипаются: hideOverlap + при столкновении ECharts разводит их
+        labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' },
         label: { show: true, position: 'right', distance: 9, formatter: function (p) { return p.data.name + ' · ' + p.data.batch.hoursLeft + ' ч'; }, color: '#E2E8F0', fontSize: 10, fontWeight: 700 },
+        labelLine: { show: true, length2: 8, lineStyle: { color: 'rgba(255,255,255,.25)' } },
         itemStyle: { shadowBlur: 13, shadowColor: 'rgba(237,137,54,.55)', borderColor: '#0b0d11', borderWidth: 2 },
         emphasis: { scale: true, scaleSize: 8, label: { fontSize: 11 } },
         markArea: { silent: true, data: [

@@ -10,9 +10,11 @@
 
 @* ============ HERO: одна мысль + радар (v3 Hero3) ============ *@
 <section class="sv-card sv-hero fade-up">
+    <img class="sv-hero-fullbg" src="~/img/brand/kv-warehouse.png" asp-append-version="true" alt="" />
+    <div class="sv-hero-fullfade"></div>
     <div class="sv-hero-copy">
         <div class="sv-kicker"><span class="sv-live-dot"></span> Тревога · обновлено @now.ToLocalTime().ToString("HH:mm")</div>
-        <h1>Под угрозой <span class="sv-gradient-text">@threat партий</span>.</h1>
+        <h1><span data-i18n="hero.threat">Под угрозой</span> <span class="sv-gradient-text">@threat <span data-i18n="hero.batches">партий</span></span>.</h1>
         <p>
             @if (ViewBag.NextExpiryProduct is string np)
             {
@@ -29,17 +31,15 @@
         </div>
     </div>
     <div class="sv-hero-art">
-        <img class="sv-hero-bg" src="~/img/brand/kv-warehouse.png" asp-append-version="true" alt="" />
-        <div class="sv-hero-bg-fade"></div>
         <div class="sv-hero-radar" id="heroRadar"></div>
         <img class="sv-hero-chef" src="~/img/brand/chef-3-sm.png" asp-append-version="true" alt="Сора" />
         <div class="sv-hero-hud"><div class="sv-kicker">до конца смены</div><b id="shiftCountdown" style="color:var(--a1);font-family:var(--mono)">--:--</b></div>
     </div>
     <div class="sv-hero-kpis" style="grid-column:1/-1">
-        <div class="sv-hero-kpi"><span>позиций на складе</span><b data-count="@ViewBag.KpiPositions" style="--metric:var(--gr)">@ViewBag.KpiPositions</b></div>
-        <div class="sv-hero-kpi" style="--metric:var(--rd)"><span>истекает &lt;24 ч</span><b data-count="@ViewBag.KpiExpiring" style="--metric:var(--rd)">@ViewBag.KpiExpiring</b></div>
-        <div class="sv-hero-kpi"><span>в стоп-листе</span><b data-count="@stopCount" style="--metric:var(--ye)">@stopCount</b></div>
-        <div class="sv-hero-kpi"><span>hot offers</span><b data-count="@ViewBag.KpiHotOffers" style="--metric:var(--or)">@ViewBag.KpiHotOffers</b></div>
+        <div class="sv-hero-kpi"><span data-i18n="kpi.pos">позиций на складе</span><b data-count="@ViewBag.KpiPositions" style="--metric:var(--gr)">@ViewBag.KpiPositions</b></div>
+        <div class="sv-hero-kpi" style="--metric:var(--rd)"><span data-i18n="kpi.exp">истекает &lt;24 ч</span><b data-count="@ViewBag.KpiExpiring" style="--metric:var(--rd)">@ViewBag.KpiExpiring</b></div>
+        <div class="sv-hero-kpi"><span data-i18n="kpi.stop">в стоп-листе</span><b data-count="@stopCount" style="--metric:var(--ye)">@stopCount</b></div>
+        <div class="sv-hero-kpi"><span data-i18n="kpi.hot">hot offers</span><b data-count="@ViewBag.KpiHotOffers" style="--metric:var(--or)">@ViewBag.KpiHotOffers</b></div>
     </div>
 </section>
 
@@ -78,7 +78,7 @@
         <div class="sv-flow-pin" style="--pin:var(--gr);left:14%;top:28%"><span>01 · Приёмка</span><b>2</b><small>поставки сегодня</small></div>
         <div class="sv-flow-pin" style="--pin:var(--ye);left:50%;top:13%"><span>02 · Холодильник</span><b>@ViewBag.KpiPositions</b><small>позиций</small></div>
         <div class="sv-flow-pin" style="--pin:var(--or);left:86%;top:32%"><span>03 · Кухня</span><b>@ViewBag.KpiExpiring</b><small>горит сейчас</small></div>
-        <div class="sv-flow-loss"><img src="~/img/brand/st-hourglass.png" alt="" /><div><span class="sv-kicker">Утекло в мусор</span><b>18,6 кг · 6,9%</b></div></div>
+        <div class="sv-flow-loss"><img src="~/img/brand/st-hourglass.png" alt="" /><div class="sv-stat-chip"><b>18,6 кг</b><span>утекло · 6,9%</span></div></div>
     </div>
 </div>
 
@@ -112,9 +112,11 @@
         <div id="massWf"></div>
         <div class="sv-wf3" id="massWfFoot"><span class="sv-muted">Списаний за сегодня не было.</span></div>
     </div>
-    <div class="sv-card sv-col-7 fade-up sv-term-card">
-        <div class="sv-section-title">Карта просрочки · 7 дней <span class="sv-ai-note">tty1</span></div>
-        <div id="termHeat"></div>
+    <div class="sv-card sv-col-7 fade-up">
+        <div class="sv-section-title" style="color:var(--rd)">Риск списания в ₽</div>
+        <div class="sv-chart-hint">Сколько ₽ сгорит, если ничего не продать — по закупочной себестоимости партий.</div>
+        <div class="sv-risk-total" id="riskTotal">—</div>
+        <div id="riskList" class="sv-risk-list"></div>
     </div>
     <div class="sv-card sv-col-5 fade-up">
         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -169,7 +171,15 @@
     SvProto.radar('heroRadar', '@Url.Action("ChartDataRiver","Inventory")');
     SvProto.osc('orderOsc', '@Url.Action("ChartDataOrderPulse","Inventory")');
     SvProto.waterfall('massWf', '@Url.Action("ChartDataWaterfall","Inventory")');
-    SvProto.termHeat('termHeat', '@Url.Action("ChartDataExpiryHeatmap","Inventory")');
+    // Риск списания в ₽
+    fetch('@Url.Action("WriteoffRisk","InventoryAnalytics")').then(r=>r.json()).then(d=>{
+        document.getElementById('riskTotal').textContent = (d.totalRiskRub||0).toLocaleString('ru-RU',{maximumFractionDigits:0}) + ' ₽';
+        var list=(d.batches||[]).slice(0,6).map(b=>{
+            var c=b.hoursLeft<12?'var(--rd)':b.hoursLeft<24?'var(--or)':'var(--mut)';
+            return '<div class="sv-risk-row"><b>'+b.product+'</b><span class="sv-muted">'+b.delivery+' · '+b.hoursLeft+' ч</span><b style="color:'+c+'">'+b.estimatedValueRub.toLocaleString('ru-RU',{maximumFractionDigits:0})+' ₽</b></div>';
+        }).join('');
+        document.getElementById('riskList').innerHTML=list||'<div class="sv-muted" style="padding:12px 0">Риска нет — всё свежее.</div>';
+    }).catch(function(){document.getElementById('riskList').innerHTML='';});
 
     // До конца смены — живой обратный отсчёт
     (function () {

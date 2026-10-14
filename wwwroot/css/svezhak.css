@@ -129,7 +129,6 @@ a:hover { color:var(--tx); }
 .sv-hero-copy p { color:#aab2c0; max-width:640px; margin:12px 0 18px; }
 .sv-hero h1 { font:700 clamp(26px,3vw,40px)/1.1 var(--disp); margin:10px 0 0; }
 .sv-hero-art { position:relative; min-height:220px; }
-.sv-hero-art img { position:absolute; right:0; bottom:-20px; height:220px; max-width:100%; object-fit:contain; filter:drop-shadow(0 8px 24px #000a); }
 .sv-hero-hud { position:absolute; right:0; top:0; z-index:1; padding:10px 12px; border-radius:12px; background:#1a0f12d9; box-shadow:inset 0 0 0 1px #F5656544; }
 .sv-flow { position:relative; overflow:hidden; height:250px; margin-bottom:14px; border-radius:22px; background:#0b0d11; }
 .sv-flow>img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 58%; opacity:.88; }
@@ -238,9 +237,11 @@ a:hover { color:var(--tx); }
 .sv-flow-pin span { color:var(--pin); font:600 9px var(--mono); text-transform:uppercase; }
 .sv-flow-pin b { color:var(--pin); font:700 19px var(--mono); text-shadow:0 0 12px var(--pin); }
 .sv-flow-pin small { color:#c3c9d3; font-size:9px; white-space:nowrap; }
-.sv-flow-loss { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); display:flex; align-items:center; gap:7px; padding:4px 12px 4px 4px; border-radius:999px; background:#1a0f12e8; box-shadow:inset 0 0 0 1px #F5656544; white-space:nowrap; }
-.sv-flow-loss img { width:29px; height:29px; object-fit:contain; mix-blend-mode:lighten; }
-.sv-flow-loss b { color:var(--rd); font:700 11px var(--mono); }
+.sv-flow-loss { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); display:flex; align-items:center; gap:8px; padding:6px 14px 6px 8px; border-radius:999px; background:#1a0f12e8; box-shadow:inset 0 0 0 1px #F5656544; white-space:nowrap; }
+.sv-flow-loss img { width:20px; height:20px; object-fit:contain; mix-blend-mode:lighten; flex:none; }
+.sv-stat-chip { display:flex; align-items:center; gap:8px; }
+.sv-stat-chip b { color:var(--rd); font:800 14px var(--mono); }
+.sv-stat-chip span { color:#c3c9d3; font:600 10px var(--mono); }
 .sv-hero-radar { width:100%; height:235px; }
 .sv-hero-kpis { display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid #ffffff0c; background:#0b0d1180; margin:12px -22px -22px; }
 .sv-hero-kpi { min-width:0; padding:13px 16px; border-left:1px solid #ffffff0a; }
@@ -459,6 +460,7 @@ a:hover { color:var(--tx); }
 .sv-prof-row:last-child { border-bottom:0; }
 .sv-prof-k { color:var(--mut); font:600 11px var(--mono); text-transform:uppercase; letter-spacing:.1em; }
 .sv-prof-row b { font-size:13px; }
+.sv-prof-mascot { position:absolute; right:-20px; bottom:-30px; width:170px; opacity:.9; pointer-events:none; filter:drop-shadow(0 0 20px var(--glow)); }
 
 /* --- Страницы: склад/поставки/заказ/стоп-лист по прототипу --- */
 .sv-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:9px; flex:none; }
@@ -539,12 +541,12 @@ a:hover { color:var(--tx); }
 .sv-theme-switch { height:44px; }
 .sv-theme-switch .sv-theme-knob img { width:20px; height:20px; }
 
-/* --- герой с key-visual, группы продуктов, архив, кнопка списания --- */
-.sv-hero-art { position:relative; min-height:230px; overflow:hidden; border-radius:0 20px 20px 0; }
-.sv-hero-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 55%; opacity:.5; }
-.sv-hero-bg-fade { position:absolute; inset:0; background:linear-gradient(90deg,#14161cf2 8%,#14161c66 45%,transparent 75%),linear-gradient(0deg,#14161c 4%,transparent 50%); }
+/* --- герой с key-visual на всю ширину --- */
+.sv-hero { overflow:hidden; }
+.sv-hero-fullbg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 55%; opacity:.42; }
+.sv-hero-fullfade { position:absolute; inset:0; background:linear-gradient(100deg,#14161cf5 22%,#14161c66 55%,transparent 80%),linear-gradient(0deg,#14161c 6%,transparent 45%); }
+.sv-hero-copy,.sv-hero-art,.sv-hero-kpis { position:relative; z-index:1; }
 .sv-hero-radar { position:absolute; left:0; bottom:0; right:90px; top:0; z-index:1; }
-.sv-hero-chef { z-index:2; }
 .sv-prod-group { margin-bottom:14px; border:1px solid #ffffff0a; border-radius:14px; overflow:hidden; }
 .sv-prod-head { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#ffffff05; border-bottom:1px solid #ffffff08; }
 .sv-prod-head b { font-size:13px; }
@@ -557,6 +559,13 @@ a:hover { color:var(--tx); }
 .sv-arch-day { margin-bottom:14px; }
 .sv-arch-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 6px; border-bottom:1px solid #ffffff0e; margin-bottom:4px; }
 .sv-arch-head b { font:700 13px var(--mono); color:var(--tx); }
+
+/* --- Риск списания в ₽ --- */
+.sv-risk-total { font:800 30px var(--mono); color:var(--rd); text-shadow:0 0 20px #F5656555; margin:4px 0 14px; }
+.sv-risk-list { display:flex; flex-direction:column; }
+.sv-risk-row { display:grid; grid-template-columns:1fr auto auto; gap:12px; align-items:center; padding:9px 0; border-top:1px solid #ffffff08; font-size:12px; }
+.sv-risk-row b { font-size:12.5px; }
+.sv-risk-row .sv-muted { font-size:11px; }
 
 @media(max-width:1240px) { .sv-login-layout { grid-template-columns:1fr; } .sv-login-art { min-height:360px; } .sv-login-side { min-height:580px; } }
 @media(max-width:1150px) { .sv-handoff-sidebar { width:210px; } .sv-app-shell { grid-template-columns:210px minmax(0,1fr); } .sv-global-search { width:260px; } .sv-profile span { display:none; } }

@@ -605,16 +605,67 @@ public class InventoryController(
         return View();
     }
 
-    // GET /Inventory/Notifications — события для колокольчика в топбаре
+    // GET /Inventory/Notifications — «Центр смены»: события смен, мотивация, алерты
     [HttpGet]
     public async Task<IActionResult> Notifications()
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
         var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+        var time = TimeOnly.FromDateTime(now);
         var items = new List<object>();
 
-        // Истекает < 12 ч
+        // --- (а) События смен ---
+        var todayShifts = await db.Shifts.AsNoTracking()
+            .Include(s => s.AccessCode)
+            .Where(s => s.RestaurantId == rid && s.Date == today)
+            .OrderBy(s => s.StartTime)
+            .ToListAsync();
+        foreach (var s in todayShifts)
+        {
+            var active = s.StartTime <= time && s.EndTime >= time;
+            var name = s.AccessCode?.EmployeeName ?? "Сотрудник";
+            if (active)
+            {
+                var leftH = (s.EndTime.ToTimeSpan() - time.ToTimeSpan()).TotalHours;
+                items.Add(new { kind = "shift", icon = "st-check.png", title = $"Смена {name} ({s.Position}) до {s.EndTime:HH\\:mm}", text = $"осталось {Math.Max(0, leftH):0.#} ч", severity = "low", url = "/Admin/Schedule" });
+            }
+            else if (s.StartTime > time)
+            {
+                items.Add(new { kind = "shift", icon = "st-check.png", title = $"{name} заступает в {s.StartTime:HH\\:mm}", text = s.Position, severity = "low", url = "/Admin/Schedule" });
+            }
+        }
+
+        // --- (б) Мотивация ---
+        // Спасено от списания за сегодня = заказы, проведённые по FEFO из горящих партий
+        var savedQty = await db.WriteOffs
+            .Where(w => w.RestaurantId == rid && w.Reason == OrderService.ReasonOrder && w.CreatedAt >= today.ToDateTime(TimeOnly.MinValue))
+            .SumAsync(w => (decimal?)w.Qty) ?? 0;
+        var savedRub = await db.WriteOffs
+            .Where(w => w.RestaurantId == rid && w.Reason == OrderService.ReasonOrder && w.CreatedAt >= today.ToDateTime(TimeOnly.MinValue))
+            .Include(w => w.Product)
+            .SumAsync(w => (decimal?)(w.Qty * w.Product.PurchasePrice)) ?? 0;
+        if (savedQty > 0)
+            items.Add(new { kind = "motivation", icon = "st-check.png", title = "Сегодня спасено от списания", text = $"{savedQty:0.##} кг · ~{savedRub:N0} ₽", severity = "low", url = "/Inventory/Order" });
+
+        // Часов без стоп-листа
+        var stop = await orders.GetStopListAsync(rid.Value);
+        var hoursFree = stop.Count == 0 ? (int)Math.Max(0, (now - today.ToDateTime(TimeOnly.MinValue)).TotalHours) : 0;
+        if (stop.Count == 0 && hoursFree > 0)
+            items.Add(new { kind = "motivation", icon = "st-check.png", title = $"{hoursFree} ч без стоп-листа", text = "кухня отдаёт всё меню", severity = "low", url = "/Inventory/StopList" });
+
+        // Доля потерь
+        var dayStart = today.ToDateTime(TimeOnly.MinValue);
+        var startQty = await db.Batches.Where(b => b.RestaurantId == rid).SumAsync(b => b.QtyInitial);
+        var expiredQty = await db.WriteOffs.Where(w => w.RestaurantId == rid && w.Reason == OrderService.ReasonExpired && w.CreatedAt >= dayStart).SumAsync(w => (decimal?)w.Qty) ?? 0;
+        if (startQty > 0 && expiredQty > 0)
+        {
+            var pct = Math.Round(expiredQty / startQty * 100, 1);
+            items.Add(new { kind = "motivation", icon = "st-hourglass.png", title = $"Доля потерь {pct:0.#}%", text = "цель ≤ 5%", severity = pct > 5 ? "medium" : "low", url = "/Inventory" });
+        }
+
+        // --- (в) Важные алерты ---
         var expiring = await db.Batches
             .Include(b => b.Product)
             .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now && b.ExpiresAt <= now.AddHours(12))
@@ -625,12 +676,9 @@ public class InventoryController(
         foreach (var e in expiring)
             items.Add(new { kind = "expiring", icon = "st-hourglass.png", title = $"«{e.name}» истекает", text = $"{e.hours:0.#} ч · {e.qty:0.##} {e.unit}", severity = e.hours < 4 ? "high" : "medium", url = "/Inventory/Stock?expiringOnly=true" });
 
-        // Стоп-лист
-        var stop = await orders.GetStopListAsync(rid.Value);
         foreach (var s in stop.Take(3))
             items.Add(new { kind = "stop", icon = "st-stop.png", title = $"«{s.DishName}» в стоп-листе", text = "не хватает ингредиентов", severity = "high", url = "/Inventory/StopList" });
 
-        // Списано просроченным за сутки
         var wroteOff = await db.WriteOffs
             .Where(w => w.RestaurantId == rid && w.Reason == OrderService.ReasonExpired && w.CreatedAt >= now.AddHours(-24))
             .SumAsync(w => (decimal?)w.Qty) ?? 0;
