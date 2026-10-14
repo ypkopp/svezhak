@@ -101,16 +101,23 @@ if (!string.IsNullOrEmpty(port))
 // Сид только в Development ИЛИ по флагу SEED_DEMO=true (для демо-деплоя).
 var shouldSeed = app.Environment.IsDevelopment()
     || string.Equals(Environment.GetEnvironmentVariable("SEED_DEMO"), "true", StringComparison.OrdinalIgnoreCase);
-if (shouldSeed)
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
-    await DbInitializer.SeedAsync(scope.ServiceProvider);
-}
-else
-{
-    // В проде без сида — только миграции, чтобы схема была актуальной.
-    using var scope = app.Services.CreateScope();
-    await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    if (isPostgres)
+    {
+        // Postgres: свежая БД — создаём схему напрямую из модели.
+        // Не используем MigrateAsync: Npgsql-дифф в EF10+N10 падает на
+        // DateOnly/TimeOnly/enum-колонках при генерации миграции.
+        await db.Database.EnsureCreatedAsync();
+    }
+    else
+    {
+        // SQL Server: как раньше — через миграции.
+        await db.Database.MigrateAsync();
+    }
+    if (shouldSeed)
+        await DbInitializer.SeedAsync(scope.ServiceProvider);
 }
 
 // Configure the HTTP request pipeline.

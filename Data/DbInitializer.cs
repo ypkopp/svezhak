@@ -19,7 +19,12 @@ public static class DbInitializer
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
 
-        await db.Database.MigrateAsync();
+        // Схему обновляем под провайдер: SQL Server — миграциями,
+        // Postgres — EnsureCreated (Npgsql-дифф EF10 падает на enum/DateOnly).
+        if (db.Database.IsNpgsql())
+            await db.Database.EnsureCreatedAsync();
+        else
+            await db.Database.MigrateAsync();
 
         // Сотрудники и доступы сидим идемпотентно — независимо от того,
         // наполнен ли уже склад. Это отдельный блок, чтобы демо-учётки
@@ -288,7 +293,10 @@ public static class DbInitializer
     public static async Task ResetAndReseedAsync(IServiceProvider services)
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
-        await db.Database.MigrateAsync();
+        if (db.Database.IsNpgsql())
+            await db.Database.EnsureCreatedAsync();
+        else
+            await db.Database.MigrateAsync();
 
         // Порядок удаления — от дочерних к родительским (FK = Restrict)
         db.Shifts.RemoveRange(db.Shifts);
