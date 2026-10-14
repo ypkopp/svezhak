@@ -124,14 +124,18 @@
   function openQr() {
     if (!qrModal) return;
     qrModal.hidden = false;
-    var url = location.origin + '/Inventory/StopList';
-    if (qrLink) { qrLink.href = url; qrLink.textContent = url; }
-    if (qrBox && typeof QRCode !== 'undefined') {
-      qrBox.innerHTML = '';
-      new QRCode(qrBox, { text: url, width: 200, height: 200, colorDark: '#0f1115', colorLight: '#F3EEE4', correctLevel: QRCode.CorrectLevel.M });
-    } else if (qrBox) {
-      qrBox.innerHTML = '<div class="sv-bell-empty">QR-библиотека не загрузилась — ссылка ниже.</div>';
-    }
+    if (qrLink) qrLink.textContent = '…';
+    // Терминал кухни — публичная read-only ссылка по токену ресторана
+    fetch('/Inventory/KitchenLink').then(function (r) { return r.json(); }).then(function (d) {
+      var url = d.url || (location.origin + '/Kitchen');
+      if (qrLink) { qrLink.href = url; qrLink.textContent = url; }
+      if (qrBox && typeof QRCode !== 'undefined') {
+        qrBox.innerHTML = '';
+        new QRCode(qrBox, { text: url, width: 200, height: 200, colorDark: '#0f1115', colorLight: '#F3EEE4', correctLevel: QRCode.CorrectLevel.M });
+      } else if (qrBox) {
+        qrBox.innerHTML = '<div class="sv-bell-empty">QR-библиотека не загрузилась — ссылка ниже.</div>';
+      }
+    }).catch(function () { if (qrLink) qrLink.textContent = 'не удалось получить ссылку'; });
   }
   var qrBtn = document.getElementById('qrBtn');
   if (qrBtn) qrBtn.addEventListener('click', openQr);

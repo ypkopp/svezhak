@@ -437,6 +437,9 @@ namespace SmartInventory.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid>("KitchenToken")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ManagerId")
                         .IsRequired()
                         .HasMaxLength(100)

@@ -880,6 +880,17 @@ public class InventoryController(
     // ---------- Служебные эндпоинты для event-генератора ----------
     // Доступны любому авторизованному пользователю (вход по access-коду).
 
+    // GET /Inventory/KitchenLink — URL терминала кухни для QR (токен текущего ресторана)
+    [HttpGet]
+    public async Task<IActionResult> KitchenLink()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var token = await db.Restaurants.Where(r => r.Id == rid).Select(r => r.KitchenToken).FirstOrDefaultAsync();
+        var url = Url.Action("Index", "Kitchen", new { token }, Request.Scheme, Request.Host.Value);
+        return Json(new { url });
+    }
+
     // GET /Inventory/Menu — список активных блюд и продуктов (для генератора)
     [HttpGet]
     public async Task<IActionResult> Menu()

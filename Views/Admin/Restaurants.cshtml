@@ -34,13 +34,21 @@
     {
         <div class="sv-table-wrap">
             <table class="sv-table">
-                <thead><tr><th>ID</th><th>Адрес</th><th></th></tr></thead>
+                <thead><tr><th>ID</th><th>Адрес</th><th>Терминал кухни</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var r in list)
                 {
                     <tr>
                         <td class="sv-muted">#@r.Id</td>
                         <td><b>@r.Address</b></td>
+                        <td>
+                            <a class="sv-ai-note" href="/Kitchen/@r.KitchenToken" target="_blank" title="Открыть терминал">/Kitchen/@r.KitchenToken.ToString()[..8]…</a>
+                            <form asp-action="RegenKitchen" method="post" style="display:inline;margin-left:8px">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <button class="btn-sv-ghost" type="submit" style="min-height:24px;padding:0 8px;font-size:10px" title="Новая ссылка">↻</button>
+                            </form>
+                        </td>
                         <td><span class="sv-badge sv-badge-green">активна</span></td>
                     </tr>
                 }

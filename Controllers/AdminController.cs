@@ -264,6 +264,21 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         return RedirectToAction(nameof(Products));
     }
 
+    // POST /Admin/Restaurants/RegenKitchen — новый токен терминала кухни
+    [HttpPost("Restaurants/RegenKitchen")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegenKitchen(int id)
+    {
+        var orgId = await GetOrganizationIdAsync();
+        if (orgId is null) return Forbid();
+        var r = await db.Restaurants.FirstOrDefaultAsync(x => x.Id == id && x.OrganizationId == orgId);
+        if (r is null) return NotFound();
+        r.KitchenToken = Guid.NewGuid();
+        await db.SaveChangesAsync();
+        TempData["Ok"] = "Ссылка терминала кухни обновлена.";
+        return RedirectToAction(nameof(Restaurants));
+    }
+
     private static string GenerateCode()
     {
         // 8 символов: читаемый набор без неоднозначных (0/O, 1/I)

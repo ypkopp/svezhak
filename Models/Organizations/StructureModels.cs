@@ -21,12 +21,15 @@ public class Restaurant
     public int Id { get; init; }
     [MaxLength(100)]
     public string Address { get; set; } = null!;
-    
+
     public int OrganizationId { get; init; }
     public Organization Organization { get; init; } = null!;
 
     [MaxLength(100)]
     public string ManagerId { get; set; } = null!;
+
+    // Публичный токен терминала кухни — read-only стоп-лист по /Kitchen/{token}
+    public Guid KitchenToken { get; set; } = Guid.NewGuid();
 }
 
 public class AccessCode
