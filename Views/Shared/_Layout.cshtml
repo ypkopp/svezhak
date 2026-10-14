@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="icon" type="image/png" href="~/img/brand/logo-led.png" />
+    <link rel="icon" type="image/png" href="~/img/brand/svezhak-logo-dark-2x.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/svezhak.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -33,7 +33,7 @@
     <div class="sv-app-shell">
         <aside class="sv-handoff-sidebar">
             <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index">
-                <img src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
+                <img src="~/img/brand/svezhak-logo-dark-animated.svg" asp-append-version="true" alt="СВЕЖАК" />
             </a>
             <nav class="sv-handoff-nav" aria-label="Основная навигация">
                 <a asp-controller="Inventory" asp-action="Index" class="sv-handoff-nav-item@(Active("Index"))">
@@ -67,7 +67,6 @@
         <div class="sv-main-shell">
             <header class="sv-handoff-topbar">
                 <label class="sv-global-search sv-cmd-trigger" id="cmdTrigger" role="button" tabindex="0">
-                    <span class="sv-cmd-ic">⌘</span>
                     <span class="sv-cmd-hint">Быстрое действие…</span>
                     <kbd>⌘K</kbd>
                 </label>
@@ -75,7 +74,7 @@
                     <button class="sv-icon-button" type="button" id="qrBtn" aria-label="QR для кухни" title="QR для кухни — стоп-лист">⌗</button>
                     <button class="sv-lang-switch" type="button" id="langSwitch" aria-label="Сменить язык"><b id="langCur">RU</b></button>
                     <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Сменить тему">
-                        <span class="sv-theme-knob"><img src="~/img/brand/logo-led.png" alt="" /></span>
+                        <span class="sv-theme-knob"><img src="~/img/brand/svezhak-logo-dark-2x.png" alt="" /></span>
                         <span class="sv-theme-label"><strong data-i18n="theme.switch">СМЕНИТЬ ТЕМУ</strong><small data-theme-sub>Скан · оранж</small></span>
                     </button>
                     <span class="sv-led-clock" data-led-clock>00:00</span>
@@ -97,7 +96,7 @@
     @* ===== ⌘K — палитра быстрых действий ===== *@
     <div class="sv-cmd-palette" id="cmdPalette" hidden>
         <div class="sv-cmd-box" role="dialog" aria-modal="true" aria-label="Быстрые действия">
-            <div class="sv-cmd-input-wrap"><span class="sv-cmd-ic">⌘</span><input id="cmdInput" type="text" placeholder="Действие…" autocomplete="off" /><kbd>Esc</kbd></div>
+            <div class="sv-cmd-input-wrap"><input id="cmdInput" type="text" placeholder="Действие…" autocomplete="off" /><kbd>Esc</kbd></div>
             <div class="sv-cmd-list" id="cmdList"></div>
         </div>
     </div>

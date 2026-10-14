@@ -98,7 +98,7 @@
                 }
                 else
                 {
-                    <div class="sv-empty"><img src="~/img/brand/m3-rice.png" alt="" /><p>Сегодня заказов ещё не было.</p></div>
+                    <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Сегодня заказов ещё не было.</p></div>
                 }
             }
             else
@@ -107,7 +107,7 @@
                 var archive = (IEnumerable<dynamic>)ViewBag.Archive;
                 if (!archive.Any())
                 {
-                    <div class="sv-empty"><img src="~/img/brand/m3-rice.png" alt="" /><p>Архив пуст — старых заказов нет.</p></div>
+                    <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Архив пуст — старых заказов нет.</p></div>
                 }
                 foreach (var day in archive)
                 {
