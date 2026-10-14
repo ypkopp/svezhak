@@ -64,6 +64,8 @@ public sealed class OrgController(ApplicationDbContext db, OrderService orders) 
 
         ViewBag.Restaurants = cards;
         ViewBag.OrgName = await db.Organizations.Where(o => o.Id == orgId).Select(o => o.Name).FirstOrDefaultAsync();
+        ViewBag.Ok = TempData["Ok"];
+        ViewBag.Error = TempData["Error"];
         return View();
     }
 
@@ -93,6 +95,128 @@ public sealed class OrgController(ApplicationDbContext db, OrderService orders) 
         ViewBag.StopList = stop;
         ViewBag.Expiring24 = live.Count(b => b.ExpiresAt <= now.AddHours(24));
         return View();
+    }
+
+    // POST /Org/Restaurants/Create — создать точку (только владелец)
+    [HttpPost("Restaurants/Create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateRestaurant(string address)
+    {
+        var orgId = await GetOrgIdAsync();
+        if (orgId is null) return Forbid();
+        if (string.IsNullOrWhiteSpace(address)) { TempData["Error"] = "Укажите адрес."; return RedirectToAction(nameof(Index)); }
+        db.Restaurants.Add(new SmartInventory.Models.Structure.Restaurant
+        {
+            OrganizationId = orgId.Value,
+            Address = address.Trim(),
+            ManagerId = "pending",
+        });
+        await db.SaveChangesAsync();
+        TempData["Ok"] = $"Точка «{address.Trim()}» добавлена.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    // GET /Org/Employees — все сотрудники сети, секции по ресторанам
+    [HttpGet("Employees")]
+    public async Task<IActionResult> Employees()
+    {
+        var orgId = await GetOrgIdAsync();
+        if (orgId is null) return Forbid();
+
+        var restaurants = await db.Restaurants.AsNoTracking()
+            .Where(r => r.OrganizationId == orgId).OrderBy(r => r.Id).ToListAsync();
+        var codes = await db.AccessCodes.AsNoTracking()
+            .Where(c => c.OrganizationId == orgId)
+            .OrderBy(c => c.EmployeeName)
+            .ToListAsync();
+
+        var restIds = restaurants.Select(r => r.Id).ToList();
+        // Точка сотрудника — ресторан его последней смены (у кода нет прямого RestaurantId)
+        var shifts = await db.Shifts.AsNoTracking()
+            .Where(s => restIds.Contains(s.RestaurantId))
+            .Select(s => new { s.AccessCodeId, s.RestaurantId, s.Date })
+            .ToListAsync();
+        var restOf = shifts
+            .GroupBy(s => s.AccessCodeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.Date).First().RestaurantId);
+
+        var byRestaurant = restIds.ToDictionary(id => id, _ => new List<SmartInventory.Models.Structure.AccessCode>());
+        var unassigned = new List<SmartInventory.Models.Structure.AccessCode>();
+        foreach (var c in codes)
+        {
+            if (restOf.TryGetValue(c.Id, out var rid) && byRestaurant.ContainsKey(rid)) byRestaurant[rid].Add(c);
+            else unassigned.Add(c);
+        }
+
+        ViewBag.Restaurants = restaurants;
+        ViewBag.ByRestaurant = byRestaurant;
+        ViewBag.Unassigned = unassigned;
+        ViewBag.SelfCodeId = int.TryParse(User.FindFirst("AccessCodeId")?.Value, out var sc) ? sc : -1;
+        ViewBag.Ok = TempData["Ok"];
+        ViewBag.Error = TempData["Error"];
+        ViewBag.NewCode = TempData["NewCode"];
+        ViewBag.NewCodeName = TempData["NewCodeName"];
+        return View();
+    }
+
+    // POST /Org/Employees/Create — новый сотрудник любой роли (кроме владельца)
+    [HttpPost("Employees/Create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateEmployee(string employeeName, string role)
+    {
+        var orgId = await GetOrgIdAsync();
+        if (orgId is null) return Forbid();
+        if (string.IsNullOrWhiteSpace(employeeName)) { TempData["Error"] = "Укажите имя."; return RedirectToAction(nameof(Employees)); }
+
+        var appRole = role switch
+        {
+            "админ" or nameof(AppRole.Admin) => AppRole.Admin,
+            "менеджер" or nameof(AppRole.RestaurantManager) => AppRole.RestaurantManager,
+            "шеф" or nameof(AppRole.HeadChef) => AppRole.HeadChef,
+            _ => AppRole.Staff,
+        };
+        if (appRole == AppRole.OrganizationOwner) { TempData["Error"] = "Роль владельца не выдаётся."; return RedirectToAction(nameof(Employees)); }
+
+        var code = new SmartInventory.Models.Structure.AccessCode(GenerateCode(), appRole, orgId.Value)
+        {
+            EmployeeName = employeeName.Trim(),
+            IsActive = true,
+        };
+        db.AccessCodes.Add(code);
+        await db.SaveChangesAsync();
+        TempData["NewCode"] = code.Code;
+        TempData["NewCodeName"] = code.EmployeeName;
+        return RedirectToAction(nameof(Employees));
+    }
+
+    // POST /Org/Employees/Toggle — активировать/деактивировать код (не владельца)
+    [HttpPost("Employees/Toggle")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleEmployee(int id)
+    {
+        var orgId = await GetOrgIdAsync();
+        if (orgId is null) return Forbid();
+        var code = await db.AccessCodes.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == orgId);
+        if (code is null) return NotFound();
+        if (code.Role == AppRole.OrganizationOwner)
+        {
+            TempData["Error"] = "Владельца сети нельзя деактивировать.";
+            return RedirectToAction(nameof(Employees));
+        }
+        var selfId = int.TryParse(User.FindFirst("AccessCodeId")?.Value, out var sc) ? sc : -1;
+        if (code.Id == selfId) { TempData["Error"] = "Нельзя деактивировать себя."; return RedirectToAction(nameof(Employees)); }
+
+        code.IsActive = !code.IsActive;
+        await db.SaveChangesAsync();
+        return RedirectToAction(nameof(Employees));
+    }
+
+    private static string GenerateCode()
+    {
+        const string alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+        var chars = new char[8];
+        for (var i = 0; i < chars.Length; i++) chars[i] = alphabet[Random.Shared.Next(alphabet.Length)];
+        return new string(chars);
     }
 
     // ---------- Управление админами ----------

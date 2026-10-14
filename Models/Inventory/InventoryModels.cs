@@ -153,6 +153,10 @@ public class LeadRequest
 
     public int RestaurantCount { get; set; }
 
+    // "новая" / "в работе" / "доступ выдан"
+    [MaxLength(20)]
+    public string Status { get; set; } = "новая";
+
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }
 

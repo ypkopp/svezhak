@@ -138,7 +138,12 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
             return RedirectToAction(nameof(Employees));
         }
 
-        // Менеджер — только повара (Staff/HeadChef/Manager). Не админов, не владельца.
+        // Владельца сети деактивировать нельзя — ни через UI, ни через прямой POST
+        if (code.Role == AppRole.OrganizationOwner)
+        {
+            TempData["Error"] = "Владельца сети нельзя деактивировать.";
+            return RedirectToAction(nameof(Employees));
+        }
         if (!IsAdmin() && !ManagerManagedRoles.Contains(code.Role))
         {
             TempData["Error"] = "Менеджер может управлять только поварами.";
@@ -176,11 +181,17 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         return View();
     }
 
-    // POST /Admin/Restaurants/Create — добавить ресторан
+    // POST /Admin/Restaurants/Create — только владелец сети (форма в /Org)
     [HttpPost("Restaurants/Create")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateRestaurant(string address)
     {
+        // Создавать точки может только владелец организации (форма живёт в /Org)
+        if (!User.IsInRole(nameof(AppRole.OrganizationOwner)))
+        {
+            TempData["Error"] = "Создавать рестораны может только владелец сети.";
+            return RedirectToAction(nameof(Restaurants));
+        }
         var orgId = await GetOrganizationIdAsync();
         if (orgId is null) return Forbid();
 

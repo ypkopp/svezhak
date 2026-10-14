@@ -73,6 +73,7 @@
                 @foreach (var c in codes)
                 {
                     var isSelf = c.Id == selfId;
+                    var isOwner = c.Role == SmartInventory.Authorization.AppRole.OrganizationOwner;
                     <tr class="@(c.IsActive ? "" : "sv-row-expired")">
                         <td>
                             <div style="font-weight:800">@(c.EmployeeName ?? $"Сотрудник #{c.Id}")</div>
@@ -90,9 +91,9 @@
                             }
                         </td>
                         <td style="text-align:right">
-                            @if (isSelf)
+                            @if (isSelf || isOwner)
                             {
-                                <span class="sv-chip" style="height:28px">это вы</span>
+                                <span class="sv-chip" style="height:28px">@(isSelf ? "это вы" : "владелец")</span>
                             }
                             else
                             {

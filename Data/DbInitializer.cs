@@ -15,6 +15,7 @@ public static class DbInitializer
     public const string ManagerAccessCode = "MANAGER1234";
     public const string AdminAccessCode = "ADMIN1234";
     public const string OwnerAccessCode = "OWNER1234";
+    public const string PlatformAccessCode = "HQ000001";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -357,6 +358,25 @@ public static class DbInitializer
         // Линейный персонал для виджета «Смена» и расписания
         var rin = await EnsureCodeAsync("CHEF0001", AppRole.HeadChef, "Рин");
         var mika = await EnsureCodeAsync("COOK0001", AppRole.Staff, "Мика");
+
+        // Платформа: «СВЕЖАК HQ» — отдельная организация без ресторанов,
+        // код HQ000001 в роли PlatformOwner (раздел /Platform/Leads)
+        var hq = await db.Organizations.FirstOrDefaultAsync(o => o.Name == "СВЕЖАК HQ");
+        if (hq is null)
+        {
+            hq = new Organization { Name = "СВЕЖАК HQ", OwnerId = "platform" };
+            db.Organizations.Add(hq);
+            await db.SaveChangesAsync();
+        }
+        if (!await db.AccessCodes.AnyAsync(c => c.Code == PlatformAccessCode))
+        {
+            db.AccessCodes.Add(new AccessCode(PlatformAccessCode, AppRole.PlatformOwner, hq.Id)
+            {
+                EmployeeName = "Платформа",
+                IsActive = true,
+            });
+            await db.SaveChangesAsync();
+        }
 
         // Смены на сегодня — чтобы виджет «Смена» ожил сразу после входа
         var today = DateOnly.FromDateTime(DateTime.UtcNow);

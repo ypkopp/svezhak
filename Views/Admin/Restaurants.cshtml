@@ -12,7 +12,7 @@
         <h1 class="sv-page-title">Рестораны</h1>
         <div class="sv-page-sub mb-0">Точки вашей организации. Склад и расписание ведутся по активному ресторану.</div>
     </div>
-    <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#addRestModal">＋ Добавить</button>
+    <span class="sv-badge sv-badge-muted">просмотр · создание у владельца сети</span>
 </div>
 
 @if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
@@ -58,27 +58,7 @@
     }
 </div>
 
-<div class="modal fade" id="addRestModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:linear-gradient(165deg,#1b1e27f2,#111318f2);border:1px solid var(--bd);border-radius:20px;color:var(--tx)">
-            <form asp-action="CreateRestaurant" method="post">
-                @Html.AntiForgeryToken()
-                <div class="modal-header" style="border-color:#ffffff10">
-                    <div><div class="sv-kicker">Новая точка</div><h5 class="modal-title" style="font:700 17px var(--disp)">Добавить ресторан</h5></div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                </div>
-                <div class="modal-body">
-                    <label class="sv-label d-block mb-1">Адрес / название</label>
-                    <input class="sv-input" type="text" name="address" placeholder="ул. Тверская, 12" required maxlength="100" />
-                </div>
-                <div class="modal-footer" style="border-color:#ffffff10">
-                    <button type="button" class="btn-sv-ghost" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn-sv-primary">Добавить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+@* Форма добавления перенесена владельцу в /Org — здесь только просмотр *@
 
 @section Scripts {
     <script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>

@@ -146,6 +146,8 @@ using (var scope = app.Services.CreateScope())
                 ""Contact"" character varying(120) NOT NULL,
                 ""RestaurantCount"" integer NOT NULL,
                 ""CreatedAt"" timestamp with time zone NOT NULL)");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"LeadRequests\" ADD COLUMN IF NOT EXISTS \"Status\" character varying(20) NOT NULL DEFAULT 'новая'");
     }
     else
     {

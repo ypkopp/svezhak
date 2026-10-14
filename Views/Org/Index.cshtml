@@ -10,8 +10,19 @@
         <h1 class="sv-page-title">Рестораны сети</h1>
         <div class="sv-page-sub mb-0">Сводка по всем точкам — горящие партии, стоп-лист, потери за неделю.</div>
     </div>
-    <a class="sv-chip" href="@Url.Action("Admins","Org")">Управление админами</a>
+    <div class="d-flex align-items-center gap-2">
+        <a class="sv-chip" href="@Url.Action("Admins","Org")">Админы</a>
+        <a class="sv-chip" href="@Url.Action("Employees","Org")">Сотрудники</a>
+        <form asp-action="CreateRestaurant" method="post" class="d-flex gap-1 m-0">
+            @Html.AntiForgeryToken()
+            <input name="address" class="sv-input" style="max-width:200px;min-height:34px;padding:4px 10px;font-size:12px" placeholder="новая точка…" required maxlength="100" />
+            <button class="btn-sv-primary btn-sm" type="submit">＋</button>
+        </form>
+    </div>
 </div>
+
+@if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
+@if (ViewBag.Error is string err) { <div class="sv-form-alert mb-3">@err</div> }
 
 <div class="sv-org-grid">
     @foreach (var r in restaurants)
