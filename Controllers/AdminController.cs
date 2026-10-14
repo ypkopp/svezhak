@@ -181,6 +181,69 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         return RedirectToAction(nameof(Restaurants));
     }
 
+    // ---------- Ассортимент (импорт продуктов) ----------
+
+    // GET /Admin/Products — список + загрузка файла
+    [HttpGet("Products")]
+    public async Task<IActionResult> Products()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var products = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .OrderBy(p => p.Category).ThenBy(p => p.Name)
+            .ToListAsync();
+
+        ViewBag.Products = products;
+        ViewBag.ImportRows = TempData["ImportRows"] is string json && !string.IsNullOrEmpty(json)
+            ? SmartInventory.Services.ProductImportService.DeserializeRows(json) : null;
+        if (ViewBag.ImportRows is not null)
+            SmartInventory.Services.ProductImportService.Validate((List<SmartInventory.Services.ProductImportService.ImportRow>)ViewBag.ImportRows, products.Select(p => p.Name));
+        ViewBag.Error = TempData["Error"];
+        ViewBag.Ok = TempData["Ok"];
+        return View();
+    }
+
+    // POST /Admin/Products/Import — файл → предпросмотр (строки в TempData → GET)
+    [HttpPost("Products/Import")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ImportProducts(IFormFile? file)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        if (file is null || file.Length == 0) { TempData["Error"] = "Файл не выбран."; return RedirectToAction(nameof(Products)); }
+
+        List<SmartInventory.Services.ProductImportService.ImportRow> rows;
+        await using (var s = file.OpenReadStream())
+            rows = SmartInventory.Services.ProductImportService.Parse(s, file.FileName);
+        if (rows.Count == 0) { TempData["Error"] = "В файле нет строк."; return RedirectToAction(nameof(Products)); }
+
+        TempData["ImportRows"] = SmartInventory.Services.ProductImportService.SerializeRows(rows);
+        return RedirectToAction(nameof(Products));
+    }
+
+    // POST /Admin/Products/Confirm — подтверждение предпросмотра
+    [HttpPost("Products/Confirm")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmProducts(string importJson)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var rows = SmartInventory.Services.ProductImportService.DeserializeRows(importJson);
+        var existing = await db.Products.AsNoTracking().Where(p => p.RestaurantId == rid).Select(p => p.Name).ToListAsync();
+        SmartInventory.Services.ProductImportService.Validate(rows, existing);
+        var valid = rows.Where(r => r.Errors.Count == 0).ToList();
+        if (valid.Count == 0) { TempData["Error"] = "Нет валидных строк."; return RedirectToAction(nameof(Products)); }
+
+        foreach (var r in valid)
+            db.Products.Add(new Product { RestaurantId = rid.Value, Name = r.Name.Trim(), Category = string.IsNullOrWhiteSpace(r.Category) ? "Прочее" : r.Category.Trim(), Unit = r.Unit.Trim(), PurchasePrice = r.PurchasePrice });
+        await db.SaveChangesAsync();
+        TempData["Ok"] = $"Импортировано {valid.Count} продуктов.";
+        return RedirectToAction(nameof(Products));
+    }
+
     private static string GenerateCode()
     {
         // 8 символов: читаемый набор без неоднозначных (0/O, 1/I)

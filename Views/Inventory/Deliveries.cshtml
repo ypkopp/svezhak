@@ -17,6 +17,59 @@
 @if (TempData["DeliveryOk"] is string ok) { <div class="sv-form-success mb-3 d-flex align-items-center gap-2"><img src="~/img/brand/m3-lemon.png" style="width:38px" alt="" />@ok</div> }
 @if (TempData["DeliveryError"] is string err) { <div class="sv-form-alert mb-3">@err</div> }
 
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <span class="sv-muted" style="font-size:11px">База продуктов пополняется приёмкой или файлом.</span>
+    <form asp-action="ImportProductsPreview" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+        @Html.AntiForgeryToken()
+        <input type="file" name="file" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" class="sv-input" style="max-width:230px;padding:6px" required />
+        <button type="submit" class="btn-sv-ghost btn-sm"><img src="~/img/brand/st-truck.png" style="width:15px;height:15px;mix-blend-mode:lighten;vertical-align:-2px;margin-right:4px" alt="" />Загрузить ассортимент</button>
+    </form>
+</div>
+
+@* ===== Предпросмотр импорта (если был загружен файл) ===== *@
+@if (ViewBag.ImportRows is List<SmartInventory.Services.ProductImportService.ImportRow> importRows && importRows.Any())
+{
+    <section class="sv-card fade-up mb-3" style="border:1px solid color-mix(in oklab,var(--a1) 35%,transparent)">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div><div class="sv-section-title mb-0">Предпросмотр импорта</div><span class="sv-muted" style="font-size:11px">поправь ошибки прямо в таблице, затем подтверди</span></div>
+            <span class="sv-badge @(importRows.Any(r => r.Errors.Count > 0) ? "sv-badge-yellow" : "sv-badge-green")">@importRows.Count(r => r.Errors.Count > 0) с ошибками / @importRows.Count всего</span>
+        </div>
+        <form asp-action="ImportProductsConfirm" method="post" id="importForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="importJson" id="importJson" value="" />
+            <div class="sv-table-wrap" style="max-height:420px;overflow-y:auto">
+                <table class="sv-table" id="importTable">
+                    <thead><tr><th>Название</th><th>Категория</th><th>Ед.</th><th>Срок, ч</th><th>Цена, ₽</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var (r, i) in importRows.Select((x, i) => (x, i)))
+                    {
+                        <tr class="@(r.Errors.Count > 0 ? "sv-import-bad" : "")" data-err="@(r.Errors.Count > 0 ? "1" : "0")">
+                            <td><input class="sv-input sv-imp" data-f="Name" value="@r.Name" /></td>
+                            <td><input class="sv-input sv-imp" data-f="Category" value="@r.Category" /></td>
+                            <td><input class="sv-input sv-imp" data-f="Unit" value="@r.Unit" style="width:64px" /></td>
+                            <td><input class="sv-input sv-imp" data-f="ShelfHours" type="number" step="1" min="0" value="@($"{r.ShelfHours:0}")" style="width:78px" /></td>
+                            <td><input class="sv-input sv-imp" data-f="PurchasePrice" type="number" step="0.01" min="0" value="@($"{r.PurchasePrice:0.##}")" style="width:88px" /></td>
+                            <td>
+                                @if (r.Errors.Count > 0)
+                                {
+                                    <span class="sv-badge sv-badge-red" title="@string.Join(", ", r.Errors)">@string.Join(", ", r.Errors)</span>
+                                }
+                                <button type="button" class="sv-wo-btn" data-delrow title="Убрать строку"><img src="~/img/brand/st-stop.png" alt="" /></button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex gap-2 mt-3 flex-wrap">
+                <button type="submit" class="btn-sv-primary">Подтвердить импорт</button>
+                <a class="btn-sv-ghost" asp-action="Deliveries">Отменить</a>
+                <span class="sv-muted" style="font-size:11px;align-self:center">строки с ошибками будут пропущены</span>
+            </div>
+        </form>
+    </section>
+}
+
 <div class="sv-delivery-layout">
     <section class="sv-card fade-up">
         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -105,6 +158,28 @@
         row.querySelectorAll('select,input').forEach(x => x.addEventListener('input', updateSum));
         lines.appendChild(row);
     }
+    // ===== Предпросмотр импорта: правка в таблице → скрытый JSON =====
+    var importForm = document.getElementById('importForm');
+    if (importForm) {
+        // Удалить строку
+        document.querySelectorAll('[data-delrow]').forEach(function (b) {
+            b.addEventListener('click', function () { this.closest('tr').remove(); });
+        });
+        // Сериализуем правки прямо перед отправкой
+        importForm.addEventListener('submit', function () {
+            var rows = [];
+            document.querySelectorAll('#importTable tbody tr').forEach(function (tr) {
+                var get = f => { var el = tr.querySelector('[data-f="' + f + '"]'); return el ? el.value.trim() : ''; };
+                rows.push({
+                    Name: get('Name'), Category: get('Category'), Unit: get('Unit'),
+                    ShelfHours: parseFloat(get('ShelfHours')) || 0,
+                    PurchasePrice: parseFloat(get('PurchasePrice')) || 0
+                });
+            });
+            document.getElementById('importJson').value = JSON.stringify(rows);
+        });
+    }
+
     document.getElementById('addLine').addEventListener('click', addLine);
     addLine();
     document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });

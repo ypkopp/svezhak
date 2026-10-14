@@ -387,6 +387,81 @@ public class InventoryController(
         return RedirectToAction(nameof(Stock));
     }
 
+    // POST /Inventory/ImportProductsPreview — загрузил файл → предпросмотр с валидацией
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ImportProductsPreview(IFormFile? file)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        if (file is null || file.Length == 0)
+        {
+            TempData["DeliveryError"] = "Файл не выбран.";
+            return RedirectToAction(nameof(Deliveries));
+        }
+
+        List<ProductImportService.ImportRow> rows;
+        await using (var stream = file.OpenReadStream())
+            rows = ProductImportService.Parse(stream, file.FileName);
+
+        if (rows.Count == 0)
+        {
+            TempData["DeliveryError"] = "В файле нет строк с продуктами.";
+            return RedirectToAction(nameof(Deliveries));
+        }
+
+        var existing = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .Select(p => p.Name)
+            .ToListAsync();
+        ProductImportService.Validate(rows, existing);
+
+        // Строки передаются обратно через форму в скрытом JSON — пользователь правит в таблице
+        ViewBag.ImportRows = rows;
+        ViewBag.ImportJson = ProductImportService.SerializeRows(rows);
+        return await Deliveries(null);
+    }
+
+    // POST /Inventory/ImportProductsConfirm — пользователь подтвердил → создаём продукты
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ImportProductsConfirm(string importJson)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var rows = ProductImportService.DeserializeRows(importJson);
+        var existing = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .Select(p => p.Name)
+            .ToListAsync();
+        ProductImportService.Validate(rows, existing);
+
+        // Импортируем только валидные строки
+        var valid = rows.Where(r => r.Errors.Count == 0).ToList();
+        if (valid.Count == 0)
+        {
+            TempData["DeliveryError"] = "После правок не осталось валидных строк — ничего не импортировано.";
+            return RedirectToAction(nameof(Deliveries));
+        }
+
+        foreach (var r in valid)
+        {
+            db.Products.Add(new Product
+            {
+                RestaurantId = rid.Value,
+                Name = r.Name.Trim(),
+                Category = string.IsNullOrWhiteSpace(r.Category) ? "Прочее" : r.Category.Trim(),
+                Unit = r.Unit.Trim(),
+                PurchasePrice = r.PurchasePrice,
+            });
+        }
+        await db.SaveChangesAsync();
+        TempData["DeliveryOk"] = $"Импортировано {valid.Count} продуктов.";
+        return RedirectToAction(nameof(Deliveries));
+    }
+
     // GET /Inventory/Deliveries?month=2026-10 — журнал по месяцам + форма приёма
     public async Task<IActionResult> Deliveries(string? month = null)
     {
