@@ -113,6 +113,13 @@ using (var scope = app.Services.CreateScope())
         // Не используем MigrateAsync: Npgsql-дифф в EF10+N10 падает на
         // DateOnly/TimeOnly/enum-колонках при генерации миграции.
         await db.Database.EnsureCreatedAsync();
+        // EnsureCreated НЕ патчит уже существующую схему (Render-БД создана
+        // ранним деплоем). Добавляем новые колонки идемпотентно —
+        // иначе любой запрос к Dishes падает «column does not exist».
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Dishes\" ADD COLUMN IF NOT EXISTS \"ManualStopped\" boolean NOT NULL DEFAULT FALSE");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Dishes\" ADD COLUMN IF NOT EXISTS \"StopComment\" character varying(300) NULL");
     }
     else
     {
