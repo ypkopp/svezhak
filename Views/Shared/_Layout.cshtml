@@ -35,18 +35,18 @@
             <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index">
                 <img src="~/img/brand/svezhak-logo-dark-animated.svg" asp-append-version="true" alt="СВЕЖАК" />
             </a>
-            <nav class="sv-handoff-nav" aria-label="Основная навигация">
+            <nav class="sv-handoff-nav sv-nav-offset" aria-label="Основная навигация">
                 <a asp-controller="Inventory" asp-action="Index" class="sv-handoff-nav-item@(Active("Index"))">
-                    <span class="sv-nav-icon">⌂</span><span data-i18n="nav.dash">Дашборд</span><b class="sv-nav-badge sv-badge-danger">@((int?)ViewBag.KpiExpiring ?? 0)</b>
+                    <span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="15" x2="16.5" y2="9.5"/><rect x="10.6" y="13.6" width="2.8" height="2.8" fill="currentColor" stroke="none"/><line x1="4" y1="20" x2="20" y2="20"/><line x1="5" y1="15" x2="7" y2="15"/><line x1="17" y1="15" x2="19" y2="15"/></svg></span><span data-i18n="nav.dash">Дашборд</span><b class="sv-nav-badge sv-badge-danger">@((int?)ViewBag.KpiExpiring ?? 0)</b>
                 </a>
-                <a asp-controller="Inventory" asp-action="Stock" class="sv-handoff-nav-item@(Active("Stock"))"><span class="sv-nav-icon">▦</span><span data-i18n="nav.stock">Склад</span></a>
-                <a asp-controller="Inventory" asp-action="Deliveries" class="sv-handoff-nav-item@(Active("Deliveries"))"><span class="sv-nav-icon">⇩</span><span data-i18n="nav.deliv">Поставки</span></a>
-                <a asp-controller="Inventory" asp-action="Order" class="sv-handoff-nav-item@(Active("Order"))"><span class="sv-nav-icon">▤</span><span data-i18n="nav.order">Заказ</span></a>
-                <a asp-controller="Inventory" asp-action="StopList" class="sv-handoff-nav-item@(Active("StopList"))"><span class="sv-nav-icon">⊘</span><span data-i18n="nav.stop">Стоп-лист</span><b class="sv-nav-badge sv-badge-success">0</b></a>
-                <a asp-controller="Advisor" asp-action="Index" class="sv-handoff-nav-item@(currentController == "Advisor" ? " active" : "")"><span class="sv-nav-icon">✦</span><span data-i18n="nav.advisor">Советник</span></a>
+                <a asp-controller="Inventory" asp-action="Stock" class="sv-handoff-nav-item@(Active("Stock"))"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21V3M21 21V3M3 11h18M3 20h18"/><rect x="6" y="5.5" width="4.5" height="4"/><rect x="12.5" y="14" width="5" height="4.5"/><rect x="6" y="15.5" width="3.5" height="3"/></svg></span><span data-i18n="nav.stock">Склад</span></a>
+                <a asp-controller="Inventory" asp-action="Deliveries" class="sv-handoff-nav-item@(Active("Deliveries"))"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11v10h16V11"/><path d="M2.5 11h6l1.5 2.5h4l1.5-2.5h6"/><path d="M12 2v7M8.5 6l3.5 3.5L15.5 6"/></svg></span><span data-i18n="nav.deliv">Поставки</span></a>
+                <a asp-controller="Inventory" asp-action="Order" class="sv-handoff-nav-item@(Active("Order"))"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z"/><path d="M9 8h6M9 11.5h6M9 15h3"/></svg></span><span data-i18n="nav.order">Заказ</span></a>
+                <a asp-controller="Inventory" asp-action="StopList" class="sv-handoff-nav-item@(Active("StopList"))"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3h8l5 5v8l-5 5H8l-5-5V8z"/><path d="M8 12h8"/></svg></span><span data-i18n="nav.stop">Стоп-лист</span><b class="sv-nav-badge sv-badge-success">0</b></a>
+                <a asp-controller="Advisor" asp-action="Index" class="sv-handoff-nav-item@(currentController == "Advisor" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l6.5-6.5"/></svg></span><span data-i18n="nav.advisor">Советник</span></a>
                 @if (isAdmin)
                 {
-                    <a asp-controller="Admin" asp-action="Employees" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon">⚙</span><span data-i18n="nav.admin">Админ</span></a>
+                    <a asp-controller="Admin" asp-action="Employees" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20v-4M4 8V4M20 4v4M20 16v4M4 12h16"/><circle cx="12" cy="8" r="3"/><circle cx="12" cy="16" r="3"/></svg></span><span data-i18n="nav.admin">Админ</span></a>
                 }
             </nav>
             @await Component.InvokeAsync("ShiftWidget")
@@ -67,14 +67,14 @@
         <div class="sv-main-shell">
             <header class="sv-handoff-topbar">
                 <label class="sv-global-search sv-cmd-trigger" id="cmdTrigger" role="button" tabindex="0">
+                    <span class="sv-cmd-ic">⌘</span>
                     <span class="sv-cmd-hint">Быстрое действие…</span>
-                    <kbd>⌘K</kbd>
                 </label>
                 <div class="sv-topbar-tools">
                     <button class="sv-icon-button" type="button" id="qrBtn" aria-label="QR для кухни" title="QR для кухни — стоп-лист">⌗</button>
                     <button class="sv-lang-switch" type="button" id="langSwitch" aria-label="Сменить язык"><b id="langCur">RU</b></button>
                     <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Сменить тему">
-                        <span class="sv-theme-knob"><img src="~/img/brand/svezhak-logo-dark-2x.png" alt="" /></span>
+                        <span class="sv-theme-knob"><img src="~/img/brand/favicon-32.png" alt="" /></span>
                         <span class="sv-theme-label"><strong data-i18n="theme.switch">СМЕНИТЬ ТЕМУ</strong><small data-theme-sub>Скан · оранж</small></span>
                     </button>
                     <span class="sv-led-clock" data-led-clock>00:00</span>
