@@ -240,3 +240,17 @@
   render();
   modal.hidden = false;
 })();
+
+/* ===== Светлая/тёмная тема (data-mode) — отдельно от бренд-темы A/B ===== */
+(function () {
+  var btn = document.getElementById('modeToggle'), ic = document.getElementById('modeIc');
+  if (!btn) return;
+  function apply() { if (ic) ic.textContent = document.documentElement.dataset.mode === 'light' ? '☀' : '☾'; }
+  btn.addEventListener('click', function () {
+    var light = document.documentElement.dataset.mode === 'light';
+    if (light) delete document.documentElement.dataset.mode; else document.documentElement.dataset.mode = 'light';
+    try { localStorage.setItem('sv-mode', light ? 'dark' : 'light'); } catch (e) { }
+    apply();
+  });
+  apply();
+})();

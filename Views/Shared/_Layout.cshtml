@@ -16,7 +16,9 @@
     <title>@ViewData["Title"] — СВЕЖАК</title>
     <script>
       // Тема применяется синхронно ДО загрузки CSS — без вспышки (FOUC).
-      (function(){try{var t=localStorage.getItem('sv-theme')||'A';var r=document.documentElement;r.classList.add(t==='B'?'theme-b':'theme-a');r.dataset.theme=t;}catch(e){}})();
+      // data-theme: бренд A/B (оранж/зел). data-mode: светлая/тёмная (sv-mode).
+      (function(){try{var t=localStorage.getItem('sv-theme')||'A';var r=document.documentElement;r.classList.add(t==='B'?'theme-b':'theme-a');r.dataset.theme=t;
+        var m=localStorage.getItem('sv-mode');if(m==='light')r.dataset.mode='light';}catch(e){}})();
     </script>
     <script type="importmap"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -83,6 +85,7 @@
                 <div class="sv-topbar-tools">
                     <button class="sv-icon-button" type="button" id="qrBtn" aria-label="QR для кухни" title="QR для кухни — стоп-лист">⌗</button>
                     <button class="sv-lang-switch" type="button" id="langSwitch" aria-label="Сменить язык"><b id="langCur">RU</b></button>
+                    <button class="sv-icon-button sv-mode-btn" type="button" id="modeToggle" aria-label="Светлая тема" title="Светлая / тёмная"><span id="modeIc">☾</span></button>
                     <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Сменить тему">
                         <span class="sv-theme-knob"><img src="~/img/brand/favicon-32.png" alt="" /></span>
                         <span class="sv-theme-label"><strong data-i18n="theme.switch">СМЕНИТЬ ТЕМУ</strong><small data-theme-sub>Скан · оранж</small></span>

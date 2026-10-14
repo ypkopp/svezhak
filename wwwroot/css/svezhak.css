@@ -9,6 +9,36 @@
   color-scheme:dark;
 }
 .theme-b { --a1:var(--gr); --a2:var(--ye); --g1:linear-gradient(120deg,var(--gr),var(--ye)); --glow:#48BB7830; }
+
+/* ===== Светлая тема (data-mode="light") — отдельно от бренд-темы A/B ===== */
+:root[data-mode="light"] {
+  --bg:#f5f6f8; --app-bg:#eef0f4; --pn:#ffffff; --pn2:#f0f2f5; --bd:#d7dce4;
+  --tx:#1a202c; --mut:#5a6474; --cr:#1a202c;
+  --surface:linear-gradient(165deg,#ffffff,#f2f4f7);
+  color-scheme:light;
+}
+:root[data-mode="light"] .sv-background,
+:root[data-mode="light"] .sv-hero-fullbg,
+:root[data-mode="light"] .sv-login-art { opacity:.35; }
+:root[data-mode="light"] .sv-hero-fullfade { background:linear-gradient(90deg,#f5f6f8 5%,#f5f6f8cc 40%,#f5f6f888 70%,transparent); }
+:root[data-mode="light"] .sv-card,
+:root[data-mode="light"] .sv-kpi-p,
+:root[data-mode="light"] .sv-handoff-sidebar,
+:root[data-mode="light"] .sv-modal,
+:root[data-mode="light"] .sv-adv-card,
+:root[data-mode="light"] .sv-menu-card,
+:root[data-mode="light"] .sv-prod-group { background:var(--surface); border-color:var(--bd); }
+:root[data-mode="light"] .sv-handoff-sidebar { background:linear-gradient(180deg,#ffffffee,#f2f4f7ee); }
+:root[data-mode="light"] .sv-menu-card.is-selected { background:linear-gradient(160deg,color-mix(in oklab,var(--a1) 10%,#ffffff),#ffffff); }
+:root[data-mode="light"] .sv-qty-led,
+:root[data-mode="light"] .sv-led,
+:root[data-mode="light"] .sv-led-clock { text-shadow:none; }
+:root[data-mode="light"] img[alt=""],
+:root[data-mode="light"] .sv-hero-chef,
+:root[data-mode="light"] .sv-adv-ic { filter:none; }
+:root[data-mode="light"] .sv-stop-btn img,
+:root[data-mode="light"] .sv-wo-btn img { mix-blend-mode:normal; }
+:root[data-mode="light"] .sv-badge-muted { background:#1a202c10; color:var(--mut); }
 * { box-sizing:border-box; }
 html,body { min-height:100%; margin:0; background:var(--app-bg); color:var(--tx); font-family:var(--ui); -webkit-font-smoothing:antialiased; }
 body { font-size:14px; line-height:1.55; background:transparent; }
