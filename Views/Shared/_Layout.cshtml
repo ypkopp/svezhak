@@ -98,6 +98,7 @@
                             <div id="bellList"><div class="sv-bell-empty">Загрузка…</div></div>
                         </div>
                     </div>
+                    <button class="sv-icon-button" type="button" id="chatBtn" aria-label="Чат со складом" title="Спросить ИИ о складе">✦</button>
                     <a class="sv-profile" asp-controller="Account" asp-action="Profile" title="Профиль"><b>@((User.Identity?.Name ?? "?").FirstOrDefault())</b><span><strong>@User.Identity?.Name</strong><small>профиль →</small></span></a>
                 </div>
             </header>
@@ -124,6 +125,21 @@
                 <a id="qrLink" href="@Url.Action("StopList","Inventory")" class="sv-ai-note d-block mb-3" target="_blank"></a>
                 <button class="btn-sv-primary w-100" type="button" id="qrPrint">Распечатать</button>
             </div>
+        </div>
+    </div>
+
+    @* ===== ИИ-чат — выезжающая панель ===== *@
+    <div class="sv-chat-panel" id="chatPanel" hidden>
+        <div class="sv-chat-head">
+            <div><div class="sv-kicker">ассистент склада</div><b>Спросить Юзу</b></div>
+            <button type="button" id="chatClose" aria-label="Закрыть">×</button>
+        </div>
+        <div class="sv-chat-msgs" id="chatMsgs">
+            <div class="sv-chat-msg sv-chat-ai"><b>Юзу:</b> спроси про остатки, сроки, стоп-лист или потери — отвечу по текущему снапшоту склада.</div>
+        </div>
+        <div class="sv-chat-form">
+            <input id="chatInput" type="text" placeholder="что сгорит первым?" autocomplete="off" maxlength="400" />
+            <button type="button" id="chatSend" aria-label="Отправить">→</button>
         </div>
     </div>
 

@@ -184,6 +184,27 @@ public class InventoryController(
     /// <summary>Чип сводки из сохранённого AiInsight.</summary>
     public sealed record AiChip(string Category, string Title, string Severity, string ActionUrl);
 
+    // POST /Inventory/Ask — чат с ИИ по снапшоту склада
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> Ask([FromBody] AskRequest req)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var q = (req?.Question ?? "").Trim();
+        if (q.Length == 0) return BadRequest(new { error = "empty" });
+
+        var data = await advisorService.GetSnapshotDataAsync(rid.Value);
+        var prompt = $"You are an assistant for the restaurant warehouse system SVEZHAK. " +
+                     $"Answer in Russian, briefly (under 300 words), using ONLY the facts in the snapshot below — " +
+                     $"do not invent numbers. Question: {q}";
+        var answer = await advisorService.AskAiAsync(prompt, data);
+        if (answer is null)
+            return Json(new { answer = (string?)"ИИ недоступен — откройте Советник для локальных рекомендаций." });
+        return Json(new { answer });
+    }
+    public sealed record AskRequest(string Question);
+
     // GET /Inventory/ChartData/river — партии для «реки свежести»
     [HttpGet]
     public async Task<IActionResult> ChartDataRiver()

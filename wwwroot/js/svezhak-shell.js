@@ -254,3 +254,55 @@
   });
   apply();
 })();
+
+/* ===== ИИ-чат склада ===== */
+(function () {
+  var btn = document.getElementById('chatBtn'), panel = document.getElementById('chatPanel');
+  if (!btn || !panel) return;
+  var close = document.getElementById('chatClose'), msgs = document.getElementById('chatMsgs'),
+      input = document.getElementById('chatInput'), send = document.getElementById('chatSend');
+  function open() { panel.hidden = false; input.focus(); }
+  function hide() { panel.hidden = true; }
+  btn.addEventListener('click', open);
+  close.addEventListener('click', hide);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) hide(); });
+
+  function addMsg(role, text) {
+    var div = document.createElement('div');
+    div.className = 'sv-chat-msg ' + (role === 'user' ? 'sv-chat-user' : 'sv-chat-ai');
+    if (role !== 'user') div.innerHTML = '<b>Юзу:</b> ';
+    var span = document.createElement('span'); span.textContent = text;
+    div.appendChild(span); msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  // Опционально: блок ```chart в ответе → ECharts (если либа уже на странице)
+  function tryChart(text) {
+    var m = text.match(/```chart\s*([\s\S]*?)```/);
+    if (!m) return text;
+    try {
+      var cfg = JSON.parse(m[1]);
+      if (!cfg || !cfg.type || !cfg.data) return text;
+      var box = document.createElement('div'); box.style.cssText = 'height:160px;margin-top:8px;';
+      var msg = addMsg('ai', ''); msg.appendChild(box);
+      if (window.echarts) { var c = echarts.init(box); c.setOption({ backgroundColor: 'transparent', textStyle: { color: '#8b93a7', fontSize: 10 }, title: { text: cfg.title || '', textStyle: { color: '#e8eaf0', fontSize: 11 } }, xAxis: cfg.data.x ? { type: 'category', data: cfg.data.x } : undefined, yAxis: cfg.data.x ? { type: 'value' } : undefined, series: [{ type: cfg.type || 'bar', data: cfg.data.series || cfg.data.y || [] }], grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true } }); }
+      return text.replace(m[0], '').trim();
+    } catch (e) { return text; }
+  }
+
+  async function ask() {
+    var q = input.value.trim(); if (!q) return;
+    input.value = ''; addMsg('user', q);
+    var t = addMsg('ai', 'думаю…'); t.classList.add('sv-chat-typing');
+    try {
+      var r = await fetch('/Inventory/Ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+      var d = await r.json();
+      t.remove();
+      var answer = d.answer || '…';
+      var rest = tryChart(answer);
+      addMsg('ai', rest || answer);
+    } catch (e) { t.remove(); addMsg('ai', 'Не удалось получить ответ — попробуй ещё раз.'); }
+  }
+  send.addEventListener('click', ask);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') ask(); });
+})();
