@@ -20,7 +20,7 @@ a:hover { color:var(--tx); }
 /* App ambient grid + glows */
 .sv-background { position:fixed; inset:0; z-index:-1; pointer-events:none; background:radial-gradient(900px 520px at 78% -8%,var(--glow),transparent 62%),radial-gradient(700px 600px at 10% 120%,#7f5af014,transparent 60%),linear-gradient(#ffffff05 1px,transparent 1px) 0 0/32px 32px,linear-gradient(90deg,#ffffff05 1px,transparent 1px) 0 0/32px 32px,#0d0f13; }
 .sv-app-shell { display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; position:relative; }
-.sv-handoff-sidebar { position:sticky; top:0; height:100vh; display:flex; flex-direction:column; padding:22px 14px 16px; background:linear-gradient(180deg,#12151bcc,#0e1014cc); backdrop-filter:blur(12px); border-right:1px solid #ffffff0d; z-index:10; }
+.sv-handoff-sidebar { position:sticky; top:0; height:100vh; height:100dvh; overflow-y:auto; display:flex; flex-direction:column; padding:22px 14px 16px; background:linear-gradient(180deg,#12151bcc,#0e1014cc); backdrop-filter:blur(12px); border-right:1px solid #ffffff0d; z-index:10; scrollbar-width:thin; }
 .sv-handoff-logo { display:block; padding:4px 8px 0; }
 .sv-handoff-logo img { display:block; width:100%; height:46px; object-fit:contain; object-position:left center; }
 .sv-sidebar-caption { padding:1px 10px 27px; color:var(--mut); font:600 9px/1.2 var(--mono); letter-spacing:.21em; text-transform:uppercase; }
@@ -276,7 +276,7 @@ a:hover { color:var(--tx); }
 .sv-login-layout { display:grid; grid-template-columns:1.25fr 1fr; min-height:100vh; }
 .sv-login-art { position:relative; min-height:560px; overflow:hidden; }
 .sv-login-art>img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:40% center; }
-.sv-login-art-fade { position:absolute; inset:0; background:linear-gradient(90deg,transparent 48%,#0d0f13),linear-gradient(0deg,#0d0f13 3%,transparent 58%); }
+.sv-login-art-fade { position:absolute; inset:0; background:linear-gradient(to right,transparent 30%,#0d0f13 82%),linear-gradient(to top,#0d0f13 6%,transparent 55%); }
 .sv-login-art-copy { position:absolute; left:clamp(24px,4vw,60px); right:30px; bottom:38px; }
 .sv-login-art-copy h1 { font:800 clamp(32px,3.4vw,48px)/1.05 var(--disp); margin:12px 0 0; }
 .sv-login-stats { display:flex; gap:24px; margin-top:24px; }
@@ -367,7 +367,8 @@ a:hover { color:var(--tx); }
 .sv-radar-sweep { transform-origin:0 0; animation:svSweep 5s linear infinite; }
 @keyframes svSweep { to { transform:rotate(360deg); } }
 .sv-hero-art { position:relative; min-height:220px; }
-.sv-hero-chef { position:absolute; right:-6px; bottom:-12px; width:150px; pointer-events:none; filter:drop-shadow(0 0 30px #F5656544) drop-shadow(0 10px 20px #000); animation:svBob 3.4s ease-in-out infinite; }
+.sv-hero-chef { position:absolute; right:-4px; bottom:-16px; width:150px; object-position:center bottom; pointer-events:none; filter:drop-shadow(0 0 30px #F5656544) drop-shadow(0 10px 20px #000); animation:svBob 3.4s ease-in-out infinite; }
+.sv-hero-radar { opacity:.95; }
 .sv-hero-hud { position:absolute; right:14px; top:8px; z-index:1; padding:9px 12px; border-radius:12px; background:#0f1115d9; box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--a1) 40%,transparent); text-align:right; }
 .sv-hero-hud b { font-size:16px; letter-spacing:.06em; text-shadow:0 0 12px currentColor; }
 @keyframes svBob { 50% { transform:translateY(-8px) rotate(-3deg); } }
@@ -475,6 +476,8 @@ a:hover { color:var(--tx); }
 .sv-deliv-item b { font:700 11.5px var(--mono); color:var(--tx); margin-left:5px; }
 .sv-deliv-item .sv-dot { margin-right:6px; width:7px; height:7px; }
 .sv-deliv-sum { font:800 12px var(--mono); color:var(--gr); }
+.sv-backlink { display:inline-flex; align-items:center; gap:6px; color:var(--mut); font:700 12px var(--ui); text-decoration:none; margin-bottom:6px; transition:color .15s; }
+.sv-backlink:hover { color:var(--a1); }
 .sv-qty-led { font:700 15px var(--mono); color:#4a505c; min-width:34px; max-width:46px; text-align:center; background:none; border:0; outline:0; -moz-appearance:textfield; appearance:textfield; }
 .sv-qty-led::-webkit-outer-spin-button,.sv-qty-led::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 .sv-qty-led.on { color:var(--a1); text-shadow:0 0 10px var(--a1); }
@@ -532,6 +535,11 @@ a:hover { color:var(--tx); }
 .sv-qr-box img,.sv-qr-box canvas { border-radius:12px; }
 .sv-theme-knob img { width:26px; height:26px; object-fit:contain; }
 .sv-login-logo { display:block; width:min(100%,340px); height:auto; object-fit:contain; margin:0 auto 26px; }
+
+/* Лого — свечение-пробежка по слову (как в оригинальной анимации пульса) */
+.sv-handoff-logo img,.sv-login-logo { position:relative; }
+.sv-handoff-logo img,.sv-login-logo,.sv-theme-knob img { animation:svLogoGlow 3.2s ease-in-out infinite; }
+@keyframes svLogoGlow { 0%,100% { filter:drop-shadow(0 0 0 transparent); } 50% { filter:drop-shadow(0 0 14px var(--a1)); } }
 
 /* --- навигация: иконки-стикеры + переключатель языка --- */
 .sv-nav-ic { width:18px; height:18px; object-fit:contain; display:block; }

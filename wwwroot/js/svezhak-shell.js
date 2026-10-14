@@ -17,13 +17,10 @@
     document.querySelectorAll('[data-theme-sub]').forEach(function (el) {
       el.textContent = isB ? 'Стебель · зелень' : 'Скан · оранж';
     });
-    document.querySelectorAll('[data-theme-logo]').forEach(function (el) {
+    // Фоновая иллюстрация логина: A — key-visual, B — kv-warehouse (зелёная)
+    document.querySelectorAll('[data-theme-art]').forEach(function (el) {
       var src = isB ? el.dataset.srcB : el.dataset.srcA;
       if (src) el.src = src;
-    });
-    // Текущая тема в кнобе — mark
-    document.querySelectorAll('[data-theme-mark]').forEach(function (el) {
-      el.style.opacity = '1';
     });
   }
   applyTheme(stored);

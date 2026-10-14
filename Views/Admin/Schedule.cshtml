@@ -21,6 +21,7 @@
 
 <div class="sv-title-row fade-up">
     <div>
+        <a class="sv-backlink" asp-controller="Inventory" asp-action="Index">← Назад</a>
         <div class="sv-kicker">Админ · смены</div>
         <h1 class="sv-page-title">Расписание</h1>
         <div class="sv-page-sub mb-0">@weekStart.ToString("dd.MM") — @weekEnd.ToString("dd.MM.yyyy") · неделя @(weekOffset == 0 ? "(текущая)" : weekOffset > 0 ? $"+{weekOffset}" : weekOffset.ToString())</div>

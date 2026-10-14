@@ -4,7 +4,7 @@
 
 <div class="sv-login-layout">
     <section class="sv-login-art">
-        <img src="~/img/brand/key-visual.png" asp-append-version="true" alt="Команда СВЕЖАКа" />
+        <img data-theme-art src="~/img/brand/key-visual.png" data-src-a="@Url.Content("~/img/brand/key-visual.png")" data-src-b="@Url.Content("~/img/brand/kv-warehouse.png")" asp-append-version="true" alt="Команда СВЕЖАКа" />
         <div class="sv-login-art-fade"></div>
         <div class="sv-login-art-copy">
             <div class="sv-kicker">v4 · ресторанный склад</div>
@@ -19,12 +19,12 @@
     <section class="sv-login-side">
         <div class="sv-login-theme">
             <button class="sv-theme-switch" type="button" data-theme-toggle>
-                <span class="sv-theme-knob"><img data-theme-logo src="~/img/brand/logo-led.png" alt="" /></span>
+                <span class="sv-theme-knob"><img src="~/img/brand/logo-led.png" alt="" /></span>
                 <span class="sv-theme-label"><strong data-theme-label>Тема A</strong><small data-theme-sub>Скан · оранж</small></span>
             </button>
         </div>
         <div class="sv-login-card">
-            <img class="sv-login-logo" data-theme-logo src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
+            <img class="sv-login-logo" src="~/img/brand/logo-led.png" asp-append-version="true" alt="СВЕЖАК" />
             <div class="sv-login-heading"><b>Вход для смены</b><span>Код доступа ресторана</span></div>
             <form asp-controller="Account" asp-action="Login" method="post">
                 @Html.AntiForgeryToken()

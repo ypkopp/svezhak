@@ -3,7 +3,7 @@
 @if (Model.Current is { } cur)
 {
     <div class="sv-sidebar-shift" title="Активная смена">
-        <img src="~/img/brand/chef-1-sm.png" alt="" />
+        <img src="~/img/brand/m3-lemon.png" alt="" />
         <div>
             <span>Смена <em class="sv-badge sv-badge-green" style="font-size:8px;vertical-align:1px">Live</em></span>
             <strong>@cur.Name · @cur.Position</strong>
@@ -14,7 +14,7 @@
 else if (Model.IsAdmin)
 {
     <a class="sv-sidebar-shift sv-sidebar-shift-cta" asp-controller="Admin" asp-action="Schedule" title="Смен не запланировано">
-        <img src="~/img/brand/chef-1-sm.png" alt="" />
+        <img src="~/img/brand/m3-lemon.png" alt="" />
         <div>
             <span>Смена</span>
             <strong>Смен нет</strong>

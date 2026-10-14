@@ -17,6 +17,7 @@
 
 <div class="sv-title-row fade-up">
     <div>
+        <a class="sv-backlink" asp-controller="Inventory" asp-action="Index">← Назад</a>
         <div class="sv-kicker">Админ · персонал</div>
         <h1 class="sv-page-title">Сотрудники</h1>
         <div class="sv-page-sub mb-0">Access-коды входа для вашего ресторана. Код показывается один раз при создании.</div>
@@ -52,7 +53,7 @@
     <div class="sv-section-title">Коды доступа <span class="sv-live-dot"></span></div>
     @if (codes.Count == 0)
     {
-        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Пока нет ни одного access-кода.</p></div>
+        <div class="sv-empty"><img src="~/img/brand/m3-rice.png" alt="" /><p>Пока нет ни одного access-кода.</p></div>
     }
     else
     {

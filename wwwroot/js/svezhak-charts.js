@@ -142,7 +142,7 @@
   function renderLossShare(chart, d) {
     chart.setOption({
       tooltip: Object.assign({ trigger: 'item', formatter: function (p) { return p.name + '<br><b>' + p.value + ' ₽</b> · ' + p.percent + '%'; } }, TIP),
-      legend: { bottom: 0, textStyle: { color: AX } },
+      legend: { bottom: 4, left: 'center', orient: 'horizontal', itemGap: 18, padding: [6, 0], textStyle: { color: AX, fontSize: 11 } },
       series: [{ type: 'pie', radius: ['48%', '72%'], center: ['50%', '44%'],
         itemStyle: { borderRadius: 6, borderColor: '#111318', borderWidth: 2 },
         label: { color: '#E2E8F0', fontSize: 10 },
