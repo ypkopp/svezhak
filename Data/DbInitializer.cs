@@ -53,6 +53,11 @@ public static class DbInitializer
             await db.SaveChangesAsync();
         }
 
+        // Backfill: рестораны без токена терминала кухни (миграция дала Guid.Empty)
+        var noToken = await db.Restaurants.Where(r => r.KitchenToken == Guid.Empty).ToListAsync();
+        foreach (var r in noToken) r.KitchenToken = Guid.NewGuid();
+        if (noToken.Count > 0) await db.SaveChangesAsync();
+
         // === AccessCode менеджера для входа в демо ===
         if (!await db.AccessCodes.AnyAsync(c => c.Code == ManagerAccessCode))
         {

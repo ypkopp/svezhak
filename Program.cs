@@ -120,6 +120,13 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE \"Dishes\" ADD COLUMN IF NOT EXISTS \"ManualStopped\" boolean NOT NULL DEFAULT FALSE");
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Dishes\" ADD COLUMN IF NOT EXISTS \"StopComment\" character varying(300) NULL");
+        // Терминал кухни: колонка + заполнение для уже существующих ресторанов
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Restaurants\" ADD COLUMN IF NOT EXISTS \"KitchenToken\" uuid NULL");
+        await db.Database.ExecuteSqlRawAsync(
+            "UPDATE \"Restaurants\" SET \"KitchenToken\" = gen_random_uuid() WHERE \"KitchenToken\" IS NULL OR \"KitchenToken\" = '00000000-0000-0000-0000-000000000000'");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Restaurants\" ALTER COLUMN \"KitchenToken\" SET NOT NULL");
     }
     else
     {
