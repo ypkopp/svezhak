@@ -13,11 +13,16 @@ namespace SmartInventory.Controllers;
 /// Раздел «Админ»: управление сотрудниками (access-коды ресторана)
 /// и недельное расписание смен. Доступен только роли Admin.
 /// </summary>
-[AuthorizeRole(AppRole.Admin)]
+[AuthorizeRole(AppRole.Admin, AppRole.RestaurantManager)]
 [Route("Admin")]
 public sealed class AdminController(ApplicationDbContext db) : Controller
 {
     private static readonly string[] AllowedPositions = ["шеф", "повар", "менеджер"];
+    // Роли, которыми может управлять менеджер (повара своего ресторана, не админы)
+    private static readonly AppRole[] ManagerManagedRoles = [AppRole.Staff, AppRole.HeadChef, AppRole.Manager];
+
+    private bool IsAdmin() => User.IsInRole(nameof(AppRole.Admin));
+    private bool IsManager() => User.IsInRole(nameof(AppRole.RestaurantManager));
 
     // ---------- helpers ----------
 
@@ -62,8 +67,14 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
             .ThenBy(c => c.EmployeeName)
             .ToListAsync();
 
+        // Менеджер — мини-админка: видит только поваров (не админов, не владельца, не себя)
+        var selfId = CurrentAccessCodeId();
+        if (!IsAdmin())
+            codes = codes.Where(c => ManagerManagedRoles.Contains(c.Role) && c.Id != selfId).ToList();
+
         ViewBag.Codes = codes;
-        ViewBag.SelfCodeId = CurrentAccessCodeId();
+        ViewBag.SelfCodeId = selfId;
+        ViewBag.IsManagerView = !IsAdmin();
         ViewBag.NewCode = TempData["NewCode"];
         ViewBag.NewCodeName = TempData["NewCodeName"];
         ViewBag.Error = TempData["Error"];
@@ -85,11 +96,13 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
             return RedirectToAction(nameof(Employees));
         }
 
-        // Роль — только из белого списка, чтобы формой нельзя было выдать лишнее
+        // Роль — только из белого списка, чтобы формой нельзя было выдать лишнее.
+        // Менеджер может создавать только поваров (Staff), не админов.
         var appRole = role switch
         {
-            "админ" or nameof(AppRole.Admin) => AppRole.Admin,
-            "менеджер" or nameof(AppRole.Manager) => AppRole.Manager,
+            "админ" or nameof(AppRole.Admin) when IsAdmin() => AppRole.Admin,
+            "менеджер" or nameof(AppRole.Manager) when IsAdmin() => AppRole.Manager,
+            "шеф" or nameof(AppRole.HeadChef) => AppRole.HeadChef,
             _ => AppRole.Staff,
         };
 
@@ -122,6 +135,13 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         if (code.Id == CurrentAccessCodeId())
         {
             TempData["Error"] = "Нельзя деактивировать самого себя.";
+            return RedirectToAction(nameof(Employees));
+        }
+
+        // Менеджер — только повара (Staff/HeadChef/Manager). Не админов, не владельца.
+        if (!IsAdmin() && !ManagerManagedRoles.Contains(code.Role))
+        {
+            TempData["Error"] = "Менеджер может управлять только поварами.";
             return RedirectToAction(nameof(Employees));
         }
 

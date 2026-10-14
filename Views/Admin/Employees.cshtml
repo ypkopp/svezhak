@@ -4,6 +4,9 @@
     var codes = (List<AccessCode>)ViewBag.Codes;
     var selfId = (int?)ViewBag.SelfCodeId;
     var roles = (ValueTuple<SmartInventory.Authorization.AppRole, string>[])ViewBag.Roles;
+    var isManagerView = (bool?)ViewBag.IsManagerView == true;
+    // Менеджер не выдаёт админов — убираем из выбора
+    if (isManagerView) roles = roles.Where(r => r.Item1 != SmartInventory.Authorization.AppRole.Admin).ToArray();
     string RoleBadge(SmartInventory.Authorization.AppRole r) => r switch
     {
         SmartInventory.Authorization.AppRole.Admin => "<span class=\"sv-badge sv-badge-red\">админ</span>",
@@ -18,14 +21,17 @@
 <div class="sv-title-row fade-up">
     <div>
         <a class="sv-backlink" asp-controller="Inventory" asp-action="Index">← Назад</a>
-        <div class="sv-kicker">Админ · персонал</div>
-        <h1 class="sv-page-title">Сотрудники</h1>
-        <div class="sv-page-sub mb-0">Access-коды входа для вашего ресторана. Код показывается один раз при создании.</div>
+        <div class="sv-kicker">@(isManagerView ? "Менеджер · команда" : "Админ · персонал")</div>
+        <h1 class="sv-page-title">@(isManagerView ? "Команда" : "Сотрудники")</h1>
+        <div class="sv-page-sub mb-0">@(isManagerView ? "Повара вашего ресторана. Коды и доступ." : "Access-коды входа для вашего ресторана. Код показывается один раз при создании.")</div>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <a class="sv-chip" href="@Url.Action("Schedule","Admin")">Расписание</a>
-        <a class="sv-chip" href="@Url.Action("Restaurants","Admin")">Рестораны</a>
-        <a class="sv-chip" href="@Url.Action("Products","Admin")">Ассортимент</a>
+        @if (!isManagerView)
+        {
+            <a class="sv-chip" href="@Url.Action("Schedule","Admin")">Расписание</a>
+            <a class="sv-chip" href="@Url.Action("Restaurants","Admin")">Рестораны</a>
+            <a class="sv-chip" href="@Url.Action("Products","Admin")">Ассортимент</a>
+        }
         <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#createEmployeeModal">＋ Новый сотрудник</button>
     </div>
 </div>
