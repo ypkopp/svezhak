@@ -508,6 +508,18 @@ public class InventoryController(
         return RedirectToAction(nameof(Deliveries));
     }
 
+    // GET /Inventory/ProductImportTemplate — шаблон CSV для загрузки базы (на лету)
+    [HttpGet]
+    public IActionResult ProductImportTemplate()
+    {
+        var csv = "название;категория;ед.;срок_ч;цена\n" +
+                  "Лайм;Овощи;кг;72;250\n" +
+                  "Икра тобико;Рыба;кг;96;3200\n";
+        var bytes = System.Text.Encoding.UTF8.GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(csv)).ToArray();
+        return File(bytes, "text/csv", "svezhak-products-template.csv");
+    }
+
     // GET /Inventory/Deliveries?month=2026-10 — журнал по месяцам + форма приёма
     public async Task<IActionResult> Deliveries(string? month = null)
     {
