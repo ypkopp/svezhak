@@ -150,25 +150,27 @@
 <script src="~/js/svezhak-proto.js" asp-append-version="true"></script>
 <script>
 (function(){
-    // Река (ECharts), прогноз и доля потерь — через SvCharts
-    SvCharts.initAll({
-        river: { el:'riverChart', skel:'riverSkel', empty:'riverEmpty', error:'riverError', url:'@Url.Action("ChartDataRiver","Inventory")' },
-        stopForecast: { el:'stopForecast', skel:'forecastSkel', empty:'forecastEmpty', error:'forecastError', url:'@Url.Action("StopForecast","InventoryAnalytics")' },
-        lossShare: { el:'lossShare', skel:'lossSkel', empty:'lossEmpty', error:'lossError', url:'@Url.Action("LossShare","InventoryAnalytics")' }
-    });
-    // Прототипные виджеты
-    SvProto.radar('heroRadar', '@Url.Action("ChartDataRiver","Inventory")');
-    SvProto.osc('orderOsc', '@Url.Action("ChartDataOrderPulse","Inventory")');
-    SvProto.waterfall('massWf', '@Url.Action("ChartDataWaterfall","Inventory")');
-    // Риск списания в ₽
-    fetch('@Url.Action("WriteoffRisk","InventoryAnalytics")').then(r=>r.json()).then(d=>{
-        document.getElementById('riskTotal').textContent = (d.totalRiskRub||0).toLocaleString('ru-RU',{maximumFractionDigits:0}) + ' ₽';
-        var list=(d.batches||[]).slice(0,6).map(b=>{
-            var c=b.hoursLeft<12?'var(--rd)':b.hoursLeft<24?'var(--or)':'var(--mut)';
-            return '<div class="sv-risk-row"><b>'+b.product+'</b><span class="sv-muted">'+b.delivery+' · '+b.hoursLeft+' ч</span><b style="color:'+c+'">'+b.estimatedValueRub.toLocaleString('ru-RU',{maximumFractionDigits:0})+' ₽</b></div>';
-        }).join('');
-        document.getElementById('riskList').innerHTML=list||'<div class="sv-muted" style="padding:12px 0">Риска нет — всё свежее.</div>';
-    }).catch(function(){document.getElementById('riskList').innerHTML='';});
+    function refreshDash(){
+        // Каждый виджет дашборда перезапрашивает свои данные (событие или страховка 60с)
+        SvCharts.initAll({
+            river: { el:'riverChart', skel:'riverSkel', empty:'riverEmpty', error:'riverError', url:'@Url.Action("ChartDataRiver","Inventory")' },
+            stopForecast: { el:'stopForecast', skel:'forecastSkel', empty:'forecastEmpty', error:'forecastError', url:'@Url.Action("StopForecast","InventoryAnalytics")' },
+            lossShare: { el:'lossShare', skel:'lossSkel', empty:'lossEmpty', error:'lossError', url:'@Url.Action("LossShare","InventoryAnalytics")' }
+        });
+        SvProto.radar('heroRadar', '@Url.Action("ChartDataRiver","Inventory")');
+        SvProto.osc('orderOsc', '@Url.Action("ChartDataOrderPulse","Inventory")');
+        SvProto.waterfall('massWf', '@Url.Action("ChartDataWaterfall","Inventory")');
+        fetch('@Url.Action("WriteoffRisk","InventoryAnalytics")').then(r=>r.json()).then(d=>{
+            document.getElementById('riskTotal').textContent = (d.totalRiskRub||0).toLocaleString('ru-RU',{maximumFractionDigits:0}) + ' ₽';
+            var list=(d.batches||[]).slice(0,6).map(b=>{
+                var c=b.hoursLeft<12?'var(--rd)':b.hoursLeft<24?'var(--or)':'var(--mut)';
+                return '<div class="sv-risk-row"><b>'+b.product+'</b><span class="sv-muted">'+b.delivery+' · '+b.hoursLeft+' ч</span><b style="color:'+c+'">'+b.estimatedValueRub.toLocaleString('ru-RU',{maximumFractionDigits:0})+' ₽</b></div>';
+            }).join('');
+            document.getElementById('riskList').innerHTML=list||'<div class="sv-muted" style="padding:12px 0">Риска нет — всё свежее.</div>';
+        }).catch(function(){document.getElementById('riskList').innerHTML='';});
+    }
+    refreshDash();
+    if (window.SvRealtime) SvRealtime.subscribe('dash', refreshDash);
 
     // До конца смены — живой обратный отсчёт
     (function () {

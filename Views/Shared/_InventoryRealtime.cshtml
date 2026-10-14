@@ -1,28 +1,51 @@
-@* SignalR-клиент склада: перезагрузка страницы по событию. *@
+@* SignalR-клиент склада: события -> мягкое обновление виджетов без перезагрузки.
+   За прокси Render держим webSockets с фолбэком на longPolling (negotiate).
+   API: SvRealtime.subscribe(name, fn) — страница регистрирует обновление данных;
+   SvRealtime.refresh() — дёргает все подписки (по событию или страховкой раз в 60с). *@
 <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
 <script>
 (function () {
     if (typeof signalR === 'undefined') return;
+    if (window.SvRealtime) return; // один коннект на страницу
+
+    var subs = {};
     var conn = new signalR.HubConnectionBuilder()
-        .withUrl('/hubs/inventory')
+        // wss + longPolling fallback за прокси; negotiate включён — иначе 400/404
+        .withUrl('/hubs/inventory', {
+            transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
+        })
         .withAutomaticReconnect()
         .build();
 
-    var changed = false, timer = null;
+    function refreshAll() {
+        Object.keys(subs).forEach(function (k) {
+            try { subs[k](); } catch (e) { /* виджет сам разберётся */ }
+        });
+    }
+
+    // События склада -> обновить все виджеты (дебаунс 500мс против шторма)
+    var timer = null;
     function notify() {
-        // Накапливаем события 800мс, чтобы не дёргать перезагрузку при серии
-        changed = true;
         clearTimeout(timer);
-        timer = setTimeout(function () { if (changed) location.reload(); }, 800);
+        timer = setTimeout(refreshAll, 500);
     }
     ['stock_changed', 'order_created', 'batch_expired'].forEach(function (ev) {
         conn.on(ev, notify);
     });
 
+    // Страховка: если 60 сек ни одного события — мягкий re-fetch (на случай потери коннекта)
+    var heartbeat = setInterval(refreshAll, 60000);
+
     conn.start().catch(function (e) {
-        // Фолбэк на polling, если SignalR недоступен
-        console.warn('SignalR недоступен, polling 15с', e);
-        setTimeout(function () { location.reload(); }, 15000);
+        // SignalR недоступен — хоть что-то: polling refreshAll
+        console.warn('SignalR недоступен, polling 30с', e);
+        setInterval(refreshAll, 30000);
     });
+
+    window.SvRealtime = {
+        subscribe: function (name, fn) { subs[name] = fn; },
+        refresh: refreshAll,
+        conn: conn
+    };
 })();
 </script>
