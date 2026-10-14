@@ -21,7 +21,10 @@ static string ToNpgsql(string? url)
         return url; // уже Key=Value
     var uri = new Uri(url);
     var userInfo = uri.UserInfo.Split(':', 2);
-    var cs = $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={(userInfo.Length > 1 ? userInfo[1] : "")};SSL Mode=Require;Trust Server Certificate=true";
+    // SSL только для внешнего хоста (Render). На localhost/127.* — без него.
+    var local = uri.Host is "localhost" or "127.0.0.1" or "::1";
+    var ssl = local ? "Disable" : "Require";
+    var cs = $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={(userInfo.Length > 1 ? userInfo[1] : "")};SSL Mode={ssl};Trust Server Certificate=true";
     // sslmode из query (Render часто отдаёт ?sslmode=prefer/require)
     var q = uri.Query.TrimStart('?');
     foreach (var kv in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
