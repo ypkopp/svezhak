@@ -242,13 +242,21 @@ public sealed class AdvisorService(
             local.Add(new Insight("списать", $"Проверить партию {b.Delivery?.Number}", $"{b.Product?.Name}: {b.QtyRemaining:0.##} {b.Product?.Unit}, до срока {hours:0.#} ч. Если продукт непригоден — оформите списание.", "st-hourglass.png", "Открыть склад", "/Inventory/Stock?expiringOnly=true", hours < 6 ? "high" : "medium"));
         }
 
+        // «Анализ и предложение поставок»: по расходу за 7 дней и остатку —
+        // «Лосось: расход 1.2 кг/день, остатка хватит на ~2 дня — закажите 4 кг».
         foreach (var (productId, perDay) in dailyUse.Where(x => x.Value > 0).OrderBy(x => remaining.GetValueOrDefault(x.Key) / x.Value).Take(4))
         {
-            var daysLeft = (double)(remaining.GetValueOrDefault(productId) / perDay);
+            var stockQty = remaining.GetValueOrDefault(productId);
+            var daysLeft = (double)(stockQty / perDay);
             if (daysLeft > 7) continue;
             var product = products.GetValueOrDefault(productId);
             if (product is null) continue;
-            local.Add(new Insight("заказать", $"Запланировать {product.Name}", $"При текущем расходе запаса хватит примерно на {daysLeft:0.#} дн. Остаток: {remaining.GetValueOrDefault(productId):0.##} {product.Unit}.", "st-box.png", "Принять поставку", "/Inventory/Deliveries", daysLeft < 2 ? "high" : "medium"));
+            // Целевой запас — на 4 дня вперёд; рекомендуемый заказ = нехватка до цели.
+            var suggestQty = Math.Max(0m, perDay * 4m - stockQty);
+            var explanation = suggestQty > 0
+                ? $"расход {perDay:0.#} {product.Unit}/день, остатка хватит на ~{daysLeft:0.#} дн — закажите {suggestQty:0.#} {product.Unit}"
+                : $"расход {perDay:0.#} {product.Unit}/день, остатка хватит на ~{daysLeft:0.#} дн. Остаток: {stockQty:0.##} {product.Unit}.";
+            local.Add(new Insight("заказать", $"{product.Name}: закуп", explanation, "st-box.png", "Принять поставку", "/Inventory/Deliveries", daysLeft < 2 ? "high" : "medium"));
         }
 
         if (local.Count == 0)
