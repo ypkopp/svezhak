@@ -201,3 +201,38 @@
     });
   });
 })();
+
+/* ===== Онбординг менеджера: 5 шагов, показывается один раз (localStorage) ===== */
+(function () {
+  var modal = document.getElementById('onboard');
+  if (!modal) return;
+  var KEY = 'sv-onboard-done';
+  try { if (localStorage.getItem(KEY)) return; } catch (e) { }
+
+  var STEPS = [
+    { img: 'chef-3-cut.png', t: 'Поставка', x: 'Принимайте партии на странице «Поставки»: номер, продукт, количество и срок в часах. Система сама ставит дату истечения.' },
+    { img: 'st-fridge.png', t: 'Склад', x: 'На «Складе» партии сгруппированы по продукту и идут по FEFO — самые ранние первыми. Порчу списывайте кнопкой-стоп.' },
+    { img: 'st-box.png', t: 'Заказ', x: 'В «Заказе» выбирайте блюда — списание идёт по FEFO, при дефиците заказ отклоняется со списком нехватки.' },
+    { img: 'st-stop.png', t: 'Стоп-лист', x: 'Блюдо уходит в стоп, когда не хватает ингредиентов или вы остановили его вручную. Заказ с ним не пройдёт.' },
+    { img: 'm3-avo.png', t: 'Советник', x: 'Юзу каждую смену подсказывает: что продать срочно, что заказать, что списать — с расходом и остатками.' },
+  ];
+  var i = 0;
+  var img = document.getElementById('obImg'), step = document.getElementById('obStep'),
+      name = document.getElementById('obName'), tx = document.getElementById('obTx'),
+      next = document.getElementById('obNext'), prev = document.getElementById('obPrev');
+  var imgBase = '/img/brand/';
+  function render() {
+    var s = STEPS[i];
+    img.src = imgBase + s.img; step.textContent = 'шаг ' + (i + 1) + ' / ' + STEPS.length;
+    name.textContent = s.t; tx.textContent = s.x;
+    prev.disabled = i === 0;
+    next.textContent = i === STEPS.length - 1 ? 'Начать работу →' : 'Далее →';
+  }
+  function done() { try { localStorage.setItem(KEY, '1'); } catch (e) { } modal.hidden = true; }
+  next.addEventListener('click', function () { if (i < STEPS.length - 1) { i++; render(); } else done(); });
+  prev.addEventListener('click', function () { if (i > 0) { i--; render(); } });
+  ['obSkip', 'obSkip2'].forEach(function (id) { var b = document.getElementById(id); if (b) b.addEventListener('click', done); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) done(); });
+  render();
+  modal.hidden = false;
+})();

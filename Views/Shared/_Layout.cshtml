@@ -123,6 +123,28 @@
             </div>
         </div>
     </div>
+
+    @* ===== Онбординг — первый вход менеджера/админа ===== *@
+    <div class="sv-modal-wrap" id="onboard" hidden>
+        <div class="sv-modal" style="width:min(480px,92vw)" role="dialog" aria-modal="true" aria-label="Обучение">
+            <div class="sv-modal-head"><b id="obTitle">Добро пожаловать</b><button type="button" id="obSkip" aria-label="Пропустить">×</button></div>
+            <div class="sv-modal-body" style="text-align:left">
+                <div style="border-radius:14px;overflow:hidden;background:#0b0d11;height:150px;display:grid;place-items:center;margin-bottom:14px">
+                    <img id="obImg" src="~/img/brand/chef-3-cut.png" style="max-height:130px" alt="" />
+                </div>
+                <div class="sv-kicker" id="obStep">шаг 1 / 5</div>
+                <h3 id="obName" style="font:700 18px var(--disp);margin:6px 0 8px"></h3>
+                <p id="obTx" style="color:var(--mut);font-size:13px;margin:0"></p>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ffffff10;padding:14px 18px;display:flex;gap:10px;justify-content:space-between;align-items:center">
+                <button type="button" class="btn-sv-ghost btn-sm" id="obSkip2">Пропустить</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn-sv-ghost" id="obPrev" style="min-height:36px">←</button>
+                    <button type="button" class="btn-sv-primary" id="obNext" style="min-height:36px">Далее →</button>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 else
 {
