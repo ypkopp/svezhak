@@ -805,6 +805,130 @@ public class InventoryController(
         return View();
     }
 
+    // GET /Inventory/Analytics — аналитика периода (30 дней): неликвиды + ходовые + ИИ-вывод
+    [HttpGet]
+    public async Task<IActionResult> Analytics()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+        var from = now.AddDays(-30);
+
+        var products = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .ToListAsync();
+
+        // Поступления за 30дн (кол-во и сумма), списания за 30дн, текущий живой остаток
+        var received = await db.Batches.AsNoTracking()
+            .Where(b => b.RestaurantId == rid && b.ReceivedAt >= from)
+            .GroupBy(b => b.ProductId)
+            .Select(g => new { ProductId = g.Key, Qty = g.Sum(b => b.QtyInitial) })
+            .ToListAsync();
+        var receivedQty = received.ToDictionary(x => x.ProductId, x => x.Qty);
+
+        var writeoffs = await db.WriteOffs.AsNoTracking()
+            .Where(w => w.RestaurantId == rid && w.CreatedAt >= from)
+            .GroupBy(w => w.ProductId)
+            .Select(g => new { ProductId = g.Key, Qty = g.Sum(w => w.Qty) })
+            .ToListAsync();
+        var writeoffQty = writeoffs.ToDictionary(x => x.ProductId, x => x.Qty);
+        // Отдельно «просрочка» — то, что реально потеряно, а не продано/списано вручную
+        var expiredQty = await db.WriteOffs.AsNoTracking()
+            .Where(w => w.RestaurantId == rid && w.CreatedAt >= from && w.Reason == OrderService.ReasonExpired)
+            .GroupBy(w => w.ProductId)
+            .Select(g => new { ProductId = g.Key, Qty = g.Sum(w => w.Qty) })
+            .ToListAsync();
+        var expiredByProduct = expiredQty.ToDictionary(x => x.ProductId, x => x.Qty);
+
+        var liveQty = await db.Batches.AsNoTracking()
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now)
+            .GroupBy(b => b.ProductId)
+            .Select(g => new { ProductId = g.Key, Qty = g.Sum(b => b.QtyRemaining) })
+            .ToListAsync();
+        var liveByProduct = liveQty.ToDictionary(x => x.ProductId, x => x.Qty);
+
+        var stats = products.Select(p =>
+        {
+            var recv = receivedQty.GetValueOrDefault(p.Id);
+            var wo = writeoffQty.GetValueOrDefault(p.Id);
+            var exp = expiredByProduct.GetValueOrDefault(p.Id);
+            var live = liveByProduct.GetValueOrDefault(p.Id);
+            var wasteShare = recv > 0 ? exp / recv : 0m; // доля просроченных списаний от поступлений
+            return new
+            {
+                p.Id,
+                p.Name,
+                p.Category,
+                p.Unit,
+                Received = recv,
+                WriteOff = wo,
+                Expired = exp,
+                Live = live,
+                WasteShare = wasteShare,
+                WasteRub = Math.Round(exp * p.PurchasePrice, 0),
+            };
+        }).ToList();
+
+        // Неликвиды — максимальная доля просрочки от поступлений (только с реальными потерями)
+        var deadStock = stats.Where(s => s.Expired > 0).OrderByDescending(s => s.WasteShare).ThenByDescending(s => s.WasteRub).Take(5).ToList();
+        // Ходовые — максимальный выход (поступило − остаток − просрочка) = реальная отгрузка на кухню
+        var movers = stats
+            .Select(s => new { s.Id, s.Name, s.Category, s.Unit, Throughput = s.Received - s.Expired })
+            .Where(s => s.Throughput > 0)
+            .OrderByDescending(s => s.Throughput).Take(5).ToList();
+
+        // Статдамп для ИИ: расход (поступило), списания, остатки по продуктам
+        var dump = stats.OrderByDescending(s => s.WasteShare).Take(12).Select(s => new
+        {
+            product = s.Name, category = s.Category, unit = s.Unit,
+            received30d = s.Received, expired30d = s.Expired, liveNow = s.Live,
+            wasteSharePct = Math.Round(s.WasteShare * 100, 1), wasteRub = s.WasteRub,
+        }).ToList();
+        ViewBag.StatDump = dump;
+
+        ViewBag.DeadStock = deadStock;
+        ViewBag.Movers = movers;
+        return View();
+    }
+
+    // POST /Inventory/AnalyticsAi — «Анализ ИИ» по статдампу периода
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> AnalyticsAi()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow; var from = now.AddDays(-30);
+
+        var products = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .ToDictionaryAsync(p => p.Id);
+        var received = await db.Batches.AsNoTracking()
+            .Where(b => b.RestaurantId == rid && b.ReceivedAt >= from)
+            .GroupBy(b => b.ProductId).Select(g => new { ProductId = g.Key, Qty = g.Sum(b => b.QtyInitial) }).ToListAsync();
+        var expired = await db.WriteOffs.AsNoTracking()
+            .Where(w => w.RestaurantId == rid && w.CreatedAt >= from && w.Reason == OrderService.ReasonExpired)
+            .GroupBy(w => w.ProductId).Select(g => new { ProductId = g.Key, Qty = g.Sum(w => w.Qty) }).ToListAsync();
+        var live = await db.Batches.AsNoTracking()
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now)
+            .GroupBy(b => b.ProductId).Select(g => new { ProductId = g.Key, Qty = g.Sum(b => b.QtyRemaining) }).ToListAsync();
+
+        var recvM = received.ToDictionary(x => x.ProductId, x => x.Qty);
+        var expM = expired.ToDictionary(x => x.ProductId, x => x.Qty);
+        var liveM = live.ToDictionary(x => x.ProductId, x => x.Qty);
+        var stats = products.Values.Select(p => {
+            var r = recvM.GetValueOrDefault(p.Id); var e = expM.GetValueOrDefault(p.Id);
+            return new { product = p.Name, unit = p.Unit, received30d = r, expired30d = e, liveNow = liveM.GetValueOrDefault(p.Id), wasteSharePct = r > 0 ? Math.Round(e / r * 100, 1) : 0 };
+        }).OrderByDescending(s => s.wasteSharePct).ToList();
+
+        var dump = new { period = "30 days", note = "received vs expired writeoffs vs current live stock per product", stats };
+        var prompt = "You are a restaurant purchasing advisor. From the 30-day stats below, " +
+            "say in Russian (under 250 words): which products should be removed or reduced in procurement " +
+            "(highest waste share), and which are safe to keep. Plain advice, no markdown tables.";
+        var answer = await advisorService.AskAiAsync(prompt, dump);
+        return Json(new { answer });
+    }
+
     // GET /Inventory/Notifications — «Центр смены»: события смен, мотивация, алерты
     [HttpGet]
     public async Task<IActionResult> Notifications()

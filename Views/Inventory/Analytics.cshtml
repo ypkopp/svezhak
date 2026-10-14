@@ -1,0 +1,85 @@
+@{
+    ViewData["Title"] = "Аналитика периода";
+    var deadStock = (IEnumerable<dynamic>)ViewBag.DeadStock;
+    var movers = (IEnumerable<dynamic>)ViewBag.Movers;
+}
+
+<div class="sv-title-row fade-up">
+    <div>
+        <h1 class="sv-page-title">Аналитика периода · 30 дней</h1>
+        <div class="sv-page-sub mb-0">Неликвиды (доля просрочки от поступлений) и ходовые товары.</div>
+    </div>
+    <button class="btn-sv-primary" type="button" id="aiAnalyze"><img src="~/img/brand/m3-avo.png" style="width:20px;margin-right:6px" alt="" />Анализ ИИ</button>
+</div>
+
+<div id="aiOut" class="sv-card fade-up mb-3" hidden>
+    <div class="d-flex align-items-center gap-2 mb-2"><img src="~/img/brand/m3-avo.png" style="width:30px" alt="" /><div class="sv-section-title mb-0" style="color:var(--a1)">Вывод ИИ — что убрать из закупок</div></div>
+    <p id="aiText" class="sv-ai-text" style="white-space:pre-wrap">Анализирую статдамп…</p>
+</div>
+
+<div class="sv-grid-12">
+    @* ===== Неликвиды ===== *@
+    <section class="sv-card sv-col-7 fade-up">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <img src="~/img/brand/st-hourglass.png" style="width:30px;mix-blend-mode:lighten" alt="" />
+            <div><div class="sv-section-title mb-0" style="color:var(--rd)">Топ-5 неликвидов</div><span class="sv-muted" style="font-size:11px">просрочка / поступления за 30дн</span></div>
+        </div>
+        @if (deadStock.Any())
+        {
+            @foreach (var (s, i) in deadStock.Select((x, i) => (x, i)))
+            {
+                var pct = (decimal)s.WasteShare;
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="sv-sl-rank @(i<2?"is-top":"")">@($"{i+1:00}")</div>
+                    <div style="flex:1;min-width:0">
+                        <div class="d-flex justify-content-between"><b>@s.Name</b><span class="sv-badge sv-badge-red">@($"{pct*100:0}")%</span></div>
+                        <div class="sv-sl-score" style="margin-top:5px"><i style="width:@($"{Math.Min(100,(double)pct*100):0}")%;background:var(--rd)"></i><span class="mono">@($"{s.Expired:0.##}") / @($"{s.Received:0.##}") @s.Unit · ~@($"{s.WasteRub:N0}") ₽</span></div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Просроченных списаний за 30 дней не было.</p></div>
+        }
+    </section>
+
+    @* ===== Ходовые ===== *@
+    <section class="sv-card sv-col-5 fade-up">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <img src="~/img/brand/st-hot.png" style="width:30px;mix-blend-mode:lighten" alt="" />
+            <div><div class="sv-section-title mb-0" style="color:var(--gr)">Топ-5 ходовых</div><span class="sv-muted" style="font-size:11px">отгрузка на кухню (поступило − просрочка)</span></div>
+        </div>
+        @if (movers.Any())
+        {
+            @foreach (var (s, i) in movers.Select((x, i) => (x, i)))
+            {
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid #ffffff08">
+                    <div><b>@s.Name</b><div class="sv-muted" style="font-size:11px">@s.Category</div></div>
+                    <span style="color:var(--gr);font-weight:700">@($"{s.Throughput:0.##}") @s.Unit</span>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Нет данных об отгрузке.</p></div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('aiAnalyze').addEventListener('click', async function(){
+    var box=document.getElementById('aiOut'), tx=document.getElementById('aiText');
+    box.hidden=false; tx.textContent='Анализирую статдамп…'; this.disabled=true;
+    try{
+        var r=await fetch('/Inventory/AnalyticsAi',{method:'POST'});
+        var d=await r.json();
+        tx.textContent=d.answer||'ИИ недоступен — смотри таблицу неликвидов ниже.';
+    }catch(e){tx.textContent='ИИ недоступен — смотри таблицу неликвидов ниже.';}
+    this.disabled=false;
+});
+document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});
+</script>
+@await Html.PartialAsync("_InventoryRealtime")
+}
