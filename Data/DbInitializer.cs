@@ -14,6 +14,7 @@ public static class DbInitializer
 {
     public const string ManagerAccessCode = "MANAGER1234";
     public const string AdminAccessCode = "ADMIN1234";
+    public const string OwnerAccessCode = "OWNER1234";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -344,6 +345,9 @@ public static class DbInitializer
 
         // Админ владеет разделом /Admin — код входит отдельно от менеджера
         await EnsureCodeAsync(AdminAccessCode, AppRole.Admin, "Демо-админ");
+
+        // Владелец организации — раздел /Org (карточки всех точек, read-only просмотр)
+        await EnsureCodeAsync(OwnerAccessCode, AppRole.OrganizationOwner, "Владелец сети");
 
         // Линейный персонал для виджета «Смена» и расписания
         var rin = await EnsureCodeAsync("CHEF0001", AppRole.HeadChef, "Рин");

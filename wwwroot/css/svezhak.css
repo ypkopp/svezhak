@@ -187,6 +187,12 @@ a:hover { color:var(--tx); }
 .sv-prod-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
 .sv-prod-field .sv-new-prod { display:flex; gap:6px; }
 .sv-prod-field .sv-new-prod .sv-np { min-height:30px; padding:4px 8px; font-size:11px; background:#F565650c; border-color:#F5656530; }
+/* Владелец сети: карточки точек */
+.sv-org-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+.sv-org-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.sv-org-kpis>div { background:#ffffff05; border:1px solid #ffffff0a; border-radius:12px; padding:10px 12px; }
+.sv-org-kpis span { display:block; font:600 9px var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--mut); }
+.sv-org-kpis b { font:800 20px var(--mono); margin-top:4px; display:block; }
 .sv-menu-card strong { font-size:13px; }
 .sv-menu-meta { display:flex; justify-content:space-between; font:600 11px var(--mono); color:var(--mut); }
 .sv-qty-control { display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding:4px; background:#0b0d11; border-radius:11px; }

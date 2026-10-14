@@ -1,0 +1,60 @@
+@{
+    ViewData["Title"] = "Админы организации";
+    var codes = (List<SmartInventory.Models.Structure.AccessCode>)ViewBag.Codes;
+    var selfCodeId = int.TryParse(User.FindFirst("AccessCodeId")?.Value, out var sc) ? sc : -1;
+}
+
+<div class="sv-title-row fade-up">
+    <div>
+        <a class="sv-backlink" asp-controller="Org" asp-action="Index">← К точкам</a>
+        <div class="sv-kicker">Владелец · доступы</div>
+        <h1 class="sv-page-title">Управление админами</h1>
+        <div class="sv-page-sub mb-0">Выдать / отозвать роль Admin у существующих access-кодов организации.</div>
+    </div>
+</div>
+
+@if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
+@if (ViewBag.Error is string err) { <div class="sv-form-alert mb-3">@err</div> }
+
+<div class="sv-card fade-up">
+    <div class="sv-table-wrap">
+        <table class="sv-table">
+            <thead><tr><th>Сотрудник</th><th>Роль</th><th>Статус</th><th style="text-align:right">Действие</th></tr></thead>
+            <tbody>
+            @foreach (var c in codes)
+            {
+                var isSelf = c.Id == selfCodeId;
+                var isOwner = c.Role == SmartInventory.Authorization.AppRole.OrganizationOwner;
+                var isAdmin = c.Role == SmartInventory.Authorization.AppRole.Admin;
+                <tr>
+                    <td><b>@(c.EmployeeName ?? $"#{c.Id}")</b><div class="sv-muted" style="font-size:10px;font-family:var(--mono)">@c.Code</div></td>
+                    <td>
+                        @if (isOwner) { <span class="sv-badge sv-badge-accent">владелец</span> }
+                        else if (isAdmin) { <span class="sv-badge sv-badge-red">админ</span> }
+                        else { <span class="sv-badge sv-badge-muted">@c.Role.ToString().ToLower()</span> }
+                    </td>
+                    <td>@(c.IsActive ? "активен" : "выкл")</td>
+                    <td style="text-align:right">
+                        @if (isSelf || isOwner)
+                        {
+                            <span class="sv-chip" style="height:28px">это вы</span>
+                        }
+                        else
+                        {
+                            <form asp-action="ToggleAdmin" method="post" style="display:inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button class="@(isAdmin?"btn-sv-danger-outline":"btn-sv-ghost") btn-sm" type="submit">
+                                    @(isAdmin ? "Отозвать админа" : "Сделать админом")
+                                </button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {<script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>}
