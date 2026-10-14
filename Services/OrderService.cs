@@ -22,8 +22,9 @@ public class OrderService(ApplicationDbContext db)
             $"{ProductName}: нужно {Fmt(Needed)} {Unit}, доступно {Fmt(Available)} {Unit}";
     }
 
-    /// <summary>Блюдо, попавшее в стоп-лист, с детализацией дефицита.</summary>
-    public record StopListItem(int DishId, string DishName, List<Shortage> Shortages);
+    /// <summary>Блюдо, попавшее в стоп-лист, с детализацией дефицита.
+    /// IsManual=true — блюдо остановлено вручную (ManualStopped), Comment — причина.</summary>
+    public record StopListItem(int DishId, string DishName, List<Shortage> Shortages, bool IsManual = false, string? Comment = null);
 
     /// <summary>Итог обработки заказа.</summary>
     public record OrderResult(int OrderId, string Status, string? RejectReason);
@@ -70,6 +71,7 @@ public class OrderService(ApplicationDbContext db)
         var shortages = new List<Shortage>();
 
         // Блюда, которых нет или которые сняты с продажи — тоже дефицит
+        var manualStopReasons = new List<string>();
         foreach (var item in order.Items)
         {
             var dish = dishes.FirstOrDefault(d => d.Id == item.DishId);
@@ -81,13 +83,21 @@ public class OrderService(ApplicationDbContext db)
             {
                 shortages.Add(new Shortage(item.DishId, $"{dish.Name} (снято с продажи)", "шт", item.Qty, 0));
             }
+            else if (dish.ManualStopped)
+            {
+                // Ручной стоп — отдельной строкой, с причиной если задана
+                var reason = string.IsNullOrWhiteSpace(dish.StopComment)
+                    ? $"«{dish.Name}» остановлено вручную"
+                    : $"«{dish.Name}» остановлено вручную: {dish.StopComment}";
+                manualStopReasons.Add(reason);
+            }
         }
 
         var needed = new Dictionary<int, decimal>();
         foreach (var item in order.Items)
         {
             var dish = dishes.FirstOrDefault(d => d.Id == item.DishId);
-            if (dish is null || !dish.IsActive) continue;
+            if (dish is null || !dish.IsActive || dish.ManualStopped) continue;
 
             foreach (var ri in dish.RecipeItems)
             {
@@ -128,10 +138,11 @@ public class OrderService(ApplicationDbContext db)
             }
         }
 
-        if (shortages.Count > 0)
+        if (shortages.Count > 0 || manualStopReasons.Count > 0)
         {
             order.Status = StatusRejected;
-            order.RejectReason = string.Join("; ", shortages.Select(s => s.ToString()));
+            var parts = manualStopReasons.Concat(shortages.Select(s => s.ToString()));
+            order.RejectReason = string.Join("; ", parts);
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
             return new OrderResult(order.Id, order.Status, order.RejectReason);
@@ -216,6 +227,13 @@ public class OrderService(ApplicationDbContext db)
         var stopList = new List<StopListItem>();
         foreach (var dish in dishes)
         {
+            // Ручной стоп — блюдо в стоп-листе без проверки ингредиентов
+            if (dish.ManualStopped)
+            {
+                stopList.Add(new StopListItem(dish.Id, dish.Name, [], IsManual: true, Comment: dish.StopComment));
+                continue;
+            }
+
             var shortages = dish.RecipeItems
                 .Select(ri =>
                 {

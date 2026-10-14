@@ -173,6 +173,12 @@ a:hover { color:var(--tx); }
 .sv-menu-card { display:flex; flex-direction:column; gap:10px; min-height:120px; padding:14px; border-radius:16px; background:#ffffff05; border:1px solid #ffffff08; transition:.2s; }
 .sv-menu-card:hover { background:#ffffff0a; transform:translateY(-2px); box-shadow:0 10px 24px #0005; }
 .sv-menu-card.is-selected { background:linear-gradient(160deg,color-mix(in oklab,var(--a1) 18%,transparent),#ffffff05); border-color:color-mix(in oklab,var(--a1) 40%,transparent); }
+.sv-menu-card.is-stopped { opacity:.62; border-color:#F5656530; }
+.sv-menu-card.is-stopped:hover { transform:none; box-shadow:none; }
+.sv-stop-btn { flex:none; width:24px; height:24px; display:grid; place-items:center; padding:0; background:none; border:0; border-radius:7px; cursor:pointer; opacity:.45; transition:opacity .15s,background .15s; }
+.sv-stop-btn:hover { opacity:1; background:#F5656518; }
+.sv-stop-btn img { width:15px; height:15px; mix-blend-mode:lighten; }
+.sv-menu-card.is-stopped .sv-stop-btn { opacity:1; }
 .sv-menu-card strong { font-size:13px; }
 .sv-menu-meta { display:flex; justify-content:space-between; font:600 11px var(--mono); color:var(--mut); }
 .sv-qty-control { display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding:4px; background:#0b0d11; border-radius:11px; }

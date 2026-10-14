@@ -12,12 +12,14 @@
     </div>
 </div>
 
+@if (TempData["OrderOk"] is string ok) { <div class="sv-form-success mb-3">@ok</div> }
+
 <div class="sv-delivery-layout">
     @* ===== Стоп-лист ===== *@
     <section class="sv-card fade-up">
         <div class="d-flex align-items-center gap-2 mb-3">
             <img src="~/img/brand/st-stop.png" style="width:36px;mix-blend-mode:lighten" alt="" />
-            <div><div class="sv-section-title mb-0">Стоп-лист</div><span class="sv-muted" style="font-size:11px">не хватает ингредиентов</span></div>
+            <div><div class="sv-section-title mb-0">Стоп-лист</div><span class="sv-muted" style="font-size:11px">авто по остаткам + ручной</span></div>
             <span class="sv-badge @(stopList.Any() ? "sv-badge-red" : "sv-badge-green")" style="margin-left:auto">@stopList.Count блюд</span>
         </div>
         @if (stopList.Any())
@@ -25,13 +27,34 @@
             @foreach (var s in stopList)
             {
                 <div class="mb-3 pb-3" style="border-bottom:1px solid #ffffff0c">
-                    <div class="d-flex justify-content-between align-items-center"><strong style="color:var(--rd)">@s.DishName</strong><span class="sv-badge sv-badge-red">стоп</span></div>
-                    <div class="mt-1" style="font-size:12px">
-                        @foreach (var sh in s.Shortages)
-                        {
-                            <div class="sv-muted">@sh.ProductName — нужно @($"{sh.Needed:0.##}") @sh.Unit, доступно @($"{sh.Available:0.##}") @sh.Unit</div>
-                        }
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <strong style="color:var(--rd)">@s.DishName</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="sv-badge @(s.IsManual ? "sv-badge-yellow" : "sv-badge-red")">@(s.IsManual ? "вручную" : "авто")</span>
+                            @if (s.IsManual)
+                            {
+                                <form asp-action="StopToggle" method="post" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="dishId" value="@s.DishId" />
+                                    <input type="hidden" name="returnTo" value="stoplist" />
+                                    <button class="btn-sv-ghost btn-sm" type="submit">Вернуть</button>
+                                </form>
+                            }
+                        </div>
                     </div>
+                    @if (s.IsManual)
+                    {
+                        <div class="mt-1 sv-muted" style="font-size:12px">@(string.IsNullOrWhiteSpace(s.Comment) ? "Остановлено вручную." : $"Причина: {s.Comment}")</div>
+                    }
+                    else
+                    {
+                        <div class="mt-1" style="font-size:12px">
+                            @foreach (var sh in s.Shortages)
+                            {
+                                <div class="sv-muted">@sh.ProductName — нужно @($"{sh.Needed:0.##}") @sh.Unit, доступно @($"{sh.Available:0.##}") @sh.Unit</div>
+                            }
+                        </div>
+                    }
                 </div>
             }
         }
@@ -43,6 +66,26 @@
                     <img class="sv-stop-st" src="~/img/brand/st-check.png" alt="" />
                 </div>
                 <div class="sv-stop-tx"><b>Стоп-лист пуст</b><p>Все блюда меню доступны — ингредиентов хватает.</p></div>
+            </div>
+        }
+        @* Кнопка ручного стопа для блюд, которых ещё нет в стоп-листе *@
+        @{
+            var stopIds = stopList.Where(s => s.IsManual).Select(s => s.DishId).ToHashSet();
+            var allDishes = (IEnumerable<dynamic>)ViewBag.Dishes;
+            var freeDishes = allDishes.Where(d => !stopIds.Contains((int)d.Id)).ToList();
+        }
+        @if (freeDishes.Any())
+        {
+            <div class="mt-3 pt-3" style="border-top:1px dashed #ffffff14">
+                <div class="sv-surface-caption mb-2">Остановить вручную:</div>
+                <div class="d-flex flex-wrap gap-1">
+                    @foreach (var d in freeDishes.Take(20))
+                    {
+                        <button type="button" class="sv-chip" data-stop data-id="@d.Id" data-name="@d.Name">
+                            <img src="~/img/brand/st-stop.png" style="width:13px;height:13px;margin-right:4px;vertical-align:-2px" alt="" />@d.Name
+                        </button>
+                    }
+                </div>
             </div>
         }
     </section>
@@ -86,9 +129,40 @@
     </section>
 </div>
 
+@* ===== Модалка ручного стопа ===== *@
+<div class="sv-modal-wrap" id="stopModal" hidden>
+    <div class="sv-modal" role="dialog" aria-modal="true" aria-label="Остановить блюдо">
+        <div class="sv-modal-head"><b>Остановить блюдо</b><button type="button" id="stopClose" aria-label="Закрыть">×</button></div>
+        <form asp-action="StopToggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="dishId" id="stopDishId" />
+            <input type="hidden" name="returnTo" value="stoplist" />
+            <div class="sv-modal-body" style="text-align:left">
+                <div class="sv-surface-caption mb-3">«<span id="stopDishName"></span>» уйдёт в стоп-лист и не примет заказ, пока его не вернут.</div>
+                <label class="sv-label d-block mb-1">Причина (необязательно)</label>
+                <input class="sv-input" type="text" name="stopComment" placeholder="например: нет повара на станции" maxlength="300" />
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ffffff10;padding:14px 18px;display:flex;gap:10px;justify-content:flex-end">
+                <button type="button" class="btn-sv-ghost" id="stopCancel">Отмена</button>
+                <button type="submit" class="btn-sv-danger-outline">В стоп</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.querySelectorAll('[data-push]').forEach(function(b){b.addEventListener('click',function(){var on=this.classList.toggle('on');this.textContent=on?'✓ в акции':'в акцию';});});
+        var stopModal = document.getElementById('stopModal');
+        document.querySelectorAll('[data-stop]').forEach(function(btn){
+            btn.addEventListener('click',function(){
+                document.getElementById('stopDishId').value = this.dataset.id;
+                document.getElementById('stopDishName').textContent = this.dataset.name;
+                stopModal.hidden = false;
+            });
+        });
+        ['stopClose','stopCancel'].forEach(function(id){var b=document.getElementById(id);if(b)b.addEventListener('click',function(){stopModal.hidden=true;});});
+        stopModal.addEventListener('click',function(e){if(e.target===stopModal)stopModal.hidden=true;});
         document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
     </script>
     @await Html.PartialAsync("_InventoryRealtime")

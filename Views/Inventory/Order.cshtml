@@ -42,12 +42,21 @@
                 @foreach (var d in dishes)
                 {
                     var category = d.Name.Contains("Ролл") ? "Роллы" : d.Name.Contains("Салат") ? "Салаты" : d.Name.Contains("Пицца") ? "Пицца" : d.Name.Contains("Поке") || d.Name.Contains("боул") ? "Боулы" : "Горячее";
-                    <div class="sv-menu-card" data-cat="@category">
-                        <strong>@d.Name</strong>
-                        <div class="sv-menu-meta"><span>@($"{d.Price:0}") ₽</span><span>заказ</span></div>
-                        <div class="sv-qty-control">
+                    <div class="sv-menu-card @(d.ManualStopped ? "is-stopped" : "")" data-cat="@category">
+                        <div class="d-flex justify-content-between align-items-start gap-1">
+                            <strong>@d.Name</strong>
+                            <button type="button" class="sv-stop-btn" title="@(d.ManualStopped ? "Вернуть в меню" : "В стоп")" data-stop-toggle data-id="@d.Id" data-name="@d.Name" data-stopped="@(d.ManualStopped ? "1" : "0")">
+                                <img src="~/img/brand/st-stop.png" alt="" />
+                            </button>
+                        </div>
+                        <div class="sv-menu-meta"><span>@($"{d.Price:0}") ₽</span><span>@(d.ManualStopped ? "стоп" : "заказ")</span></div>
+                        @if (d.ManualStopped)
+                        {
+                            <span class="sv-badge sv-badge-yellow" style="font-size:9px;align-self:flex-start">вручную</span>
+                        }
+                        <div class="sv-qty-control" @(d.ManualStopped ? "hidden" : "")>
                             <button type="button" data-delta="-1" aria-label="Меньше">−</button>
-                            <input type="number" name="qty" value="0" min="0" step="1" data-dish-id="@d.Id" data-qty class="sv-qty-led" inputmode="numeric" />
+                            <input type="number" name="qty" value="0" min="0" step="1" data-dish-id="@d.Id" data-qty class="sv-qty-led" inputmode="numeric" @(d.ManualStopped ? "disabled" : "") />
                             <button type="button" data-delta="1" aria-label="Больше">+</button>
                         </div>
                         <input type="hidden" name="dishId" value="@d.Id" />
@@ -133,6 +142,29 @@
     </section>
 </div>
 
+@* ===== Модалка ручного стопа ===== *@
+<div class="sv-modal-wrap" id="stopModal" hidden>
+    <div class="sv-modal" role="dialog" aria-modal="true" aria-label="Стоп блюда">
+        <div class="sv-modal-head"><b id="stopTitle">Остановить блюдо</b><button type="button" id="stopClose" aria-label="Закрыть">×</button></div>
+        <form asp-action="StopToggle" method="post" id="stopForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="dishId" id="stopDishId" />
+            <input type="hidden" name="returnTo" value="order" />
+            <div class="sv-modal-body" style="text-align:left">
+                <div class="sv-surface-caption mb-3" id="stopHint"></div>
+                <div id="stopCommentWrap">
+                    <label class="sv-label d-block mb-1">Причина (необязательно)</label>
+                    <input class="sv-input" type="text" name="stopComment" placeholder="например: нет повара на станции" maxlength="300" />
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ffffff10;padding:14px 18px;display:flex;gap:10px;justify-content:flex-end">
+                <button type="button" class="btn-sv-ghost" id="stopCancel">Отмена</button>
+                <button type="submit" class="btn-sv-danger-outline" id="stopSubmit">В стоп</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
     <script>
     (function () {
@@ -190,6 +222,25 @@
         }));
 
         updateTotals();
+
+        // Ручной стоп: кнопка на карточке → модалка → POST StopToggle
+        var stopModal = document.getElementById('stopModal');
+        document.querySelectorAll('[data-stop-toggle]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var stopped = this.dataset.stopped === '1';
+                document.getElementById('stopDishId').value = this.dataset.id;
+                document.getElementById('stopTitle').textContent = stopped ? 'Вернуть блюдо' : 'Остановить блюдо';
+                document.getElementById('stopHint').textContent = stopped
+                    ? '«' + this.dataset.name + '» вернётся в меню и снова примет заказы.'
+                    : '«' + this.dataset.name + '» уйдёт в стоп-лист — заказ с ним будет отклонён.';
+                document.getElementById('stopCommentWrap').hidden = stopped;
+                document.getElementById('stopSubmit').textContent = stopped ? 'Вернуть' : 'В стоп';
+                stopModal.hidden = false;
+            });
+        });
+        ['stopClose','stopCancel'].forEach(function(id){var b=document.getElementById(id);if(b)b.addEventListener('click',function(){stopModal.hidden=true;});});
+        stopModal.addEventListener('click',function(e){if(e.target===stopModal)stopModal.hidden=true;});
+
         document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
     })();
     </script>

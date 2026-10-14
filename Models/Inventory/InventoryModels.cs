@@ -66,6 +66,13 @@ public class Dish
     public decimal Price { get; set; }
     public bool IsActive { get; set; } = true;
 
+    // Ручной стоп-лист: блюдо принудительно снято с продажи поваром/менеджером
+    public bool ManualStopped { get; set; }
+
+    // Необязательная причина ручного стопа (кратко: «порча», «нет повара» и т.п.)
+    [MaxLength(300)]
+    public string? StopComment { get; set; }
+
     public List<RecipeItem> RecipeItems { get; init; } = [];
 }
 

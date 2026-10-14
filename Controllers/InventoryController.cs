@@ -560,6 +560,35 @@ public class InventoryController(
         return RedirectToAction(nameof(Order));
     }
 
+    // POST /Inventory/StopToggle — ручной стоп / возврат блюда
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> StopToggle(int dishId, string? stopComment, string? returnTo)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var dish = await db.Dishes.FirstOrDefaultAsync(d => d.Id == dishId && d.RestaurantId == rid);
+        if (dish is null) return NotFound();
+
+        if (dish.ManualStopped)
+        {
+            dish.ManualStopped = false;
+            dish.StopComment = null;
+            TempData["OrderOk"] = $"«{dish.Name}» возвращено в меню.";
+        }
+        else
+        {
+            dish.ManualStopped = true;
+            dish.StopComment = string.IsNullOrWhiteSpace(stopComment) ? null : stopComment.Trim();
+            TempData["OrderOk"] = $"«{dish.Name}» остановлено вручную.";
+        }
+        await db.SaveChangesAsync();
+        await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
+
+        return RedirectToAction(returnTo == "order" ? nameof(Order) : nameof(StopList));
+    }
+
     // GET /Inventory/StopList — стоп-лист + hot offers
     public async Task<IActionResult> StopList()
     {
@@ -602,6 +631,8 @@ public class InventoryController(
 
         ViewBag.StopList = stopList;
         ViewBag.HotOffers = hotOffers;
+        // Все активные блюда — для кнопок «В стоп»/«Вернуть»
+        ViewBag.Dishes = dishes.Select(d => new { d.Id, d.Name, d.ManualStopped }).ToList();
         return View();
     }
 
