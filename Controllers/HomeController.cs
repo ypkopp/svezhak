@@ -1,21 +1,41 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using SmartInventory.Authorization;
+using SmartInventory.Data;
 using SmartInventory.Models;
+using SmartInventory.Models.Inventory;
 
 namespace SmartInventory.Controllers;
 
-public class HomeController : Controller
+public class HomeController(ApplicationDbContext db) : Controller
 {
+    // GET / — публичный лендинг для гостей; авторизованным — дашборд
     public IActionResult Index()
     {
-        // Корень: авторизован → дашборд продукта, иначе → вход
         if (User.Identity?.IsAuthenticated == true)
-        {
             return RedirectToAction("Index", "Inventory");
-        }
+        return View("Landing");
+    }
 
-        return RedirectToAction("Login", "Account");
+    // POST / — заявка с лендинга (сохранить лид)
+    [HttpPost("/")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Lead(string networkName, string contact, int restaurantCount)
+    {
+        if (string.IsNullOrWhiteSpace(networkName) || string.IsNullOrWhiteSpace(contact))
+        {
+            TempData["LeadError"] = "Укажите название сети и контакт.";
+            return RedirectToAction(nameof(Index));
+        }
+        db.LeadRequests.Add(new LeadRequest
+        {
+            NetworkName = networkName.Trim(),
+            Contact = contact.Trim(),
+            RestaurantCount = Math.Max(1, restaurantCount),
+        });
+        await db.SaveChangesAsync();
+        TempData["LeadOk"] = networkName.Trim();
+        return RedirectToAction(nameof(Index));
     }
 
     public IActionResult Privacy()

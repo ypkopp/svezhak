@@ -139,6 +139,23 @@ public class Shift
     public string Position { get; set; } = null!;
 }
 
+/// <summary>Лид-заявка с публичного лендинга. Связи с рестораном нет —
+/// обработка офлайн (телеграм/договор).</summary>
+public class LeadRequest
+{
+    public int Id { get; init; }
+
+    [MaxLength(120)]
+    public string NetworkName { get; set; } = null!;
+
+    [MaxLength(120)]
+    public string Contact { get; set; } = null!;
+
+    public int RestaurantCount { get; set; }
+
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+}
+
 public class WriteOff
 {
     public int Id { get; init; }

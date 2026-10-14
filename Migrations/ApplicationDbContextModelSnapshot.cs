@@ -123,6 +123,35 @@ namespace SmartInventory.Migrations
                     b.ToTable("Dishes");
                 });
 
+            modelBuilder.Entity("SmartInventory.Models.Inventory.LeadRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Contact")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NetworkName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("RestaurantCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LeadRequests");
+                });
+
             modelBuilder.Entity("SmartInventory.Models.Inventory.Order", b =>
                 {
                     b.Property<int>("Id")
