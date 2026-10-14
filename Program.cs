@@ -7,9 +7,45 @@ using SmartInventory.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// === Провайдер БД: SqlServer (по умолчанию, локально) ИЛИ Postgres (Render) ===
+// Database:Provider = "SqlServer" | "Postgres". Ничего не заменяем — только выбор.
+var dbProvider = builder.Configuration["Database:Provider"] ?? "SqlServer";
+
+// Render отдаёт DATABASE_URL в формате postgres://user:pass@host/db —
+// конвертируем в строку Npgsql Key=Value. Иначе берём ConnectionStrings:Postgres.
+static string ToNpgsql(string? url)
+{
+    if (string.IsNullOrWhiteSpace(url)) return "";
+    if (!url.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+        && !url.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        return url; // уже Key=Value
+    var uri = new Uri(url);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var cs = $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={(userInfo.Length > 1 ? userInfo[1] : "")};SSL Mode=Require;Trust Server Certificate=true";
+    // sslmode из query (Render часто отдаёт ?sslmode=prefer/require)
+    var q = uri.Query.TrimStart('?');
+    foreach (var kv in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
+    {
+        var p = kv.Split('=', 2);
+        if (p.Length == 2 && p[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase))
+            cs = cs.Replace("SSL Mode=Require", $"SSL Mode={p[1]}");
+    }
+    return cs;
+}
+
+var isPostgres = string.Equals(dbProvider, "Postgres", StringComparison.OrdinalIgnoreCase);
+var connectionString = isPostgres
+    ? ToNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")
+               ?? builder.Configuration.GetConnectionString("Postgres"))
+    : builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+{
+    if (isPostgres)
+        options.UseNpgsql(connectionString, x => x.MigrationsAssembly("SmartInventory"));
+    else
+        options.UseSqlServer(connectionString);
+});
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -56,10 +92,25 @@ builder.Services.AddAutoMapper(cfg =>
 
 var app = builder.Build();
 
-// Применяем миграции и наполняем пустую БД демо-данными
-using (var scope = app.Services.CreateScope())
+// Render задаёт порт через env PORT; локально (dotnet run) его нет — тогда
+// слушаем как обычно, ничего не переопределяем.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+    app.Urls.Add($"http://0.0.0.0:{port}");
+
+// Сид только в Development ИЛИ по флагу SEED_DEMO=true (для демо-деплоя).
+var shouldSeed = app.Environment.IsDevelopment()
+    || string.Equals(Environment.GetEnvironmentVariable("SEED_DEMO"), "true", StringComparison.OrdinalIgnoreCase);
+if (shouldSeed)
 {
+    using var scope = app.Services.CreateScope();
     await DbInitializer.SeedAsync(scope.ServiceProvider);
+}
+else
+{
+    // В проде без сида — только миграции, чтобы схема была актуальной.
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
 }
 
 // Configure the HTTP request pipeline.
@@ -67,9 +118,18 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    // За прокси Render корректные редиректы/URL — доверяем X-Forwarded-*.
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+                         | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+    });
 }
 
 app.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}");
+
+// Health-check для Render — до аутентификации.
+app.MapGet("/health", () => Results.Ok("ok"));
 
 app.UseHttpsRedirection();
 app.UseRouting();
