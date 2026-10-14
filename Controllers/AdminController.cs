@@ -317,7 +317,7 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
             .ToListAsync();
         var busy = existing.GroupBy(s => s.Date).ToDictionary(g => g.Key, g => g.Select(x => x.AccessCodeId).ToHashSet());
 
-        var draft = new List<(int Day, int AccessCodeId, string Name, string Position, string Start, string End)>();
+        var draft = new List<DraftShift>();
         var slots = new[] { (new TimeOnly(9, 0), new TimeOnly(17, 0)), (new TimeOnly(17, 0), new TimeOnly(23, 0)) };
         var idx = 0;
         for (var d = 0; d < 7; d++)
@@ -335,7 +335,7 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
                 }
                 if (picked is null) continue;
                 usedToday.Add(picked.Id);
-                draft.Add((d, picked.Id, picked.EmployeeName ?? $"#{picked.Id}", "повар", st.ToString("HH:mm"), en.ToString("HH:mm")));
+                draft.Add(new DraftShift(d, picked.Id, picked.EmployeeName ?? $"#{picked.Id}", "повар", st.ToString("HH:mm"), en.ToString("HH:mm")));
             }
         }
         if (draft.Count == 0) { TempData["Error"] = "Некого ставить — все заняты."; return RedirectToAction(nameof(Schedule), new { weekOffset }); }
