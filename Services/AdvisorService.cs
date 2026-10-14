@@ -28,6 +28,48 @@ public sealed class AdvisorService(
     public sealed record SummaryResult(DateTime GeneratedAtUtc, bool UsedAi, string Text, IReadOnlyList<Insight> Highlights);
     private sealed record Snapshot(List<Insight> LocalInsights, object Data);
 
+    /// <summary>Сырой снапшот склада для чата/аналитики (те же факты, что в сводке).</summary>
+    public async Task<object> GetSnapshotDataAsync(int restaurantId, CancellationToken ct = default)
+        => (await BuildSnapshotAsync(restaurantId, ct)).Data;
+
+    /// <summary>Общий вызов LLM с произвольным пользовательским промптом + фактами снапшота.
+    /// Возвращает текст ответа или null, если провайдер недоступен/не настроен.</summary>
+    public async Task<string?> AskAiAsync(string userPrompt, object data, CancellationToken ct = default)
+    {
+        var baseUrl = configuration["Ai:BaseUrl"]?.TrimEnd('/');
+        var model = configuration["Ai:Model"];
+        var apiKey = configuration["Ai:ApiKey"];
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(model) || string.IsNullOrWhiteSpace(apiKey))
+            return null;
+        try
+        {
+            var client = clients.CreateClient(nameof(AdvisorService));
+            client.Timeout = TimeSpan.FromSeconds(30);
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            request.Content = new StringContent(JsonSerializer.Serialize(new
+            {
+                model,
+                temperature = 0.3,
+                max_tokens = 700,
+                messages = new object[]
+                {
+                    new { role = "user", content = $"{userPrompt}\n\nFacts:\n{TransliterateJson(data)}" }
+                }
+            }), Encoding.UTF8, "application/json");
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode) return null;
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            return json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()?.Trim();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning("AI ask failed ({ErrorType})", ex.GetType().Name);
+            return null;
+        }
+    }
+
     public async Task<InsightsResult> GetInsightsAsync(int restaurantId, CancellationToken ct = default)
     {
         var key = $"advisor:{restaurantId}";

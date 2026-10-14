@@ -156,6 +156,19 @@ public class LeadRequest
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }
 
+/// <summary>Сохранённый ИИ-анализ смены — пишется фоновым сервисом раз в час,
+/// дашборд читает последний без обращения к LLM на каждый просмотр.</summary>
+public class AiInsight
+{
+    public int Id { get; init; }
+    public int RestaurantId { get; init; }
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public string Text { get; set; } = null!;
+    /// <summary>JSON-массив чипов [{Category,Title,Severity,ActionUrl}] — до 3х.</summary>
+    public string ChipsJson { get; set; } = "[]";
+    public bool UsedAi { get; set; }
+}
+
 public class WriteOff
 {
     public int Id { get; init; }

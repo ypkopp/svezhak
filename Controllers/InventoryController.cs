@@ -154,10 +154,35 @@ public class InventoryController(
         if (todayShift is TimeOnly endTime)
             ViewBag.ShiftEndLocal = endTime;
 
-        // ИИ-анализ смены — текстовое резюме (fallback на локальные правила)
-        ViewBag.AiSummary = await advisorService.GetSummaryAsync(rid.Value);
+        // ИИ-анализ смены — читаем ПОСЛЕДНИЙ сохранённый авто-анализ из таблицы.
+        // LLM на каждый просмотр не дёргаем: фоновый сервис пишет раз в час.
+        var lastInsight = await db.AiInsights.AsNoTracking()
+            .Where(a => a.RestaurantId == rid)
+            .OrderByDescending(a => a.CreatedAt)
+            .FirstOrDefaultAsync();
+        var feed = await db.AiInsights.AsNoTracking()
+            .Where(a => a.RestaurantId == rid)
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(5)
+            .ToListAsync();
+        if (lastInsight is not null)
+        {
+            var chips = System.Text.Json.JsonSerializer
+                .Deserialize<List<AiChip>>(lastInsight.ChipsJson) ?? [];
+            ViewBag.AiInsight = lastInsight;
+            ViewBag.AiChips = chips;
+            ViewBag.AiFeed = feed;
+        }
+        else
+        {
+            // Таблица ещё пустая (сервис не успел отработать) — живой fallback
+            ViewBag.AiSummary = await advisorService.GetSummaryAsync(rid.Value);
+        }
         return View();
     }
+
+    /// <summary>Чип сводки из сохранённого AiInsight.</summary>
+    public sealed record AiChip(string Category, string Title, string Severity, string ActionUrl);
 
     // GET /Inventory/ChartData/river — партии для «реки свежести»
     [HttpGet]

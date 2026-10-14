@@ -4,7 +4,7 @@
     var now = (DateTime)ViewBag.Now;
     var hasAlert = (bool)ViewBag.HasAlert;
     int threat = ViewBag.ThreatCount, stopCount = ViewBag.KpiStopList;
-    var ai = (SmartInventory.Services.AdvisorService.SummaryResult)ViewBag.AiSummary;
+    var ai = ViewBag.AiSummary as SmartInventory.Services.AdvisorService.SummaryResult;
     Func<string, string> sevColor = s => s == "high" ? "var(--rd)" : s == "medium" ? "var(--ye)" : "var(--mut)";
 }
 
@@ -45,31 +45,53 @@
 
 @if (TempData["OrderOk"] is string ok) { <div class="sv-alert sv-alert-success mb-3">@ok</div> }
 
-@* ============ ИИ-анализ смены (структура: маскот + текст + чипы по severity) ============ *@
+@* ============ ИИ-анализ смены — ПОСЛЕДНИЙ сохранённый авто-анализ + лента ============ *@
+@{
+    var saved = ViewBag.AiInsight as SmartInventory.Models.Inventory.AiInsight;
+    var savedChips = ViewBag.AiChips as List<SmartInventory.Controllers.InventoryController.AiChip> ?? [];
+    var feed = ViewBag.AiFeed as List<SmartInventory.Models.Inventory.AiInsight> ?? [];
+    // Без дублей: «продать срочно» живёт в карточке hot-offers — в чипы сводки не берём
+    // Нормализуем в один тип: (Category,Title,Severity,ActionUrl)
+    var dashChips = (saved is not null
+            ? savedChips.Select(h => (h.Category, h.Title, h.Severity, h.ActionUrl))
+            : (ai?.Highlights ?? []).Select(h => (h.Category, h.Title, h.Severity, h.ActionUrl)))
+        .Where(h => h.Category != "продать срочно").Take(3).ToList();
+    var aiText = saved?.Text ?? ai?.Text ?? "Анализ формируется — фоновый сервис ещё не писал снапшот.";
+    var aiTime = saved?.CreatedAt ?? ai?.GeneratedAtUtc ?? DateTime.UtcNow;
+    var aiIsAi = saved?.UsedAi ?? ai?.UsedAi ?? false;
+}
 <section class="sv-card sv-ai-block fade-up">
     <div class="sv-ai-layout">
         <img class="sv-ai-chef" src="~/img/brand/m3-avo.png" alt="Юзу" />
         <div class="sv-ai-body">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                 <div class="sv-section-title mb-0" style="color:var(--a1)">ИИ-анализ смены</div>
-                <span class="sv-badge @(ai.UsedAi ? "sv-badge-accent" : "sv-badge-muted")">@(ai.UsedAi ? $"ИИ · {ai.GeneratedAtUtc.ToLocalTime():HH:mm}" : "локальные правила")</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="sv-ai-note">обновлено @aiTime.ToLocalTime().ToString("HH:mm")</span>
+                    <span class="sv-badge @(aiIsAi ? "sv-badge-accent" : "sv-badge-muted")">@(aiIsAi ? "ИИ" : "локальные правила")</span>
+                </div>
             </div>
-            <p class="sv-ai-text">@ai.Text</p>
-            @{
-                // Без дублей: «продать срочно» живёт в карточке hot-offers ниже —
-                // в чипы сводки берём только прочие категории (макс 3).
-                var dashChips = ai.Highlights.Where(h => h.Category != "продать срочно").Take(3).ToList();
-            }
+            <p class="sv-ai-text">@aiText</p>
             @if (dashChips.Count > 0)
             {
                 <div class="sv-ai-chips">
                     @foreach (var h in dashChips)
                     {
-                        <a class="sv-ai-chip" href="@h.ActionUrl" style="--c:@sevColor(h.Severity)" title="@h.Explanation">
+                        <a class="sv-ai-chip" href="@h.ActionUrl" style="--c:@sevColor(h.Severity)" title="">
                             <span class="sv-ai-chip-dot"></span>@h.Title <em>@h.Category</em>
                         </a>
                     }
                 </div>
+            }
+            @if (feed.Count > 1)
+            {
+                <details class="sv-ai-feed">
+                    <summary>Лента анализа · @feed.Count</summary>
+                    @foreach (var f in feed.Skip(1))
+                    {
+                        <div class="sv-ai-feed-row"><span class="sv-muted mono">@f.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</span><span>@f.Text</span></div>
+                    }
+                </details>
             }
         </div>
     </div>

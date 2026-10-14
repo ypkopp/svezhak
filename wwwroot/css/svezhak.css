@@ -475,6 +475,14 @@ a:hover { color:var(--tx); }
 .sv-ai-chip:hover { background:color-mix(in oklab,var(--c,var(--a1)) 22%,transparent); }
 .sv-ai-chip-dot { width:7px; height:7px; border-radius:50%; background:var(--c,var(--a1)); box-shadow:0 0 7px var(--c,var(--a1)); }
 .sv-ai-chip em { font-style:normal; color:var(--mut); font-weight:600; }
+.sv-ai-feed { margin-top:12px; border-top:1px dashed #ffffff14; padding-top:10px; }
+.sv-ai-feed summary { cursor:pointer; font:600 10px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--mut); list-style:none; }
+.sv-ai-feed summary::-webkit-details-marker { display:none; }
+.sv-ai-feed summary::before { content:'▸ '; color:var(--a1); }
+.sv-ai-feed[open] summary::before { content:'▾ '; }
+.sv-ai-feed-row { display:flex; gap:10px; padding:7px 0; font-size:12px; border-bottom:1px solid #ffffff08; }
+.sv-ai-feed-row:last-child { border:0; }
+.sv-ai-feed-row .mono { flex:none; }
 
 /* Рекомендации */
 .sv-legend { display:flex; gap:14px; }
