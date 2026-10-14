@@ -103,7 +103,9 @@ public sealed class AdvisorService(
             }
         }
 
-        var result = new SummaryResult(DateTime.UtcNow, usedAi, text, local.Take(3).ToList());
+        // Highlights отдаём с запасом (6) — View отфильтрует «продать срочно»
+        // (эта категория живёт в отдельной hot-offers карточке и не дублируется).
+        var result = new SummaryResult(DateTime.UtcNow, usedAi, text, local.Take(6).ToList());
         cache.Set(key, result, new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(7),

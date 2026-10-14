@@ -55,10 +55,15 @@
                 <span class="sv-badge @(ai.UsedAi ? "sv-badge-accent" : "sv-badge-muted")">@(ai.UsedAi ? $"ИИ · {ai.GeneratedAtUtc.ToLocalTime():HH:mm}" : "локальные правила")</span>
             </div>
             <p class="sv-ai-text">@ai.Text</p>
-            @if (ai.Highlights.Count > 0)
+            @{
+                // Без дублей: «продать срочно» живёт в карточке hot-offers ниже —
+                // в чипы сводки берём только прочие категории (макс 3).
+                var dashChips = ai.Highlights.Where(h => h.Category != "продать срочно").Take(3).ToList();
+            }
+            @if (dashChips.Count > 0)
             {
                 <div class="sv-ai-chips">
-                    @foreach (var h in ai.Highlights)
+                    @foreach (var h in dashChips)
                     {
                         <a class="sv-ai-chip" href="@h.ActionUrl" style="--c:@sevColor(h.Severity)" title="@h.Explanation">
                             <span class="sv-ai-chip-dot"></span>@h.Title <em>@h.Category</em>
