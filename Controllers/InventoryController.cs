@@ -420,7 +420,7 @@ public class InventoryController(
         // Строки передаются обратно через форму в скрытом JSON — пользователь правит в таблице
         ViewBag.ImportRows = rows;
         ViewBag.ImportJson = ProductImportService.SerializeRows(rows);
-        return await Deliveries(null);
+        return await DeliveriesView(rid.Value, null);
     }
 
     // POST /Inventory/ImportProductsConfirm — пользователь подтвердил → создаём продукты
@@ -467,7 +467,12 @@ public class InventoryController(
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
+        return await DeliveriesView(rid.Value, month);
+    }
 
+    // Общий рендер страницы Поставки — вызывается и из GET, и из предпросмотра импорта.
+    private async Task<IActionResult> DeliveriesView(int rid, string? month)
+    {
         var all = await db.Deliveries
             .Where(d => d.RestaurantId == rid)
             .Include(d => d.Batches).ThenInclude(b => b.Product)
@@ -504,7 +509,7 @@ public class InventoryController(
         ViewBag.Months = monthGroups.Select(g => g.Key).ToList();
         ViewBag.ActiveMonth = activeMonth;
         ViewBag.CurrentMonth = currentMonth;
-        return View();
+        return View("Deliveries");
     }
 
     // POST /Inventory/Deliveries — приёмка поставки
