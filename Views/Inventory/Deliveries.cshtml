@@ -147,16 +147,57 @@
         });
         document.getElementById('delivSum').textContent = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(sum) + ' ₽';
     }
+
+    // ===== Автозаполнение: datalist по продуктам + инлайн «создать новый» =====
+    // Выбор из datalist подтягивает категорию/ед./срок; неизвестное имя → поля нового продукта.
+    const prodList = document.createElement('datalist');
+    prodList.id = 'svProductList';
+    products.forEach(p => { const o = document.createElement('option'); o.value = p.Name; o.dataset.id = p.Id; prodList.appendChild(o); });
+    document.body.appendChild(prodList);
+
     function addLine() {
         const row = document.createElement('div');
         row.className = 'sv-dynamic-line';
         row.innerHTML = `
-            <select name="productId" class="sv-select" required><option value="">— продукт —</option>${products.map(p => `<option value="${p.Id}">${p.Name} · ${p.Category} (${p.Unit})</option>`).join('')}</select>
+            <div class="sv-prod-field">
+                <input class="sv-input" name="productName" list="svProductList" placeholder="продукт…" autocomplete="off" required />
+                <input type="hidden" name="productId" value="" />
+                <div class="sv-new-prod" hidden>
+                    <input class="sv-input sv-np" data-f="ncat" placeholder="категория" />
+                    <input class="sv-input sv-np" data-f="nunit" placeholder="ед." style="width:60px" />
+                </div>
+            </div>
             <input name="qty" type="number" step="0.01" min="0.01" class="sv-input" placeholder="кол-во" required />
             <input name="shelfHours" type="number" step="1" min="1" class="sv-input" placeholder="часов" required />
             <button type="button" class="btn-sv-ghost px-2" aria-label="Удалить" onclick="this.parentElement.remove();updateSum()">×</button>`;
-        row.querySelectorAll('select,input').forEach(x => x.addEventListener('input', updateSum));
         lines.appendChild(row);
+
+        const nameIn = row.querySelector('[name=productName]');
+        const idIn = row.querySelector('[name=productId]');
+        const newBox = row.querySelector('.sv-new-prod');
+        const ncat = newBox.querySelector('[data-f=ncat]');
+        const nunit = newBox.querySelector('[data-f=nunit]');
+        const shelf = row.querySelector('[name=shelfHours]');
+
+        nameIn.addEventListener('input', function () {
+            const match = products.find(p => p.Name.toLowerCase() === this.value.trim().toLowerCase());
+            if (match) {
+                idIn.value = match.Id;
+                newBox.hidden = true;
+                ncat.removeAttribute('required'); nunit.removeAttribute('required');
+                // подтягиваем единицу в плейсхолдер кол-ва и подсказку срока
+                row.querySelector('[name=qty]').placeholder = 'кол-во, ' + match.Unit;
+            } else {
+                idIn.value = '';
+                const isNew = this.value.trim().length > 0;
+                newBox.hidden = !isNew;
+                if (isNew) { ncat.setAttribute('required',''); nunit.setAttribute('required',''); }
+                row.querySelector('[name=qty]').placeholder = 'кол-во';
+            }
+            updateSum();
+        });
+
+        row.querySelectorAll('input').forEach(x => x.addEventListener('input', updateSum));
     }
     // ===== Предпросмотр импорта: правка в таблице → скрытый JSON =====
     var importForm = document.getElementById('importForm');

@@ -183,6 +183,10 @@ a:hover { color:var(--tx); }
 .sv-import-bad td { background:#F565650e; }
 .sv-import-bad td:first-child { box-shadow:inset 2px 0 0 var(--rd); border-radius:8px 0 0 8px; }
 .sv-imp { min-height:30px; padding:4px 8px; font-size:12px; }
+/* Автозаполнение поставки: поле продукта + инлайн-поля нового */
+.sv-prod-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.sv-prod-field .sv-new-prod { display:flex; gap:6px; }
+.sv-prod-field .sv-new-prod .sv-np { min-height:30px; padding:4px 8px; font-size:11px; background:#F565650c; border-color:#F5656530; }
 .sv-menu-card strong { font-size:13px; }
 .sv-menu-meta { display:flex; justify-content:space-between; font:600 11px var(--mono); color:var(--mut); }
 .sv-qty-control { display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding:4px; background:#0b0d11; border-radius:11px; }

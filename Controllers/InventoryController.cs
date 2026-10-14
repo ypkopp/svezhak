@@ -508,14 +508,19 @@ public class InventoryController(
     }
 
     // POST /Inventory/Deliveries — приёмка поставки
+    // productName: имя из datalist; productId — если выбран существующий.
+    // Новый продукт создаётся инлайн по (productName + ncat + nunit).
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Deliveries(string number, int[] productId, decimal[] qty, double[] shelfHours)
+    public async Task<IActionResult> Deliveries(
+        string number, int[] productId, string[] productName, string[] ncat, string[] nunit,
+        decimal[] qty, double[] shelfHours)
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
 
-        if (string.IsNullOrWhiteSpace(number) || productId.Length == 0)
+        var lines = Math.Max(productId?.Length ?? 0, productName?.Length ?? 0);
+        if (string.IsNullOrWhiteSpace(number) || lines == 0)
         {
             TempData["DeliveryError"] = "Укажите номер поставки и хотя бы одну позицию.";
             return RedirectToAction(nameof(Deliveries));
@@ -530,25 +535,63 @@ public class InventoryController(
         };
         db.Deliveries.Add(delivery);
 
-        var lines = productId.Length;
+        // Кэш продуктов ресторана по имени — чтобы «создать новый» дал тот же Product
+        var existing = await db.Products
+            .Where(p => p.RestaurantId == rid)
+            .ToDictionaryAsync(p => p.Name.Trim(), p => p, StringComparer.OrdinalIgnoreCase);
+
+        var added = 0;
         for (var i = 0; i < lines; i++)
         {
             if (i >= qty.Length || i >= shelfHours.Length || qty[i] <= 0) continue;
+
+            var pid = productId is not null && i < productId.Length ? productId[i] : 0;
+            var name = productName is not null && i < productName.Length ? (productName[i] ?? "").Trim() : "";
+
+            // Поиск продукта: сначала по Id, потом по имени из datalist
+            Product? product = null;
+            if (pid > 0) product = await db.Products.FindAsync(pid);
+            if (product is null && name.Length > 0 && existing.TryGetValue(name, out var found)) product = found;
+
+            // Инлайн-создание нового продукта
+            if (product is null && name.Length > 0)
+            {
+                var cat = ncat is not null && i < ncat.Length ? (ncat[i] ?? "").Trim() : "";
+                var unt = nunit is not null && i < nunit.Length ? (nunit[i] ?? "").Trim() : "";
+                product = new Product
+                {
+                    RestaurantId = rid.Value,
+                    Name = name,
+                    Category = cat.Length > 0 ? cat : "Прочее",
+                    Unit = unt.Length > 0 ? unt : "шт",
+                };
+                db.Products.Add(product);
+                existing[name] = product;
+            }
+            if (product is null) continue;
+
             db.Batches.Add(new Batch
             {
                 RestaurantId = rid.Value,
                 Delivery = delivery,
-                ProductId = productId[i],
+                Product = product,
                 QtyInitial = qty[i],
                 QtyRemaining = qty[i],
                 ReceivedAt = now,
                 ExpiresAt = now.AddHours(shelfHours[i]),
             });
+            added++;
+        }
+
+        if (added == 0)
+        {
+            TempData["DeliveryError"] = "Ни одной валидной позиции — укажите продукт и количество.";
+            return RedirectToAction(nameof(Deliveries));
         }
 
         await db.SaveChangesAsync();
         await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
-        TempData["DeliveryOk"] = $"Поставка {delivery.Number} принята.";
+        TempData["DeliveryOk"] = $"Поставка {delivery.Number} принята ({added} поз.).";
         return RedirectToAction(nameof(Deliveries));
     }
 
