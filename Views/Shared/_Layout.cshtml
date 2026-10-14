@@ -24,7 +24,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="icon" type="image/png" href="~/img/brand/svezhak-logo-dark-2x.png" />
+    <link rel="icon" type="image/png" href="~/img/brand/svezhak-icon.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/svezhak.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -36,9 +36,8 @@
 {
     <div class="sv-app-shell">
         <aside class="sv-handoff-sidebar">
-            <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index" style="display:flex;align-items:center;gap:10px;text-decoration:none">
-                <img src="~/img/brand/svezhak-icon.png" asp-append-version="true" alt="" style="width:30px;height:30px;object-fit:contain" />
-                <span style="font:800 17px var(--disp);letter-spacing:.06em;color:var(--tx)">СВЕЖАК</span>
+            <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index">
+                <img src="~/img/brand/svezhak-logo-dark-animated.svg" asp-append-version="true" alt="СВЕЖАК" />
             </a>
             <nav class="sv-handoff-nav sv-nav-offset" aria-label="Основная навигация">
                 <a asp-controller="Inventory" asp-action="Index" class="sv-handoff-nav-item@(Active("Index"))">
@@ -90,7 +89,7 @@
                     <button class="sv-lang-switch" type="button" id="langSwitch" aria-label="Сменить язык" style="display:none"><b id="langCur">RU</b></button>
                     <button class="sv-icon-button sv-mode-btn" type="button" id="modeToggle" aria-label="Светлая тема" title="Светлая / тёмная"><span id="modeIc">☾</span></button>
                     <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Сменить тему">
-                        <span class="sv-theme-knob"><img src="~/img/brand/favicon-32.png" alt="" /></span>
+                        <span class="sv-theme-knob"><img src="~/img/brand/svezhak-icon.png" alt="" /></span>
                         <span class="sv-theme-label"><strong data-i18n="theme.switch">СМЕНИТЬ ТЕМУ</strong><small data-theme-sub>Скан · оранж</small></span>
                     </button>
                     <span class="sv-led-clock" data-led-clock>00:00</span>
