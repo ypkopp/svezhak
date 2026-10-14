@@ -531,6 +531,14 @@ a:hover { color:var(--tx); }
 .sv-theme-knob img { width:26px; height:26px; object-fit:contain; }
 .sv-login-logo { display:block; width:min(100%,340px); height:auto; object-fit:contain; margin:0 auto 26px; }
 
+/* --- навигация: иконки-стикеры + переключатель языка --- */
+.sv-nav-ic { width:18px; height:18px; object-fit:contain; display:block; }
+.sv-handoff-nav-item.active .sv-nav-ic { filter:drop-shadow(0 0 5px var(--a1)); }
+.sv-lang-switch { min-width:42px; height:42px; padding:0 10px; border:0; border-radius:12px; background:#ffffff07; color:var(--tx); font:800 12px var(--mono); letter-spacing:.06em; transition:background .15s; }
+.sv-lang-switch:hover { background:#ffffff12; }
+.sv-theme-switch { height:44px; }
+.sv-theme-switch .sv-theme-knob img { width:20px; height:20px; }
+
 /* --- герой с key-visual, группы продуктов, архив, кнопка списания --- */
 .sv-hero-art { position:relative; min-height:230px; overflow:hidden; border-radius:0 20px 20px 0; }
 .sv-hero-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 55%; opacity:.5; }

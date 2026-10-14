@@ -3,7 +3,8 @@
   var root = document.documentElement;
   var stored = localStorage.getItem('sv-theme') || 'A';
 
-  // LED-логотип один — вариант B «Стебель» получаем hue-rotate (оранж→зелень ~+95°).
+  // Логотипы тем: A «Скан» — LED-сегменты, B «Стебель» — знак с листом.
+  // Переключение подменой src (data-src-a/b в разметке), без CSS-фильтров.
   function applyTheme(theme) {
     var isB = theme === 'B';
     root.classList.toggle('theme-b', isB);
@@ -16,9 +17,13 @@
     document.querySelectorAll('[data-theme-sub]').forEach(function (el) {
       el.textContent = isB ? 'Стебель · зелень' : 'Скан · оранж';
     });
-    // Все LED-логотипы: в теме B поворачиваем hue к зелёному
     document.querySelectorAll('[data-theme-logo]').forEach(function (el) {
-      el.style.filter = isB ? 'hue-rotate(96deg) saturate(.95)' : '';
+      var src = isB ? el.dataset.srcB : el.dataset.srcA;
+      if (src) el.src = src;
+    });
+    // Текущая тема в кнобе — mark
+    document.querySelectorAll('[data-theme-mark]').forEach(function (el) {
+      el.style.opacity = '1';
     });
   }
   applyTheme(stored);
