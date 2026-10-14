@@ -1,23 +1,30 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-USER $APP_UID
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
+# СВЕЖАК — production Dockerfile (Render / любой хост).
+# Multi-stage: собираем на SDK, запускаем на ASP.NET runtime.
+# Порт задаётся env PORT (Render) — см. Program.cs (fallback 8080).
 
+# ---------- build ----------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["SmartInventory.csproj", "./"]
-RUN dotnet restore "SmartInventory.csproj"
+
+# Сначала только csproj — чтобы кэшировать restore между изменениями кода
+COPY SmartInventory.csproj ./
+COPY Svezhak.Tests/Svezhak.Tests.csproj Svezhak.Tests/
+RUN dotnet restore SmartInventory.csproj
+
+# Код + публикация
 COPY . .
-WORKDIR "/src/"
-RUN dotnet build "./SmartInventory.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet publish SmartInventory.csproj -c Release -o /app/publish --no-restore
 
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./SmartInventory.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
+# ---------- runtime ----------
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
+
+# ASPNETCORE_ENVIRONMENT=Production по умолчанию; порт — из env PORT.
+# Не хардкодим URL — Program.cs читает PORT и добавляет http://0.0.0.0:PORT.
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_GCDynamicAdaptationMode=1
+
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "SmartInventory.dll"]
