@@ -4,42 +4,42 @@
     var importRows = ViewBag.ImportRows as List<SmartInventory.Services.ProductImportService.ImportRow>;
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <a class="sv-backlink" asp-controller="Inventory" asp-action="Index">← Назад</a>
-        <div class="sv-kicker">Админ · склад</div>
-        <h1 class="sv-page-title">Ассортимент</h1>
-        <div class="sv-page-sub mb-0">База продуктов ресторана. Пополнение — файлом CSV/XLSX или через приёмку на странице Поставки.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Inventory" asp-action="Index" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← Назад</a>
+        <div class="eyebrow" style="margin-bottom:8px">Админ · склад</div>
+        <h1 class="disp">Ассортимент</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">База продуктов ресторана. Пополнение — файлом CSV/XLSX или через приёмку на странице Поставки.</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <a class="sv-chip" href="@Url.Action("Employees","Admin")">Сотрудники</a>
-        <a class="sv-chip" href="@Url.Action("Schedule","Admin")">Расписание</a>
-        <a class="sv-chip" href="@Url.Action("Restaurants","Admin")">Рестораны</a>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <a class="btn sm" href="@Url.Action("Employees","Admin")">Сотрудники</a>
+        <a class="btn sm" href="@Url.Action("Schedule","Admin")">Расписание</a>
+        <a class="btn sm" href="@Url.Action("Restaurants","Admin")">Рестораны</a>
     </div>
 </div>
 
 @if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
 @if (ViewBag.Error is string err) { <div class="sv-form-alert mb-3">@err</div> }
 
-@* ===== Загрузка файла ===== *@
-<div class="sv-card fade-up mb-3">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div><div class="sv-section-title mb-0">Загрузить ассортимент</div><span class="sv-muted" style="font-size:11px">CSV/XLSX: название;категория;ед.изм;срок ч;цена — разделитель ; или ,</span></div>
-        <form asp-action="ImportProducts" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
-            @Html.AntiForgeryToken()
-            <input type="file" name="file" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" class="sv-input" style="max-width:230px;padding:6px" required />
-            <button type="submit" class="btn-sv-primary btn-sm">Предпросмотр</button>
-        </form>
-    </div>
-</div>
+@* Полоса импорта *@
+<section class="glass rise" style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-style:dashed">
+    <img src="~/img/brand/st-box.png" style="width:38px" alt="" />
+    <div style="flex:1"><b>Загрузить ассортимент</b><div class="dim mono" style="font-size:11.5px">CSV/XLSX: название;категория;ед.изм;срок_ч;цена — разделитель ; или ,</div></div>
+    <form asp-action="ImportProducts" method="post" enctype="multipart/form-data" style="display:flex;align-items:center;gap:8px">
+        @Html.AntiForgeryToken()
+        <label class="btn" style="cursor:pointer"><input type="file" name="file" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" hidden required onchange="this.parentElement.querySelector('span').textContent=this.files[0]?this.files[0].name:'Выберите файл'" /><span>Выберите файл</span></label>
+        <button type="submit" class="btn pri">Предпросмотр</button>
+    </form>
+</section>
 
-@* ===== Предпросмотр ===== *@
+@* Предпросмотр *@
 @if (importRows is not null && importRows.Any())
 {
-    <div class="sv-card fade-up mb-3" style="border:1px solid color-mix(in oklab,var(--a1) 35%,transparent)">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div><div class="sv-section-title mb-0">Предпросмотр импорта</div><span class="sv-muted" style="font-size:11px">правь прямо в таблице, затем подтверди</span></div>
-            <span class="sv-badge @(importRows.Any(r => r.Errors.Count > 0) ? "sv-badge-yellow" : "sv-badge-green")">@importRows.Count(r => r.Errors.Count > 0) ошибок / @importRows.Count</span>
+    <section class="glass card rise mb-3" style="border:1px solid color-mix(in oklab,var(--ac) 35%,transparent)">
+        <div class="card-h" style="flex-wrap:wrap">
+            <div><div class="ttl">Предпросмотр импорта</div><span class="dim" style="font-size:11px">правь прямо в таблице, затем подтверди</span></div>
+            <span class="sp"></span>
+            <span class="badge @(importRows.Any(r => r.Errors.Count > 0) ? "ye" : "gr")">@importRows.Count(r => r.Errors.Count > 0) ошибок / @importRows.Count</span>
         </div>
         <form asp-action="ConfirmProducts" method="post" id="importForm">
             @Html.AntiForgeryToken()
@@ -69,40 +69,36 @@
                 </table>
             </div>
             <div class="d-flex gap-2 mt-3 flex-wrap">
-                <button type="submit" class="btn-sv-primary">Подтвердить импорт</button>
-                <a class="btn-sv-ghost" asp-action="Products">Отменить</a>
+                <button type="submit" class="btn pri">Подтвердить импорт</button>
+                <a class="btn ghost" asp-action="Products">Отменить</a>
             </div>
         </form>
-    </div>
+    </section>
 }
 
-@* ===== Текущий список ===== *@
-<div class="sv-card fade-up">
-    <div class="sv-section-title">Продукты (@products.Count)</div>
+@* Текущий список *@
+<section class="glass card rise">
+    <div class="card-h"><span class="eyebrow">Продукты (@products.Count)</span></div>
     @if (products.Count == 0)
     {
-        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Продуктов нет — загрузите файлом или через приёмку.</p></div>
+        <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Продуктов нет — загрузите файлом или через приёмку.</p></div>
     }
     else
     {
-        <div class="sv-table-wrap">
-            <table class="sv-table">
-                <thead><tr><th>Название</th><th>Категория</th><th>Ед.</th><th>Цена</th></tr></thead>
-                <tbody>
-                @foreach (var p in products)
-                {
-                    <tr>
-                        <td><b>@p.Name</b></td>
-                        <td><span class="sv-badge sv-badge-muted">@p.Category</span></td>
-                        <td class="sv-muted">@p.Unit</td>
-                        <td style="color:var(--gr)">@($"{p.PurchasePrice:0.##}") ₽</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+        <div class="thead" style="grid-template-columns:1.6fr 1fr 80px 100px"><span>Название</span><span>Категория</span><span>Ед.</span><span>Цена</span></div>
+        <div class="rows">
+        @foreach (var p in products)
+        {
+            <div class="row" style="grid-template-columns:1.6fr 1fr 80px 100px;min-height:44px">
+                <b style="font-size:13.5px">@p.Name</b>
+                <span class="badge">@p.Category</span>
+                <span class="mono dim">@p.Unit</span>
+                <b class="mono c-gr">@($"{p.PurchasePrice:0.##}") ₽</b>
+            </div>
+        }
         </div>
     }
-</div>
+</section>
 
 @section Scripts {
     <script>

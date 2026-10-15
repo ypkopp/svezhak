@@ -12,159 +12,145 @@
     string PosColor(string p) => p switch
     {
         "шеф" => "var(--ye)",
-        "менеджер" => "var(--a1)",
+        "менеджер" => "var(--ac)",
         _ => "var(--gr)",
     };
     var weekStart = days[0];
     var weekEnd = days[6];
+    var draft = ViewBag.Draft as List<SmartInventory.Controllers.AdminController.DraftShift>;
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <a class="sv-backlink" asp-controller="Inventory" asp-action="Index">← Назад</a>
-        <div class="sv-kicker">Админ · смены</div>
-        <h1 class="sv-page-title">Расписание</h1>
-        <div class="sv-page-sub mb-0">@weekStart.ToString("dd.MM") — @weekEnd.ToString("dd.MM.yyyy") · неделя @(weekOffset == 0 ? "(текущая)" : weekOffset > 0 ? $"+{weekOffset}" : weekOffset.ToString())</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Admin" asp-action="Employees" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← Назад</a>
+        <div class="eyebrow" style="margin-bottom:8px">Админ · смены</div>
+        <h1 class="disp">Расписание</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">@weekStart.ToString("dd.MM") — @weekEnd.ToString("dd.MM.yyyy") · неделя @(weekOffset == 0 ? "(текущая)" : weekOffset > 0 ? $"+{weekOffset}" : weekOffset.ToString())</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
         <form asp-action="AutofillSchedule" method="post" class="m-0">
             @Html.AntiForgeryToken()
             <input type="hidden" name="weekOffset" value="@weekOffset" />
-            <button class="btn-sv-ghost btn-sm" type="submit" title="2 смены/день, повара по кругу">⚡ Собрать неделю</button>
+            <button class="btn" type="submit" title="2 смены/день, повара по кругу"><img src="~/img/brand/m-lemon.png" style="width:18px" alt="" />Собрать неделю</button>
         </form>
-        <a class="btn-sv-ghost btn-sm" asp-action="Schedule" asp-route-weekOffset="@(weekOffset - 1)">← Пред</a>
-        <a class="sv-chip" style="height:34px;text-decoration:none" asp-action="Schedule" asp-route-weekOffset="0">Сегодня</a>
-        <a class="btn-sv-ghost btn-sm" asp-action="Schedule" asp-route-weekOffset="@(weekOffset + 1)">След →</a>
-        <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#addShiftModal">＋ Смена</button>
+        <div class="seg">
+            <a class="btn sm ghost" asp-action="Schedule" asp-route-weekOffset="@(weekOffset - 1)" style="text-decoration:none">←</a>
+            <button type="button" class="on" onclick="location.href='@Url.Action("Schedule",new{weekOffset=0})'">Сегодня</button>
+            <a class="btn sm ghost" asp-action="Schedule" asp-route-weekOffset="@(weekOffset + 1)" style="text-decoration:none">→</a>
+        </div>
+        <button class="btn pri" type="button" data-bs-toggle="modal" data-bs-target="#addShiftModal">＋ Смена</button>
     </div>
 </div>
 
 @if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
 @if (ViewBag.Error is string err && !string.IsNullOrEmpty(err))
 {
-    <div class="sv-alert sv-alert-danger fade-up" role="alert">@err</div>
+    <div class="sv-form-alert fade-up" role="alert">@err</div>
 }
 
-<div class="sv-card fade-up">
-    <div class="sv-week-grid">
-        @for (var i = 0; i < 7; i++)
-        {
-            var day = days[i];
-            var isToday = day == today;
-            shiftsByDay.TryGetValue(day, out var dayShifts);
-            <div class="sv-day-col @(isToday ? "is-today" : "")">
-                <div class="sv-day-head">
-                    <span class="sv-day-name">@dayNames[i]</span>
-                    <span class="sv-day-num @(isToday ? "is-today" : "")">@day.Day</span>
-                </div>
-                <div class="sv-day-body">
-                    @if (dayShifts is { Count: > 0 })
-                    {
-                        foreach (var s in dayShifts)
-                        {
-                            <div class="sv-shift-card" style="--pos:@PosColor(s.Position)">
-                                <div class="sv-shift-name">@(s.AccessCode?.EmployeeName ?? "—")</div>
-                                <div class="sv-shift-pos">@s.Position</div>
-                                <div class="sv-shift-time">@s.StartTime.ToString("HH\\:mm")–@s.EndTime.ToString("HH\\:mm")</div>
-                                <form asp-action="DeleteShift" method="post" class="sv-shift-del" onsubmit="return confirm('Удалить смену @(s.AccessCode?.EmployeeName) @day.ToString("dd.MM")?')">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@s.Id" />
-                                    <input type="hidden" name="weekOffset" value="@weekOffset" />
-                                    <button type="submit" aria-label="Удалить">×</button>
-                                </form>
-                            </div>
-                        }
-                    }
-                    @* Черновик «Собрать неделю» — пунктирные карточки, ещё не сохранены *@
-                    @if (ViewBag.Draft is List<SmartInventory.Controllers.AdminController.DraftShift> draft)
-                    {
-                        foreach (var d in draft)
-                        {
-                            if (d.Day != i) continue;
-                            <div class="sv-shift-card sv-shift-draft" style="--pos:var(--a1)">
-                                <div class="sv-shift-name">@d.Name</div>
-                                <div class="sv-shift-pos">@d.Position <span class="sv-badge sv-badge-yellow" style="font-size:8px">черновик</span></div>
-                                <div class="sv-shift-time">@d.Start–@d.End</div>
-                            </div>
-                        }
-                    }
-                    else if (dayShifts is null || dayShifts.Count == 0)
-                    {
-                        <div class="sv-day-empty">—</div>
-                    }
-                </div>
-            </div>
-        }
-    </div>
-</div>
-
-@* Панель подтверждения черновика *@
-@if (ViewBag.Draft is not null)
+@* Баннер черновика автосбора *@
+@if (draft is not null)
 {
-    <div class="sv-card fade-up mt-3" style="border:1px dashed color-mix(in oklab,var(--a1) 45%,transparent)">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-                <div class="sv-section-title mb-0">Черновик недели</div>
-                <span class="sv-muted" style="font-size:11px">@(((List<SmartInventory.Controllers.AdminController.DraftShift>)ViewBag.Draft).Count) смен предложено · подтверди или отклонись</span>
-            </div>
-            <div class="d-flex gap-2">
-                <form asp-action="SaveDraft" method="post" class="m-0">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="weekOffset" value="@weekOffset" />
-                    <input type="hidden" name="draftJson" value="@ViewBag.DraftJson" />
-                    <button class="btn-sv-primary btn-sm" type="submit">Сохранить неделю</button>
-                </form>
-                <a class="btn-sv-ghost btn-sm" asp-action="Schedule" asp-route-weekOffset="@weekOffset">Отменить</a>
-            </div>
-        </div>
-    </div>
+    <section class="glass rise" style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-color:color-mix(in oklab,var(--ac) 40%,transparent)">
+        <img src="~/img/brand/m-lemon.png" style="height:54px" alt="" />
+        <div style="flex:1"><b>Черновик автосбора готов</b><div class="dim" style="font-size:12.5px">@draft.Count смен, учтены выходные и нагрузка. Пунктирные карточки — предложение, ещё не сохранено.</div></div>
+        <a class="btn ghost" asp-action="Schedule" asp-route-weekOffset="@weekOffset">Отменить</a>
+        <form asp-action="SaveDraft" method="post" class="m-0">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="weekOffset" value="@weekOffset" />
+            <input type="hidden" name="draftJson" value="@ViewBag.DraftJson" />
+            <button class="btn pri" type="submit">✓ Применить</button>
+        </form>
+    </section>
 }
 
-<!-- Модалка: добавить смену -->
+<section class="glass card rise" style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px">
+    @for (var i = 0; i < 7; i++)
+    {
+        var day = days[i];
+        var isToday = day == today;
+        shiftsByDay.TryGetValue(day, out var dayShifts);
+        <div style="border-radius:18px;padding:10px;min-height:330px;display:flex;flex-direction:column;gap:8px;background:@(isToday ? "color-mix(in oklab,var(--ac) 9%,transparent)" : "color-mix(in oklab,var(--bg2) 40%,transparent)");border:1px solid @(isToday ? "color-mix(in oklab,var(--ac) 50%,transparent)" : "var(--stroke)")">
+            <div style="display:flex;align-items:center;padding:2px 4px 6px">
+                <span class="eyebrow">@dayNames[i]</span>
+                <span style="flex:1"></span>
+                <b class="disp" style="font-size:16px;@(isToday ? "color:var(--on-ac);background:var(--ac);border-radius:8px;padding:2px 7px" : "")">@day.Day</b>
+            </div>
+            @if (dayShifts is { Count: > 0 })
+            {
+                foreach (var s in dayShifts)
+                {
+                    <div class="sv-shift-card" style="--pos:@PosColor(s.Position)">
+                        <div class="sv-shift-name">@(s.AccessCode?.EmployeeName ?? "—")</div>
+                        <div class="sv-shift-pos">@s.Position</div>
+                        <div class="sv-shift-time">@s.StartTime.ToString("HH\\:mm")–@s.EndTime.ToString("HH\\:mm")</div>
+                        <form asp-action="DeleteShift" method="post" class="sv-shift-del" onsubmit="return confirm('Удалить смену @(s.AccessCode?.EmployeeName) @day.ToString("dd.MM")?')">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@s.Id" />
+                            <input type="hidden" name="weekOffset" value="@weekOffset" />
+                            <button type="submit" aria-label="Удалить">×</button>
+                        </form>
+                    </div>
+                }
+            }
+            @if (draft is not null)
+            {
+                foreach (var d in draft)
+                {
+                    if (d.Day != i) continue;
+                    <div class="sv-shift-card" style="--pos:var(--ac);border:1px dashed var(--ac);opacity:.8">
+                        <div class="sv-shift-name">@d.Name</div>
+                        <div class="sv-shift-pos">@d.Position <span class="badge ye" style="font-size:8px">черновик</span></div>
+                        <div class="sv-shift-time">@d.Start–@d.End</div>
+                    </div>
+                }
+            }
+            else if (dayShifts is null || dayShifts.Count == 0)
+            {
+                <div class="dim" style="text-align:center;padding:10px;font-size:11px">—</div>
+            }
+            <button class="btn sm ghost" style="margin-top:auto;border-style:dashed;border-color:var(--stroke2)" type="button" data-bs-toggle="modal" data-bs-target="#addShiftModal">＋</button>
+        </div>
+    }
+</section>
+
+@* Модалка: добавить смену *@
 <div class="modal fade" id="addShiftModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:linear-gradient(165deg,#1b1e27f2,#111318f2);border:1px solid var(--bd);border-radius:20px;color:var(--tx)">
+        <div class="modal-content glass" style="border-radius:24px;color:var(--tx)">
             <form asp-action="AddShift" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="weekOffset" value="@weekOffset" />
-                <div class="modal-header" style="border-color:#ffffff10">
-                    <div>
-                        <div class="sv-kicker">Новая смена</div>
-                        <h5 class="modal-title" style="font:700 17px var(--disp)">Добавить в расписание</h5>
-                    </div>
+                <div class="modal-header" style="border-color:var(--stroke)">
+                    <div><div class="eyebrow">Новая смена</div><h5 class="disp" style="font-size:17px">Добавить в расписание</h5></div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
                 </div>
                 <div class="modal-body">
-                    <label class="sv-label d-block mb-1">Сотрудник</label>
-                    <select class="sv-select mb-3" name="accessCodeId" required>
-                        @foreach (var e in employees)
-                        {
-                            <option value="@e.Id">@(e.EmployeeName ?? $"Сотрудник #{e.Id}")</option>
-                        }
-                    </select>
-                    <label class="sv-label d-block mb-1">Дата</label>
-                    <input class="sv-input mb-3" type="date" name="date" value="@today.ToString("yyyy-MM-dd")" required />
-                    <div class="row g-2">
-                        <div class="col">
-                            <label class="sv-label d-block mb-1">Начало</label>
-                            <input class="sv-input" type="time" name="startTime" value="09:00" required />
-                        </div>
-                        <div class="col">
-                            <label class="sv-label d-block mb-1">Конец</label>
-                            <input class="sv-input" type="time" name="endTime" value="23:00" required />
-                        </div>
+                    <div class="field mb-3"><label>Сотрудник</label>
+                        <select class="sv-select" name="accessCodeId" required>
+                            @foreach (var e in employees)
+                            {
+                                <option value="@e.Id">@(e.EmployeeName ?? $"Сотрудник #{e.Id}")</option>
+                            }
+                        </select>
                     </div>
-                    <label class="sv-label d-block mb-1 mt-3">Должность</label>
-                    <select class="sv-select" name="position">
-                        @foreach (var p in positions)
-                        {
-                            <option value="@p">@p</option>
-                        }
-                    </select>
+                    <div class="field mb-3"><label>Дата</label><input class="inp" type="date" name="date" value="@today.ToString("yyyy-MM-dd")" required /></div>
+                    <div class="row g-2 mb-3">
+                        <div class="col"><label class="sv-label d-block mb-1">Начало</label><input class="inp" type="time" name="startTime" value="09:00" required /></div>
+                        <div class="col"><label class="sv-label d-block mb-1">Конец</label><input class="inp" type="time" name="endTime" value="23:00" required /></div>
+                    </div>
+                    <div class="field"><label>Должность</label>
+                        <select class="sv-select" name="position">
+                            @foreach (var p in positions)
+                            {
+                                <option value="@p">@p</option>
+                            }
+                        </select>
+                    </div>
                 </div>
-                <div class="modal-footer" style="border-color:#ffffff10">
-                    <button type="button" class="btn-sv-ghost" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn-sv-primary">Добавить</button>
+                <div class="modal-footer" style="border-color:var(--stroke)">
+                    <button type="button" class="btn ghost" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn pri">Добавить</button>
                 </div>
             </form>
         </div>
