@@ -491,4 +491,31 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(Schedule), new { weekOffset });
     }
+
+    // ---------- Тикеты поддержки ----------
+    // GET /Admin/Tickets — обращения сотрудников из ИИ-панели
+    [HttpGet("Tickets")]
+    public async Task<IActionResult> Tickets()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var tickets = await db.SupportTickets.AsNoTracking()
+            .Where(t => t.RestaurantId == rid)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+        return View(tickets);
+    }
+
+    // POST /Admin/Tickets/Status — сменить статус тикета
+    [HttpPost("Tickets/Status")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TicketStatus(int id, string status)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var t = await db.SupportTickets.FirstOrDefaultAsync(x => x.Id == id && x.RestaurantId == rid);
+        if (t is null) return NotFound();
+        if (status is "новый" or "в работе" or "закрыт") { t.Status = status; await db.SaveChangesAsync(); }
+        return RedirectToAction(nameof(Tickets));
+    }
 }

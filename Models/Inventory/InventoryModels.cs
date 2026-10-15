@@ -173,6 +173,22 @@ public class AiInsight
     public bool UsedAi { get; set; }
 }
 
+/// <summary>Тикет в поддержку: повар/менеджер пишет админу прямо из ИИ-панели.</summary>
+public class SupportTicket
+{
+    public int Id { get; init; }
+    public int RestaurantId { get; init; }
+    public int AccessCodeId { get; set; }
+    public AccessCode? AccessCode { get; set; }
+    public string AuthorName { get; set; } = null!;
+    [MaxLength(500)]
+    public string Text { get; set; } = null!;
+    // "новый" / "в работе" / "закрыт"
+    [MaxLength(20)]
+    public string Status { get; set; } = "новый";
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+}
+
 public class WriteOff
 {
     public int Id { get; init; }

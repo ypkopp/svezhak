@@ -346,6 +346,44 @@ namespace SmartInventory.Migrations
                     b.ToTable("Shifts");
                 });
 
+            modelBuilder.Entity("SmartInventory.Models.Inventory.SupportTicket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AccessCodeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RestaurantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccessCodeId");
+
+                    b.ToTable("SupportTickets");
+                });
+
             modelBuilder.Entity("SmartInventory.Models.Inventory.WriteOff", b =>
                 {
                     b.Property<int>("Id")
@@ -555,6 +593,17 @@ namespace SmartInventory.Migrations
                 });
 
             modelBuilder.Entity("SmartInventory.Models.Inventory.Shift", b =>
+                {
+                    b.HasOne("SmartInventory.Models.Structure.AccessCode", "AccessCode")
+                        .WithMany()
+                        .HasForeignKey("AccessCodeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AccessCode");
+                });
+
+            modelBuilder.Entity("SmartInventory.Models.Inventory.SupportTicket", b =>
                 {
                     b.HasOne("SmartInventory.Models.Structure.AccessCode", "AccessCode")
                         .WithMany()

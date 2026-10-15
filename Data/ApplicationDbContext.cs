@@ -21,6 +21,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<WriteOff> WriteOffs { get; set; } = null!;
     public DbSet<LeadRequest> LeadRequests { get; set; } = null!;
     public DbSet<AiInsight> AiInsights { get; set; } = null!;
+    public DbSet<SupportTicket> SupportTickets { get; set; } = null!;
 
     // Расписание смен
     public DbSet<Shift> Shifts { get; set; } = null!;

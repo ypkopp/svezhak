@@ -205,6 +205,29 @@ public class InventoryController(
     }
     public sealed record AskRequest(string Question);
 
+    // POST /Inventory/SupportTicket — тикет админу из ИИ-панели
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> SupportTicket([FromBody] TicketRequest req)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var text = (req?.Text ?? "").Trim();
+        if (text.Length == 0) return BadRequest(new { error = "empty" });
+        if (text.Length > 500) text = text[..500];
+        var codeId = int.TryParse(User.FindFirst("AccessCodeId")?.Value, out var sc) ? sc : 0;
+        db.SupportTickets.Add(new SmartInventory.Models.Inventory.SupportTicket
+        {
+            RestaurantId = rid.Value,
+            AccessCodeId = codeId,
+            AuthorName = User.Identity?.Name ?? "сотрудник",
+            Text = text,
+        });
+        await db.SaveChangesAsync();
+        return Json(new { ok = true });
+    }
+    public sealed record TicketRequest(string Text);
+
     // GET /Inventory/ChartData/river — партии для «реки свежести»
     [HttpGet]
     public async Task<IActionResult> ChartDataRiver()

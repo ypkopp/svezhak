@@ -1,0 +1,59 @@
+@model List<SmartInventory.Models.Inventory.SupportTicket>
+@{
+    ViewData["Title"] = "Тикеты";
+    string Badge(string s) => s switch
+    {
+        "в работе" => "<span class=\"badge ye\">в работе</span>",
+        "закрыт" => "<span class=\"badge gr\">закрыт</span>",
+        _ => "<span class=\"badge rd\">новый</span>",
+    };
+}
+
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Admin" asp-action="Employees" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← Админ</a>
+        <div class="eyebrow" style="margin-bottom:8px">Поддержка</div>
+        <h1 class="disp">Тикеты сотрудников</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Обращения из ИИ-панели поддержки. Ответьте офлайн — закройте, когда разберётесь.</p>
+    </div>
+</div>
+
+<section class="glass card rise">
+    <div class="card-h"><span class="ttl">Обращения</span><span class="sp"></span><span class="badge">@Model.Count</span></div>
+    @if (!Model.Any())
+    {
+        <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Тикетов пока нет — повара пишут через ✦ в шапке.</p></div>
+    }
+    else
+    {
+        <div class="thead" style="grid-template-columns:52px 1fr auto auto"><span>№</span><span>Обращение</span><span>Статус</span><span>Действие</span></div>
+        <div class="rows">
+        @foreach (var t in Model)
+        {
+            <div class="row" style="grid-template-columns:52px 1fr auto auto">
+                <span class="mono dim" style="font-size:12px">#@t.Id</span>
+                <div>
+                    <b style="font-size:13.5px">@t.AuthorName</b>
+                    <div style="font-size:13px;margin-top:2px">@t.Text</div>
+                    <div class="mono dim" style="font-size:10.5px;margin-top:4px">@t.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                </div>
+                <span>@Html.Raw(Badge(t.Status))</span>
+                <span style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+                    @foreach (var s in new[]{"новый","в работе","закрыт"})
+                    {
+                        if (s == t.Status) { continue; }
+                        <form asp-action="TicketStatus" method="post" style="display:inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <input type="hidden" name="status" value="@s" />
+                            <button class="btn sm @(s=="закрыт"?"ok":"ghost")" type="submit" style="font-size:11px">→ @s</button>
+                        </form>
+                    }
+                </span>
+            </div>
+        }
+        </div>
+    }
+</section>
+
+@section Scripts {}

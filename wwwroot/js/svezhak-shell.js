@@ -16,14 +16,13 @@
   function applyTheme(id) {
     root.dataset.theme = id;
     try { localStorage.setItem('sv6-theme', id); } catch (e) { }
-    document.querySelectorAll('#themeSwatches button').forEach(function (b) {
+    document.querySelectorAll('#themeSwatches button, #themeSwatchesIn button').forEach(function (b) {
       b.classList.toggle('on', b.dataset.themeId === id);
     });
   }
 
-  // Построить свотчи в топбаре
-  var seg = document.getElementById('themeSwatches');
-  if (seg) {
+  function buildSwatches(seg) {
+    if (!seg) return;
     THEMES.forEach(function (t) {
       var b = document.createElement('button');
       b.type = 'button'; b.dataset.themeId = t.id; b.title = t.n;
@@ -32,6 +31,8 @@
       seg.appendChild(b);
     });
   }
+  buildSwatches(document.getElementById('themeSwatches'));
+  buildSwatches(document.getElementById('themeSwatchesIn'));
   applyTheme(stored);
 
   // Логотипы тем для data-theme-art (логин): night/paper/mono — тёмный, matcha/lilac — светлый
@@ -302,4 +303,58 @@
   }
   send.addEventListener('click', ask);
   input.addEventListener('keydown', function (e) { if (e.key === 'Enter') ask(); });
+
+  // Тикет админу: текст последнего вопроса пользователя → POST /Inventory/SupportTicket
+  var ticketBtn = document.getElementById('ticketBtn'), ticketStatus = document.getElementById('ticketStatus');
+  if (ticketBtn) ticketBtn.addEventListener('click', async function () {
+    var last = null;
+    msgs.querySelectorAll('.sv-chat-user span').forEach(function (s) { last = s.textContent; });
+    if (!last) { if (ticketStatus) ticketStatus.textContent = 'сначала напиши вопрос'; return; }
+    if (ticketStatus) ticketStatus.textContent = 'отправляю…';
+    try {
+      var r = await fetch('/Inventory/SupportTicket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: last }) });
+      if (ticketStatus) ticketStatus.textContent = r.ok ? '✓ админ увидит тикет' : 'не получилось';
+    } catch (e) { if (ticketStatus) ticketStatus.textContent = 'не получилось'; }
+  });
+})();
+
+/* ===== Настройки интерфейса — скрыть элементы, тема перенесена сюда ===== */
+(function () {
+  var btn = document.getElementById('settingsBtn'), drop = document.getElementById('settingsDrop');
+  if (!btn || !drop) return;
+  var reset = document.getElementById('settingsReset');
+  var K = function (n) { return 'sv-ui-' + n; };
+  var get = function (n) { try { return localStorage.getItem(K(n)) === '1'; } catch (e) { return false; } };
+  var set = function (n, v) { try { localStorage.setItem(K(n), v ? '1' : '0'); } catch (e) { } };
+
+  function apply() {
+    // Скрыть Дашборд из бокового меню
+    document.querySelectorAll('.sv-handoff-nav-item').forEach(function (a) {
+      var txt = (a.textContent || '').trim();
+      if (txt === 'Дашборд' || a.getAttribute('data-i18n') === 'nav.dash' || a.querySelector('[data-i18n="nav.dash"]'))
+        a.style.display = get('hideDash') ? 'none' : '';
+    });
+    // Скрыть свотчи тем в топбаре (тема всё равно доступна в настройках)
+    var seg = document.getElementById('themeSwatches');
+    if (seg) seg.style.display = get('hideTheme') ? 'none' : '';
+    // Скрыть QR (для поваров и вообще)
+    var qr = document.getElementById('qrBtn');
+    if (qr) qr.style.display = get('hideQr') ? 'none' : '';
+    // Скрыть часы
+    var clk = document.querySelector('[data-led-clock]');
+    if (clk) clk.style.display = get('hideClock') ? 'none' : '';
+  }
+
+  btn.addEventListener('click', function (e) { e.stopPropagation(); drop.hidden = !drop.hidden; });
+  document.addEventListener('click', function (e) { if (!e.target.closest('.sv-bell-wrap')) drop.hidden = true; });
+  if (reset) reset.addEventListener('click', function () {
+    ['hideDash', 'hideTheme', 'hideQr', 'hideClock'].forEach(function (n) { set(n, false); });
+    document.querySelectorAll('[data-set]').forEach(function (c) { c.checked = false; });
+    apply();
+  });
+  document.querySelectorAll('[data-set]').forEach(function (c) {
+    c.checked = get(c.dataset.set);
+    c.addEventListener('change', function () { set(c.dataset.set, c.checked); apply(); });
+  });
+  apply();
 })();
