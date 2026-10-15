@@ -80,11 +80,14 @@
             string CatOf(string n) => n.Contains("Ролл") ? "Роллы" : n.Contains("Салат") ? "Салаты" : n.Contains("Пицца") ? "Пицца" : n.Contains("Поке") || n.Contains("боул") ? "Боулы" : "Горячее";
             var byCat = allDishes.GroupBy(d => CatOf((string)d.Name)).OrderBy(g => g.Key);
         }
-        <div class="eyebrow" style="margin:22px 0 12px">Остановить вручную</div>
+        <div class="eyebrow" style="margin:22px 0 10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span>Остановить вручную</span>
+            <input type="text" id="dishSearch" class="sv-input" placeholder="поиск блюда…" autocomplete="off" style="max-width:240px;min-height:34px;font-size:13px;padding:0 12px" />
+        </div>
         @foreach (var cat in byCat)
         {
-            <div style="margin-bottom:14px">
-                <div class="dim" style="font-size:11.5px;margin-bottom:7px;font-weight:600">@cat.Key</div>
+            <div class="dish-cat" style="margin-bottom:14px">
+                <div class="dim dish-cat-name" style="font-size:11.5px;margin-bottom:7px;font-weight:600">@cat.Key</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px">
                     @foreach (var d in cat)
                     {
@@ -95,7 +98,7 @@
                             <input type="hidden" name="dishId" value="@d.Id" />
                             <input type="hidden" name="returnTo" value="stoplist" />
                             @if (!isOn) { <input type="hidden" name="stopComment" value="" /> }
-                            <button type="submit" class="chip" style="padding-left:6px;gap:9px;@(isOn ? "border-color:color-mix(in oklab,var(--rd) 45%,transparent)" : "")"
+                            <button type="submit" class="chip dish-chip" data-name="@d.Name" style="padding-left:6px;gap:9px;@(isOn ? "border-color:color-mix(in oklab,var(--rd) 45%,transparent)" : "")"
                                     title="@(isOn ? $"вернуть · {(string.IsNullOrWhiteSpace(comment) ? "остановлено вручную" : comment)}" : "в стоп")">
                                 <span class="tgl @(isOn ? "on" : "")" style="width:30px;height:18px;pointer-events:none"></span>
                                 @d.Name
@@ -179,6 +182,18 @@
         ['stopClose','stopCancel'].forEach(function(id){var b=document.getElementById(id);if(b)b.addEventListener('click',function(){stopModal.hidden=true;});});
         stopModal.addEventListener('click',function(e){if(e.target===stopModal)stopModal.hidden=true;});
         document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+        // Поиск блюд в ручном стопе
+        var dishSearch = document.getElementById('dishSearch');
+        if (dishSearch) dishSearch.addEventListener('input', function () {
+            var q = this.value.trim().toLowerCase();
+            document.querySelectorAll('.dish-chip').forEach(function (b) {
+                b.style.display = b.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+            });
+            document.querySelectorAll('.dish-cat').forEach(function (cat) {
+                var any = [...cat.querySelectorAll('.dish-chip')].some(b => b.style.display !== 'none');
+                cat.style.display = any ? '' : 'none';
+            });
+        });
         // Совет Лимо: скрыт, показывается раз за сессию; «Понятно» прячет
         try {
             var tip = document.getElementById('limoTip');

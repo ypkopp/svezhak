@@ -1069,3 +1069,26 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Ссылки-действия в футе сайдбара (расписание/docs у повара) выглядят как кнопки */
 .sv-sidebar-foot a.sv-sidebar-action{text-decoration:none;cursor:pointer;width:100%;box-sizing:border-box}
+
+/* ===== Фильтр <48ч на складе — квадратный чекбокс ===== */
+.exp-box{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:1px solid var(--stroke);border-radius:999px;background:var(--glass-hi);color:var(--tx2);font-size:13px;font-weight:500;cursor:pointer;user-select:none;transition:.2s;white-space:nowrap}
+.exp-box:hover{border-color:var(--stroke2);color:var(--tx)}
+.exp-box input{display:none}
+.exp-box-sq{width:15px;height:15px;flex:none;border-radius:5px;border:1.5px solid var(--stroke2);background:transparent;transition:.15s;position:relative}
+.exp-box.on{border-color:color-mix(in oklab,var(--ye) 55%,transparent);color:var(--tx)}
+.exp-box.on .exp-box-sq{background:var(--ye);border-color:var(--ye);box-shadow:0 0 8px var(--ye)}
+.exp-box.on .exp-box-sq::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #000;border-width:0 2px 2px 0;transform:rotate(40deg)}
+/* Звезда «в стоп» на карточке блюда */
+.sv-star-btn{width:28px;height:28px;flex:none;display:grid;place-items:center;border:0;border-radius:9px;background:transparent;color:var(--tx3);font-size:16px;cursor:pointer;transition:.15s}
+.sv-star-btn:hover{color:var(--ye);background:color-mix(in oklab,var(--ye) 10%,transparent)}
+.sv-star-btn.is-on{color:var(--ye)}
+.sv-star-btn[hidden]{display:none}
+
+/* Тикет-бар в ИИ-поддержке */
+.sv-ticket-bar{display:flex;flex-direction:column;gap:7px;padding-top:8px;border-top:1px dashed var(--stroke)}
+.sv-ticket-bar .btn{cursor:pointer}
+
+/* Стрелки-статусы в карточках аналитики */
+.an-arrow{width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:10px;font:800 18px/1 system-ui;box-shadow:0 0 14px -2px currentColor}
+.an-arrow.an-up{color:var(--gr);background:color-mix(in oklab,var(--gr) 14%,transparent)}
+.an-arrow.an-down{color:var(--rd);background:color-mix(in oklab,var(--rd) 14%,transparent)}

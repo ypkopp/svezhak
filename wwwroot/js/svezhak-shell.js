@@ -340,6 +340,10 @@
     // Скрыть QR (для поваров и вообще)
     var qr = document.getElementById('qrBtn');
     if (qr) qr.style.display = get('hideQr') ? 'none' : '';
+    // Скрыть звёздочку «в стоп» на карточках заказа
+    document.querySelectorAll('.sv-star-btn').forEach(function (b) {
+      b.hidden = get('hideStar');
+    });
     // Скрыть часы
     var clk = document.querySelector('[data-led-clock]');
     if (clk) clk.style.display = get('hideClock') ? 'none' : '';

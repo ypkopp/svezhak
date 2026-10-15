@@ -129,6 +129,7 @@
                                 <label class="sv-set-row"><input type="checkbox" data-set="hideDash" /><span>Скрыть «Дашборд» из меню</span></label>
                                 <label class="sv-set-row"><input type="checkbox" data-set="hideTheme" /><span>Скрыть переключатель тем</span></label>
                                 <label class="sv-set-row"><input type="checkbox" data-set="hideQr" /><span>Скрыть QR для кухни</span></label>
+                                <label class="sv-set-row"><input type="checkbox" data-set="hideStar" /><span>Скрыть звёздочку стопа в заказе</span></label>
                                 <label class="sv-set-row"><input type="checkbox" data-set="hideClock" /><span>Скрыть часы</span></label>
                                 <div class="sv-set-row" style="flex-direction:column;align-items:stretch;gap:8px">
                                     <span class="dim" style="font-size:10px">Тема</span>
@@ -180,9 +181,10 @@
                 <input id="chatInput" type="text" placeholder="что сгорит первым?" autocomplete="off" maxlength="400" style="flex:1" />
                 <button type="button" id="chatSend" aria-label="Отправить">→</button>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
-                <button type="button" class="btn sm ghost" id="ticketBtn" style="font-size:11.5px">🎫 Тикет админу</button>
-                <span class="dim" id="ticketStatus" style="font-size:10.5px"></span>
+            <div class="sv-ticket-bar">
+                <div class="dim" style="font-size:10.5px;line-height:1.4">Нужен человек? Напиши вопрос выше — он уйдёт админу как тикет.</div>
+                <button type="button" class="btn sm" id="ticketBtn" style="width:100%;justify-content:center">🎫 Отправить тикет админу</button>
+                <span class="dim" id="ticketStatus" style="font-size:10.5px;text-align:center"></span>
             </div>
         </div>
     </div>

@@ -46,9 +46,7 @@
                     <div class="sv-menu-card @(d.ManualStopped ? "is-stopped" : "")" data-cat="@category">
                         <div style="display:flex;gap:8px;align-items:flex-start">
                             <b style="flex:1;font-size:14px;line-height:1.25;min-height:36px">@d.Name</b>
-                            <button type="button" class="sv-stop-btn" title="@(d.ManualStopped ? "Вернуть в меню" : "В стоп")" data-stop-toggle data-id="@d.Id" data-name="@d.Name" data-stopped="@(d.ManualStopped ? "1" : "0")">
-                                <img src="~/img/brand/st-stop.png" alt="" />
-                            </button>
+                            <button type="button" class="sv-star-btn @(d.ManualStopped ? "is-on" : "")" title="@(d.ManualStopped ? "Вернуть в меню" : "В стоп")" data-stop-toggle data-id="@d.Id" data-name="@d.Name" data-stopped="@(d.ManualStopped ? "1" : "0")">★</button>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px">
                             <span class="mono muted" style="font-size:13px">@($"{d.Price:0}") ₽</span>

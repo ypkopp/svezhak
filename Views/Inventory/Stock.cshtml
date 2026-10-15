@@ -58,12 +58,17 @@
 <section class="glass card rise">
     <div class="card-h" style="flex-wrap:wrap">
         <span class="eyebrow">Партии на складе</span><span class="sp"></span>
-        <a class="chip @(curCat == null ? "on" : "")" href="@Url.Action("Stock", new { expiringOnly })">Все<span class="n">@stock.Count()</span></a>
-        @foreach (var c in categories)
-        {
-            <a class="chip @(curCat == c ? "on" : "")" href="@Url.Action("Stock", new { expiringOnly, category = c })"><img src="~/img/brand/@catImg(c)" alt="" />@c</a>
-        }
-        <label class="chip @(expiringOnly ? "on" : "")" style="gap:6px"><input type="checkbox" id="expToggle" @(expiringOnly ? "checked" : "") style="display:none" /><span class="dot" style="width:8px;height:8px;background:var(--ye);box-shadow:0 0 8px var(--ye)"></span>&lt;48 ч</label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <a class="chip @(curCat == null ? "on" : "")" href="@Url.Action("Stock", new { expiringOnly })">Все<span class="n">@stock.Count()</span></a>
+            @foreach (var c in categories)
+            {
+                <a class="chip @(curCat == c ? "on" : "")" href="@Url.Action("Stock", new { expiringOnly, category = c })"><img src="~/img/brand/@catImg(c)" alt="" />@c</a>
+            }
+            <label class="exp-box @(expiringOnly ? "on" : "")" title="Показать только горящие">
+                <input type="checkbox" id="expToggle" @(expiringOnly ? "checked" : "") />
+                <span class="exp-box-sq"></span>&lt;48 ч
+            </label>
+        </div>
     </div>
 
     @if (groups.Any())
