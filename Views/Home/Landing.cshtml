@@ -8,169 +8,160 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>СВЕЖАК — склад без просрочки</title>
+<title>СВЕЖАК — шеф и ИИ следят за складом вместе</title>
 <link rel="icon" type="image/png" href="~/img/brand/svezhak-icon.png" />
+<script>
+  (function(){try{var r=document.documentElement;var t=localStorage.getItem('sv6-theme');if(!t){var o=localStorage.getItem('sv-theme');t=(o==='B')?'matcha':'night';}r.dataset.theme=t;}catch(e){}})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Unbounded:wght@500;600;700;800&family=Onest:wght@400;500;600;700&family=Oswald:wght@700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="~/css/svezhak.css" asp-append-version="true" />
 <style>
-:root{--or:#ED8936;--rd:#F56565;--ye:#ECC94B;--gr:#48BB78;--a1:var(--or);--a2:var(--rd);--g1:linear-gradient(120deg,var(--or),var(--rd));--tx:#e8eaf0;--mut:#8b93a7;--bd:#ffffff14;--ui:'Manrope',sans-serif;--disp:'Unbounded',sans-serif;--mono:'JetBrains Mono',monospace}
-*{box-sizing:border-box;margin:0}
-html,body{background:#0b0d11;color:var(--tx);font-family:var(--ui);font-size:15px;line-height:1.55}
-a{text-decoration:none;color:inherit}
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-.kicker{font:600 10px var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--a1)}
-.btn{display:inline-flex;align-items:center;gap:9px;min-height:46px;padding:0 22px;border:0;border-radius:14px;font:800 14px var(--ui);cursor:pointer;transition:transform .18s,box-shadow .18s}
-.btn-p{background:var(--g1);color:#160a02;box-shadow:0 10px 30px -8px var(--a1)}
-.btn-p:hover{transform:translateY(-2px)}
-.btn-g{background:#ffffff08;color:var(--tx);border:1px solid var(--bd)}
-.btn-g:hover{background:#ffffff10}
-/* ===== NAV ===== */
-.nav{position:fixed;inset:0 0 auto;z-index:50;padding:14px 0;backdrop-filter:blur(14px);background:#0b0d11cc;border-bottom:1px solid #ffffff0a}
-.nav .wrap{display:flex;align-items:center;justify-content:space-between}
-.nav img{height:30px;display:block}
-.nav-links{display:flex;gap:22px;align-items:center;font:700 12px var(--ui);color:var(--mut)}
-.nav-links a:hover{color:#fff}
-/* ===== HERO ===== */
-.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:120px 0 60px;overflow:hidden}
-.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}
-.hero-fade{position:absolute;inset:0;background:linear-gradient(90deg,#0b0d11 8%,#0b0d11b8 45%,#0b0d1133 75%,transparent),linear-gradient(0deg,#0b0d11,transparent 40%)}
-.hero-in{position:relative;display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;width:100%}
-.hero h1{font:800 clamp(40px,6.4vw,74px)/1.04 var(--disp);letter-spacing:-.02em;margin:14px 0 18px}
-.hero h1 span{background:var(--g1);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p{color:var(--mut);font-size:17px;max-width:520px;margin-bottom:28px}
-.hero-cta{display:flex;gap:12px;flex-wrap:wrap}
-/* mock panel */
-.mock{background:linear-gradient(155deg,#1b1e27f0,#111318f0);border:1px solid var(--bd);border-radius:22px;padding:18px;box-shadow:0 40px 90px -30px #000;transform:rotate(1.5deg)}
-.mock-bar{display:flex;gap:6px;margin-bottom:14px}
-.mock-bar i{width:9px;height:9px;border-radius:50%;background:#ffffff1a}
-.mock-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #ffffff0a;font-size:12px}
-.mock-row:last-child{border:0}
-.mock-led{font:700 11px var(--mono);color:var(--a1)}
-.badge{font:700 9px var(--mono);padding:2px 8px;border-radius:999px}
-.b-r{background:#F5656522;color:var(--rd)}.b-y{background:#ECC94B22;color:var(--ye)}.b-g{background:#48BB7822;color:var(--gr)}
-/* ===== SECTIONS ===== */
-section{padding:80px 0}
-.sec-h{font:700 clamp(26px,4vw,44px)/1.1 var(--disp);margin:10px 0 14px}
-.sec-p{color:var(--mut);max-width:560px;font-size:16px}
-.value-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
-.value{background:linear-gradient(160deg,#1b1e27cc,#111318cc);border:1px solid var(--bd);border-radius:20px;padding:24px;transition:.2s}
-.value:hover{transform:translateY(-4px);border-color:color-mix(in oklab,var(--a1) 40%,transparent)}
-.value img{width:44px;margin-bottom:14px}
-.value b{display:block;font:700 17px var(--disp);margin-bottom:6px}
-.value span{color:var(--mut);font-size:13px}
-/* ===== SCREENS ===== */
-.shots{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
-.shot{border-radius:18px;overflow:hidden;border:1px solid var(--bd);background:#111318;aspect-ratio:4/3;position:relative}
-.shot img{width:100%;height:100%;object-fit:cover;opacity:.85}
-.shot .cap{position:absolute;left:14px;bottom:12px;font:600 10px var(--mono);color:var(--a1);letter-spacing:.12em;text-transform:uppercase;background:#0b0d11d0;padding:4px 9px;border-radius:8px}
-/* ===== LEAD FORM ===== */
-.lead-card{max-width:600px;margin:34px auto 0;background:linear-gradient(165deg,#1b1e27f5,#111318f5);border:1px solid var(--bd);border-radius:24px;padding:34px;box-shadow:0 40px 90px -30px #000}
-.field{margin-bottom:16px}
-.field label{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin-bottom:7px}
-.field input{width:100%;min-height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--bd);background:#ffffff06;color:var(--tx);font:inherit;font-size:14px}
-.field input:focus{outline:none;border-color:var(--a1);box-shadow:0 0 0 3px color-mix(in oklab,var(--a1) 20%,transparent)}
-.alert-ok{background:#48BB7818;border:1px solid #48BB7840;color:var(--gr);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px}
-.alert-err{background:#F5656514;border:1px solid #F5656540;color:var(--rd);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px}
-.done{text-align:center;padding:20px 0}
-.done img{width:64px;margin-bottom:14px}
-.tg-link{display:inline-flex;align-items:center;gap:8px;margin-top:14px;color:#54a9eb;font:700 13px var(--ui);text-decoration:none}
-.tg-link:hover{color:#8ac7f5}
-footer{border-top:1px solid #ffffff0a;padding:34px 0;color:var(--mut);font-size:12px;text-align:center}
-@@media(max-width:860px){.hero-in{grid-template-columns:1fr}.mock{display:none}.value-grid,.shots{grid-template-columns:1fr}.nav-links{display:none}}
+/* ===== Лендинг v6 — композиция ===== */
+.lp{position:relative;z-index:1}
+.lp-wrap{max-width:1240px;margin:0 auto;padding:0 28px}
+.mfloat{animation:mfloat 5s ease-in-out infinite}
+.lnk{color:var(--ac);font-size:13.5px;font-weight:600;text-decoration:none}
+.lnk:hover{text-decoration:underline}
 </style>
 </head>
 <body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 
-<nav class="nav"><div class="wrap">
-    <a href="/"><img src="~/img/brand/svezhak-logo-dark-animated.svg" alt="СВЕЖАК" /></a>
-    <div class="nav-links">
-        <a href="#value">Продукт</a><a href="#screens">Интерфейс</a><a href="#lead">Заявка</a>
-        <a class="btn btn-g" style="min-height:36px;padding:0 16px" asp-controller="Account" asp-action="Login">Вход →</a>
+<div class="lp">
+  <header class="lp-nav glass">
+    <img src="~/img/brand/svezhak-logo-dark.svg" style="height:26px" alt="СВЕЖАК" />
+    <nav style="display:flex;gap:22px;margin-left:30px">
+        <a href="#Продукт" class="lp-a">Продукт</a><a href="#Интерфейс" class="lp-a">Интерфейс</a><a href="#Персонажи" class="lp-a">Персонажи</a><a href="#Заявка" class="lp-a">Заявка</a>
+    </nav>
+    <div style="flex:1"></div>
+    <a class="btn" asp-controller="Account" asp-action="Login">Вход →</a>
+  </header>
+
+  @* HERO: человек + аниме-ассистент *@
+  <section class="lp-hero">
+    <img src="~/img/brand/kv-collab.png" alt="" class="lp-kv" />
+    <div class="lp-hero-fade"></div>
+    <div class="lp-hero-tx rise">
+      <span class="chip on" style="cursor:default"><i class="dot pulse c-gr" style="width:6px;height:6px"></i>Мониторинг свежести для сетей ресторанов</span>
+      <h1 class="disp">Шеф и ИИ<br />следят за складом <span class="grad-tx">вместе.</span></h1>
+      <p>СВЕЖАК видит срок каждой партии, списывает по FEFO и заранее подсказывает, какое блюдо вот-вот уйдёт в стоп-лист.</p>
+      <div style="display:flex;gap:12px">
+        <a href="#Заявка" class="btn pri lg">Оставить заявку →</a>
+        <a class="btn lg" asp-controller="Inventory" asp-action="Index">Смотреть демо</a>
+      </div>
+      <div style="display:flex;gap:34px;margin-top:30px">
+        <div><div class="disp" style="font-size:30px;font-weight:700">−31%</div><div class="dim" style="font-size:12.5px">списаний за месяц</div></div>
+        <div><div class="disp" style="font-size:30px;font-weight:700">0</div><div class="dim" style="font-size:12.5px">просрочек за неделю</div></div>
+        <div><div class="disp" style="font-size:30px;font-weight:700">24/7</div><div class="dim" style="font-size:12.5px">мониторинг сроков</div></div>
+      </div>
     </div>
-</div></nav>
-
-<section class="hero" style="padding-top:0">
-    <img class="hero-bg" src="~/img/brand/kv-warehouse.png" alt="" />
-    <div class="hero-fade"></div>
-    <div class="wrap hero-in">
-        <div>
-            <div class="kicker">Мониторинг свежести для сетей ресторанов</div>
-            <h1>Склад<br/><span>без просрочки</span>.</h1>
-            <p>СВЕЖАК следит за сроками каждой партии, списывает по FEFO и предсказывает стоп-лист до того, как блюдо выпало из меню.</p>
-            <div class="hero-cta">
-                <a class="btn btn-p" href="#lead">Оставить заявку</a>
-                <a class="btn btn-g" href="#screens">Посмотреть интерфейс</a>
-            </div>
-        </div>
-        <div class="mock">
-            <div class="mock-bar"><i></i><i></i><i></i></div>
-            <div class="mock-row"><span class="badge b-r">стоп</span><b>Удон с курицей</b><span class="mock-led" style="margin-left:auto">2.4 ч</span></div>
-            <div class="mock-row"><span class="badge b-y">горит</span><b>Ролл Филадельфия</b><span class="mock-led" style="margin-left:auto">7.1 ч</span></div>
-            <div class="mock-row"><span class="badge b-g">ок</span><b>Пицца Маргарита</b><span class="mock-led" style="margin-left:auto">68 ч</span></div>
-            <div class="mock-row" style="border:0"><span style="color:var(--mut)">списано за неделю</span><b style="margin-left:auto;color:var(--gr)">−38%</b></div>
-        </div>
+    <div class="glass lp-float" style="right:6%;bottom:12%">
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0"><span class="badge rd">стоп</span><b style="flex:1;font-size:13px">Удон с курицей</b><span class="mono c-rd" style="font-size:12px">2.4 ч</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0"><span class="badge ye">горит</span><b style="flex:1;font-size:13px">Ролл Филадельфия</b><span class="mono c-ye" style="font-size:12px">7.1 ч</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0"><span class="badge gr">ок</span><b style="flex:1;font-size:13px">Пицца Маргарита</b><span class="mono c-gr" style="font-size:12px">68 ч</span></div>
     </div>
-</section>
+  </section>
 
-<section id="value"><div class="wrap">
-    <div class="kicker">Зачем это нужно</div>
-    <h2 class="sec-h">Три вещи, которые возвращают деньги</h2>
-    <div class="value-grid">
-        <div class="value"><img src="~/img/brand/st-hot.png" alt=""/><b>Меньше списаний в ₽</b><span>Водопад потерь и риск списания по каждой партии — видно, сколько сгорит, если не продать сегодня.</span></div>
-        <div class="value"><img src="~/img/brand/st-stop.png" alt=""/><b>Живой стоп-лист</b><span>Блюдо уходит в стоп, когда не хватает ингредиентов. Заказ с ним отклоняется автоматически — до кассы.</span></div>
-        <div class="value"><img src="~/img/brand/st-check.png" alt=""/><b>ИИ-советник</b><span>Сводка смены одним абзацем и конкретные рекомендации: что продать, что заказать, что списать.</span></div>
+  @* 3 ценности с маскотами *@
+  <section class="lp-sec" id="Продукт">
+    <div class="eyebrow" style="color:var(--ac)">Зачем это нужно</div>
+    <h2 class="disp">Три вещи, которые возвращают деньги</h2>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:34px">
+      <div class="glass card lp-val" style="position:relative">
+        <img class="mfloat" src="~/img/brand/m-avo.png" style="position:absolute;right:10px;top:-50px;height:110px" alt="" />
+        <img src="~/img/brand/st-hot.png" style="width:46px" alt="" />
+        <h3 class="disp" style="font-size:19px;margin:18px 0 8px;font-weight:600">Меньше списаний в ₽</h3>
+        <p class="muted" style="margin:0;font-size:14px">Водопад потерь и риск списания по каждой партии — видно, сколько сгорит, если не продать сегодня.</p>
+      </div>
+      <div class="glass card lp-val" style="position:relative">
+        <img class="mfloat" src="~/img/brand/m-salmon.png" style="position:absolute;right:10px;top:-50px;height:110px;animation-delay:-1.6s" alt="" />
+        <img src="~/img/brand/st-stop.png" style="width:46px" alt="" />
+        <h3 class="disp" style="font-size:19px;margin:18px 0 8px;font-weight:600">Живой стоп-лист</h3>
+        <p class="muted" style="margin:0;font-size:14px">Блюдо уходит в стоп, когда не хватает ингредиентов. Заказ с ним отклоняется автоматически — до кассы.</p>
+      </div>
+      <div class="glass card lp-val" style="position:relative">
+        <img class="mfloat" src="~/img/brand/m-lemon.png" style="position:absolute;right:10px;top:-50px;height:110px;animation-delay:-3.2s" alt="" />
+        <img src="~/img/brand/st-check.png" style="width:46px" alt="" />
+        <h3 class="disp" style="font-size:19px;margin:18px 0 8px;font-weight:600">ИИ-советник</h3>
+        <p class="muted" style="margin:0;font-size:14px">Сводка смены одним абзацем и конкретные рекомендации: что продать, что заказать, что списать.</p>
+      </div>
     </div>
-</div></section>
+  </section>
 
-<section id="screens" style="background:#0e1014"><div class="wrap">
-    <div class="kicker">Интерфейс</div>
-    <h2 class="sec-h">Сделан для кухни — тёмный, крупный, живой</h2>
-    <p class="sec-p">Дашборд обновляется по SignalR без перезагрузки. Осциллограф заказов, река свежести, LED-водопад массы склада.</p>
-    <div class="shots">
-        <div class="shot"><img src="~/img/brand/kv-warehouse.png" alt=""/><div class="cap">Дашборд</div></div>
-        <div class="shot"><img src="~/img/brand/info-flow.png" alt=""/><div class="cap">Путь продукта</div></div>
-        <div class="shot"><img src="~/img/brand/key-visual.png" alt=""/><div class="cap">Склад</div></div>
+  @* Скриншоты продукта *@
+  <section class="lp-sec" id="Интерфейс">
+    <div class="eyebrow" style="color:var(--ac)">Интерфейс</div>
+    <h2 class="disp">Стеклянный, крупный, живой — <span class="grad-tx">в пяти темах</span></h2>
+    <p class="muted" style="max-width:560px;font-size:15px">Дашборд обновляется по SignalR без перезагрузки. Спираль свежести, пульс заказов, LED-водопад массы склада.</p>
+    <div class="lp-shots">
+      <figure class="shot" style="grid-column:1/3;grid-row:1/3"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">svezhak.app/dashboard</span></div><img src="~/img/brand/kv-collab.png" alt="" /></figure>
+      <figure class="shot" style="transform:perspective(1400px) rotateY(-4deg)"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">/sklad</span></div><img src="~/img/brand/info-flow.png" alt="" /></figure>
+      <figure class="shot" style="transform:perspective(1400px) rotateY(-4deg)"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">/stop</span></div><img src="~/img/brand/key-visual.png" alt="" /></figure>
     </div>
-</div></section>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:18px">
+      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Бумага»</span></div><img src="~/img/brand/kv-warehouse.png" alt="" /></figure>
+      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Матча»</span></div><img src="~/img/brand/info-flow.png" alt="" /></figure>
+      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Лаванда»</span></div><img src="~/img/brand/kv-collab.png" alt="" /></figure>
+    </div>
+  </section>
 
-<section id="lead"><div class="wrap">
-    <div style="text-align:center"><div class="kicker">Подключение</div>
-    <h2 class="sec-h">Оставьте заявку — подключим сеть</h2>
-    <p class="sec-p" style="margin:0 auto">Напишите название сети и контакт — обсудим договор и выдадим доступы.</p></div>
-    <div class="lead-card">
-        @if (leadErr is not null) { <div class="alert-err">@leadErr</div> }
+  @* Персонажи *@
+  <section class="lp-sec" id="Персонажи">
+    <div class="glass" style="display:grid;grid-template-columns:1fr 1.4fr;align-items:center;padding:34px 40px;overflow:hidden">
+      <div>
+        <div class="eyebrow" style="color:var(--ac)">Команда склада</div>
+        <h2 class="disp" style="font-size:34px">Четыре помощника — четыре состояния</h2>
+        <p class="muted">Ави радуется, когда всё свежее. Сёма бьёт тревогу. Лимо советует. Рисик скучает, когда склад пуст.</p>
+      </div>
+      <div style="display:flex;justify-content:space-around;align-items:flex-end">
+        <div style="text-align:center"><img class="mfloat" src="~/img/brand/m-avo.png" style="height:150px" alt="" /><div class="eyebrow" style="margin-top:10px">Ави</div></div>
+        <div style="text-align:center"><img class="mfloat" src="~/img/brand/m-salmon.png" style="height:150px;animation-delay:-1.2s" alt="" /><div class="eyebrow" style="margin-top:10px">Сёма</div></div>
+        <div style="text-align:center"><img class="mfloat" src="~/img/brand/m-lemon.png" style="height:150px;animation-delay:-2.4s" alt="" /><div class="eyebrow" style="margin-top:10px">Лимо</div></div>
+        <div style="text-align:center"><img class="mfloat" src="~/img/brand/m-onigiri.png" style="height:150px;animation-delay:-3.6s" alt="" /><div class="eyebrow" style="margin-top:10px">Рисик</div></div>
+      </div>
+    </div>
+  </section>
+
+  @* Заявка *@
+  <section class="lp-sec" id="Заявка" style="text-align:center">
+    <div class="eyebrow" style="color:var(--ac)">Подключение</div>
+    <h2 class="disp">Оставьте заявку — подключим сеть</h2>
+    <p class="muted" style="font-size:15px">Напишите название сети и контакт — обсудим договор и выдадим доступы.</p>
+    <div class="glass card" style="max-width:520px;margin:30px auto 0;text-align:left;padding:28px;display:flex;flex-direction:column;gap:16px">
+        @if (leadErr is not null) { <div class="sv-form-alert">@leadErr</div> }
         @if (leadOk is not null)
         {
-            <div class="done">
-                <img src="~/img/brand/chef-3-cut.png" alt="" />
-                <div class="kicker" style="color:var(--gr)">Заявка отправлена</div>
-                <h3 style="font:700 20px var(--disp);margin:10px 0 6px">Спасибо, «@leadOk»!</h3>
-                <p style="color:var(--mut);font-size:13px">Свяжемся в Telegram в течение рабочего дня.</p>
-                <a class="tg-link" href="https://t.me/minelnickels" target="_blank" rel="noopener" style="justify-content:center;margin:14px auto 0">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21.9 4.6l-3.1 14.6c-.2 1-.8 1.3-1.7.8l-4.6-3.4-2.2 2.1c-.3.3-.5.5-1 .5l.4-4.6 8.4-7.6c.4-.4-.1-.5-.6-.2L7 13.4 2.4 12c-1-.3-1-1 .2-1.5l18-7c.8-.3 1.5.2 1.3 1.1z"/></svg>
+            <div style="text-align:center;padding:20px 0">
+                <img src="~/img/brand/m-avo.png" style="height:90px;margin-bottom:12px" alt="" />
+                <div class="eyebrow" style="color:var(--gr)">Заявка отправлена</div>
+                <h3 class="disp" style="font-size:20px;margin:10px 0 6px">Спасибо, «@leadOk»!</h3>
+                <p class="muted" style="font-size:13px">Ави уже передала её менеджеру — ответим в Telegram в течение дня.</p>
+                <a class="lnk" href="https://t.me/minelnickels" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;margin-top:14px">
+                    <span style="width:28px;height:28px;border-radius:9px;background:#2AABEE;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M21.9 4.6l-3.1 14.6c-.2 1-.8 1.3-1.7.8l-4.6-3.4-2.2 2.1c-.3.3-.5.5-1 .5l.4-4.6 8.4-7.6c.4-.4-.1-.5-.6-.2L7 13.4 2.4 12c-1-.3-1-1 .2-1.5l18-7c.8-.3 1.5.2 1.3 1.1z"/></svg></span>
                     или напишите нам в Telegram
                 </a>
-                <a class="btn btn-g" href="/" style="margin-top:14px">На главную</a>
+                <div><a class="btn" href="/" style="margin-top:14px">На главную</a></div>
             </div>
         }
         else
         {
-            <form method="post" asp-action="Lead" asp-controller="Home">
+            <form method="post" asp-action="Lead" asp-controller="Home" style="display:flex;flex-direction:column;gap:16px">
                 @Html.AntiForgeryToken()
-                <div class="field"><label>Название сети</label><input name="networkName" placeholder="Суши-Суши" required maxlength="120" /></div>
-                <div class="field"><label>Контакт / Telegram</label><input name="contact" placeholder="&#64;username или +7…" required maxlength="120" /></div>
-                <div class="field"><label>Число ресторанов</label><input name="restaurantCount" type="number" min="1" value="1" required /></div>
-                <button class="btn btn-p" style="width:100%;justify-content:center" type="submit">Отправить заявку →</button>
+                <div class="field"><label>Название сети</label><input class="inp" name="networkName" placeholder="Суши-Суши" required maxlength="120" /></div>
+                <div class="field"><label>Контакт / Telegram</label><input class="inp" name="contact" placeholder="&#64;username или +7…" required maxlength="120" /></div>
+                <div class="field"><label>Число ресторанов</label><input class="inp" name="restaurantCount" type="number" min="1" value="1" required /></div>
+                <button class="btn pri lg" type="submit" style="justify-content:center">Отправить заявку →</button>
             </form>
-            <a class="tg-link" href="https://t.me/minelnickels" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21.9 4.6l-3.1 14.6c-.2 1-.8 1.3-1.7.8l-4.6-3.4-2.2 2.1c-.3.3-.5.5-1 .5l.4-4.6 8.4-7.6c.4-.4-.1-.5-.6-.2L7 13.4 2.4 12c-1-.3-1-1 .2-1.5l18-7c.8-.3 1.5.2 1.3 1.1z"/></svg>
+            <a class="lnk" href="https://t.me/minelnickels" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;font-size:13.5px">
+                <span style="width:28px;height:28px;border-radius:9px;background:#2AABEE;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M21.9 4.6l-3.1 14.6c-.2 1-.8 1.3-1.7.8l-4.6-3.4-2.2 2.1c-.3.3-.5.5-1 .5l.4-4.6 8.4-7.6c.4-.4-.1-.5-.6-.2L7 13.4 2.4 12c-1-.3-1-1 .2-1.5l18-7c.8-.3 1.5.2 1.3 1.1z"/></svg></span>
                 или напишите нам в Telegram
             </a>
         }
     </div>
-</div></section>
-
-<footer><div class="wrap">СВЕЖАК · склад без просрочки · @DateTime.UtcNow.Year</div></footer>
+  </section>
+  <footer class="foot" style="text-align:center;border:0">СВЕЖАК · склад без просрочки · @DateTime.UtcNow.Year</footer>
+</div>
 </body>
 </html>
