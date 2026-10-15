@@ -48,7 +48,8 @@ a { color:inherit; text-decoration:none; }
 a:hover { color:var(--tx); }
 
 /* App ambient grid + glows */
-.sv-background { position:fixed; inset:0; z-index:-1; pointer-events:none; background:radial-gradient(900px 520px at 78% -8%,var(--glow),transparent 62%),radial-gradient(700px 600px at 10% 120%,#7f5af014,transparent 60%),linear-gradient(#ffffff05 1px,transparent 1px) 0 0/32px 32px,linear-gradient(90deg,#ffffff05 1px,transparent 1px) 0 0/32px 32px,#0d0f13; }
+.sv-background { position:fixed; inset:0; z-index:-1; pointer-events:none; background:radial-gradient(900px 520px at 78% -8%,var(--glow,transparent),transparent 62%),radial-gradient(700px 600px at 10% 120%,#7f5af014,transparent 60%),var(--bg); }
+[data-theme="paper"] .sv-background { background:radial-gradient(900px 520px at 78% -8%,#ffb67a55,transparent 62%),radial-gradient(700px 600px at 10% 120%,#8ee0b055,transparent 60%),var(--bg); }
 .sv-app-shell { display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; position:relative; }
 .sv-handoff-sidebar { position:sticky; top:0; height:100vh; height:100dvh; overflow-y:auto; display:flex; flex-direction:column; padding:22px 14px 24px; background:linear-gradient(180deg,#12151bcc,#0e1014cc); backdrop-filter:blur(12px); border-right:1px solid #ffffff0d; z-index:10; scrollbar-width:thin; }
 .sv-handoff-logo { display:block; padding:4px 8px 0; }
@@ -958,3 +959,47 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Логин: поле с ошибкой */
 .inp.sv-err { border-color:var(--rd); }
+
+/* ===== Фиксы темы (v6): все «тёмные» поверхности следуют за data-theme ===== */
+/* 1) Сайдбар и топбар — убираем хардкод-тёмный градиент, делаем по --bg2/--pn */
+.sv-handoff-sidebar { background:color-mix(in oklab,var(--pn) 78%,transparent)!important; }
+.sv-handoff-topbar { background:color-mix(in oklab,var(--pn) 55%,transparent)!important; }
+/* 2) Все кнопки — явный цвет текста, чтобы не было чёрного на акценте и наоборот */
+.btn { color:var(--tx); }
+.btn.pri { color:var(--on-ac); }
+.btn.ghost { color:var(--tx2); }
+.btn.danger { color:var(--rd); }
+.btn.ok { color:var(--gr); }
+.seg button { color:var(--tx2); }
+.seg button.on { color:var(--tx); }
+.chip { color:var(--tx2); }
+.chip.on { color:var(--tx); }
+/* 3) Модалки/оверлеи по теме */
+.sv-modal-wrap { background:color-mix(in oklab,#000 55%,transparent); }
+.sv-chat-panel { background:color-mix(in oklab,var(--pn) 82%,transparent); }
+/* 4) Светлая(бумага): боковая навигация и бейдж-строчки не должны оставаться тёмными */
+[data-theme="paper"] .sv-handoff-sidebar,
+[data-theme="paper"] .sv-handoff-topbar { backdrop-filter:blur(20px); }
+[data-theme="paper"] .sv-sidebar-foot,
+[data-theme="paper"] .sv-handoff-nav-item { color:var(--tx2); }
+/* 5) Стандартные поверхности под тему: текст везде берём из --tx, мелкий — --tx2/--tx3 */
+.mono,.disp,.eyebrow,.muted,.dim,.ttl,.sv-section-title,.sv-page-title,.sv-page-sub,.sv-kicker { color:inherit; }
+.muted,.dim,.sv-page-sub,.sv-surface-caption { color:var(--tx2); }
+.eyebrow,.sv-kicker { color:var(--tx3); }
+/* 6) Стоп-тумблеры/чипы — на светлой не растворяться */
+.sv-stop-toggle { border-color:var(--stroke); background:color-mix(in oklab,var(--pn2) 50%,transparent); color:var(--tx); }
+/* 7) Строки таблиц — по теме */
+.rows>.row { background:color-mix(in oklab,var(--pn2) 50%,transparent); }
+/* 8) Импорт-полоса и dashed-панели — обводка по акценту темы */
+
+/* ===== Совместимость старых токенов sv-* с темами v6 ===== */
+/* Старый акцент (--a1/--a2/--g1/--glow/--mut/--cr) следует за --ac темы */
+:root,[data-theme="night"]{--a1:var(--ac);--a2:var(--ac2);--g1:linear-gradient(120deg,var(--ac),var(--ac2) 60%,color-mix(in oklab,var(--ac) 40%,var(--gr)));--glow:color-mix(in oklab,var(--ac) 20%,transparent);--mut:var(--tx2);--cr:var(--tx);}
+[data-theme="mono"]{--a1:var(--ac);--a2:var(--ac2);--g1:linear-gradient(120deg,var(--ac),var(--ac2));--glow:color-mix(in oklab,var(--ac) 12%,transparent);--mut:var(--tx2);--cr:var(--tx);}
+[data-theme="paper"]{--a1:var(--ac);--a2:var(--ac2);--g1:linear-gradient(120deg,var(--ac),var(--ac2) 60%,color-mix(in oklab,var(--ac) 40%,var(--gr)));--glow:color-mix(in oklab,var(--ac) 24%,transparent);--mut:var(--tx2);--cr:var(--tx);}
+[data-theme="matcha"]{--a1:var(--ac);--a2:var(--ac2);--g1:linear-gradient(120deg,var(--ac),var(--ac2) 60%,color-mix(in oklab,var(--ac) 40%,var(--gr)));--glow:color-mix(in oklab,var(--ac) 22%,transparent);--mut:var(--tx2);--cr:var(--tx);}
+[data-theme="lilac"]{--a1:var(--ac);--a2:var(--ac2);--g1:linear-gradient(120deg,var(--ac),var(--ac2) 60%,color-mix(in oklab,var(--ac) 40%,var(--li)));--glow:color-mix(in oklab,var(--ac) 24%,transparent);--mut:var(--tx2);--cr:var(--tx);}
+/* Старые поверхности под тему: sv-card/sv-modal/sv-menu-card/sv-hero — стекло */
+.sv-card,.sv-modal,.sv-menu-card,.sv-hero,.sv-ai-block,.sv-prod-group,.sv-adv-card,.sv-hero-kpi,.sv-kpi-p{background:var(--glass);border:1px solid var(--stroke);border-radius:22px;backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);box-shadow:var(--shadow),inset 0 1px 0 var(--glass-hi);}
+.sv-card,.sv-modal,.sv-hero,.sv-ai-block,.sv-prod-group,.sv-adv-card,.sv-hero-kpi,.sv-kpi-p{position:relative;}
+.sv-menu-card{background:color-mix(in oklab,var(--pn2) 55%,transparent);}

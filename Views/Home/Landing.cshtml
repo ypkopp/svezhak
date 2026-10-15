@@ -31,11 +31,12 @@
 
 <div class="lp">
   <header class="lp-nav glass">
-    <img src="~/img/brand/svezhak-logo-dark.svg" style="height:26px" alt="СВЕЖАК" />
+    <img src="~/img/brand/svezhak-logo-dark.svg" style="height:30px" alt="СВЕЖАК" />
     <nav style="display:flex;gap:22px;margin-left:30px">
         <a href="#Продукт" class="lp-a">Продукт</a><a href="#Интерфейс" class="lp-a">Интерфейс</a><a href="#Персонажи" class="lp-a">Персонажи</a><a href="#Заявка" class="lp-a">Заявка</a>
     </nav>
     <div style="flex:1"></div>
+    <div class="seg" id="themeSwatches"></div>
     <a class="btn" asp-controller="Account" asp-action="Login">Вход →</a>
   </header>
 
@@ -96,14 +97,14 @@
     <h2 class="disp">Стеклянный, крупный, живой — <span class="grad-tx">в пяти темах</span></h2>
     <p class="muted" style="max-width:560px;font-size:15px">Дашборд обновляется по SignalR без перезагрузки. Спираль свежести, пульс заказов, LED-водопад массы склада.</p>
     <div class="lp-shots">
-      <figure class="shot" style="grid-column:1/3;grid-row:1/3"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">svezhak.app/dashboard</span></div><img src="~/img/brand/kv-collab.png" alt="" /></figure>
-      <figure class="shot" style="transform:perspective(1400px) rotateY(-4deg)"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">/sklad</span></div><img src="~/img/brand/info-flow.png" alt="" /></figure>
-      <figure class="shot" style="transform:perspective(1400px) rotateY(-4deg)"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">/stop</span></div><img src="~/img/brand/key-visual.png" alt="" /></figure>
+      <figure class="shot" style="grid-column:1/3;grid-row:1/3"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">svezhak.app/dashboard</span></div><img src="~/img/shots/01-dashboard.png" alt="Дашборд" /></figure>
+      <figure class="shot" style="transform:perspective(1400px) rotateY(-4deg)"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">/sklad</span></div><img src="~/img/shots/02-sklad.png" alt="Склад" /></figure>
+      <figure class="shot" style="transform:perspective(1400px) rotateY(-4deg)"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">/stop</span></div><img src="~/img/shots/05-stop.png" alt="Стоп-лист" /></figure>
     </div>
     <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:18px">
-      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Бумага»</span></div><img src="~/img/brand/kv-warehouse.png" alt="" /></figure>
-      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Матча»</span></div><img src="~/img/brand/info-flow.png" alt="" /></figure>
-      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Лаванда»</span></div><img src="~/img/brand/kv-collab.png" alt="" /></figure>
+      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Бумага»</span></div><img src="~/img/shots/16-dashboard-paper.png" alt="" /></figure>
+      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Матча»</span></div><img src="~/img/shots/17-dashboard-matcha.png" alt="" /></figure>
+      <figure class="shot"><div class="shot-bar"><i></i><i></i><i></i><span class="mono">тема «Лаванда»</span></div><img src="~/img/shots/18-dashboard-lilac.png" alt="" /></figure>
     </div>
   </section>
 
@@ -163,5 +164,13 @@
   </section>
   <footer class="foot" style="text-align:center;border:0">СВЕЖАК · склад без просрочки · @DateTime.UtcNow.Year</footer>
 </div>
+<script>
+(function(){
+  var THEMES=[['night','Ночь',['#0f1115','#ED8936','#48BB78']],['paper','Бумага',['#F6F4EF','#E07524','#2F9E5F']],['mono','Ч/Б',['#000','#fff','#777']],['matcha','Матча',['#0B1712','#9BE15D','#3FD3A0']],['lilac','Лаванда',['#120F1C','#FF8FB1','#8B7CF6']]];
+  var seg=document.getElementById('themeSwatches');if(!seg)return;
+  THEMES.forEach(function(t){var b=document.createElement('button');b.type='button';b.dataset.themeId=t[0];b.title=t[1];b.innerHTML='<span style="width:14px;height:14px;border-radius:5px;display:block;background:conic-gradient('+t[2][1]+' 0 50%,'+t[2][2]+' 0 75%,'+t[2][0]+' 0);border:1px solid var(--stroke2)"></span>';b.addEventListener('click',function(){document.documentElement.dataset.theme=t[0];try{localStorage.setItem('sv6-theme',t[0]);}catch(e){}seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));});seg.appendChild(b);});
+  var cur=document.documentElement.dataset.theme||'night';seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.themeId===cur));
+})();
+</script>
 </body>
 </html>
