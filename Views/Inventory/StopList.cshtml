@@ -5,64 +5,69 @@
     Func<double, string> sem = h => h < 12 ? "#F56565" : h < 24 ? "#ECC94B" : "#48BB78";
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <h1 class="sv-page-title">Стоп-лист &amp; Hot Offers</h1>
-        <div class="sv-page-sub mb-0">Что нельзя продавать и что нужно продать первым.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:8px">Меню</div>
+        <h1 class="disp">Стоп-лист &amp; Hot Offers</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Что нельзя продавать и что нужно продать первым.</p>
     </div>
 </div>
 
 @if (TempData["OrderOk"] is string ok) { <div class="sv-form-success mb-3">@ok</div> }
 
-<div class="sv-delivery-layout">
+<div class="grid" style="grid-template-columns:1fr 1.25fr;align-items:start">
     @* ===== Стоп-лист ===== *@
-    <section class="sv-card fade-up">
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <img src="~/img/brand/st-stop.png" style="width:36px;mix-blend-mode:lighten" alt="" />
-            <div><div class="sv-section-title mb-0">Стоп-лист</div><span class="sv-muted" style="font-size:11px">авто по остаткам + ручной</span></div>
-            <span class="sv-badge @(stopList.Any() ? "sv-badge-red" : "sv-badge-green")" style="margin-left:auto">@stopList.Count блюд</span>
+    <section class="glass card rise">
+        <div class="card-h">
+            <img src="~/img/brand/st-stop.png" style="width:32px" alt="" />
+            <div><div class="ttl">Стоп-лист</div><div class="dim" style="font-size:12px">авто по остаткам + ручной</div></div>
+            <span class="sp"></span>
+            <span class="badge @(stopList.Any() ? "rd" : "gr")">@stopList.Count блюд</span>
         </div>
-        @if (stopList.Any())
-        {
+        <div class="rows">
             @foreach (var s in stopList)
             {
-                <div class="mb-3 pb-3" style="border-bottom:1px solid #ffffff0c">
-                    <div class="d-flex justify-content-between align-items-center gap-2">
-                        <strong style="color:var(--rd)">@s.DishName</strong>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="sv-badge @(s.IsManual ? "sv-badge-yellow" : "sv-badge-red")">@(s.IsManual ? "вручную" : "авто")</span>
-                            @if (s.IsManual)
-                            {
-                                <form asp-action="StopToggle" method="post" class="m-0">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="dishId" value="@s.DishId" />
-                                    <input type="hidden" name="returnTo" value="stoplist" />
-                                    <button class="btn-sv-ghost btn-sm" type="submit">Вернуть</button>
-                                </form>
-                            }
-                        </div>
+                <div class="row" style="grid-template-columns:1fr auto;background:color-mix(in oklab,var(--rd) 7%,transparent)">
+                    <div>
+                        <b class="c-rd" style="font-size:14px">@s.DishName</b>
+                        @if (s.IsManual)
+                        {
+                            <div class="dim" style="font-size:12px;margin-top:2px">@(string.IsNullOrWhiteSpace(s.Comment) ? "остановлено вручную" : s.Comment)</div>
+                        }
+                        else
+                        {
+                            <div class="dim" style="font-size:12px;margin-top:2px">
+                                @foreach (var sh in s.Shortages)
+                                {
+                                    <div>@sh.ProductName — нужно @($"{sh.Needed:0.##}") @sh.Unit, доступно @($"{sh.Available:0.##}") @sh.Unit</div>
+                                }
+                            </div>
+                        }
                     </div>
                     @if (s.IsManual)
                     {
-                        <div class="mt-1 sv-muted" style="font-size:12px">@(string.IsNullOrWhiteSpace(s.Comment) ? "Остановлено вручную." : $"Причина: {s.Comment}")</div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <span class="badge ye">вручную</span>
+                            <form asp-action="StopToggle" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="dishId" value="@s.DishId" />
+                                <input type="hidden" name="returnTo" value="stoplist" />
+                                <button class="btn sm ok" type="submit">Вернуть</button>
+                            </form>
+                        </div>
                     }
                     else
                     {
-                        <div class="mt-1" style="font-size:12px">
-                            @foreach (var sh in s.Shortages)
-                            {
-                                <div class="sv-muted">@sh.ProductName — нужно @($"{sh.Needed:0.##}") @sh.Unit, доступно @($"{sh.Available:0.##}") @sh.Unit</div>
-                            }
-                        </div>
+                        <span class="badge rd">авто</span>
                     }
                 </div>
             }
-        }
-        else
+        </div>
+        @if (!stopList.Any())
         {
             <div class="sv-stop-empty">
                 <div class="sv-stop-art">
-                    <img class="sv-stop-chef" src="~/img/brand/chef-4-sm.png" alt="" />
+                    <img class="sv-stop-chef" src="~/img/brand/m-avo.png" alt="" />
                     <img class="sv-stop-st" src="~/img/brand/st-check.png" alt="" />
                 </div>
                 <div class="sv-stop-tx"><b>Стоп-лист пуст</b><p>Все блюда меню доступны — ингредиентов хватает.</p></div>
@@ -75,73 +80,65 @@
             string CatOf(string n) => n.Contains("Ролл") ? "Роллы" : n.Contains("Салат") ? "Салаты" : n.Contains("Пицца") ? "Пицца" : n.Contains("Поке") || n.Contains("боул") ? "Боулы" : "Горячее";
             var byCat = allDishes.GroupBy(d => CatOf((string)d.Name)).OrderBy(g => g.Key);
         }
-        <div class="mt-3 pt-3" style="border-top:1px dashed #ffffff14">
-            <div class="sv-surface-caption mb-2">Остановить вручную:</div>
-            @foreach (var cat in byCat)
-            {
-                <div class="sv-stop-cat mb-2">
-                    <div class="sv-stop-cat-h">@cat.Key</div>
-                    <div class="d-flex flex-wrap gap-1">
-                        @foreach (var d in cat)
-                        {
-                            var isOn = manualStopped.ContainsKey((int)d.Id);
-                            var comment = isOn ? manualStopped[(int)d.Id] : null;
-                            <form asp-action="StopToggle" method="post" class="m-0">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="dishId" value="@d.Id" />
-                                <input type="hidden" name="returnTo" value="stoplist" />
-                                @if (!isOn)
-                                {
-                                    <input type="hidden" name="stopComment" value="" />
-                                }
-                                <button type="submit" class="sv-stop-toggle @(isOn ? "is-on" : "")"
-                                        title="@(isOn ? $"вернуть · {(string.IsNullOrWhiteSpace(comment) ? "остановлено вручную" : comment)}" : "в стоп")">
-                                    <span class="sv-stop-knob"></span>
-                                    <span class="sv-stop-lbl">@d.Name</span>
-                                </button>
-                            </form>
-                        }
-                    </div>
+        <div class="eyebrow" style="margin:22px 0 12px">Остановить вручную</div>
+        @foreach (var cat in byCat)
+        {
+            <div style="margin-bottom:14px">
+                <div class="dim" style="font-size:11.5px;margin-bottom:7px;font-weight:600">@cat.Key</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                    @foreach (var d in cat)
+                    {
+                        var isOn = manualStopped.ContainsKey((int)d.Id);
+                        var comment = isOn ? manualStopped[(int)d.Id] : null;
+                        <form asp-action="StopToggle" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="dishId" value="@d.Id" />
+                            <input type="hidden" name="returnTo" value="stoplist" />
+                            @if (!isOn) { <input type="hidden" name="stopComment" value="" /> }
+                            <button type="submit" class="chip" style="padding-left:6px;gap:9px;@(isOn ? "border-color:color-mix(in oklab,var(--rd) 45%,transparent)" : "")"
+                                    title="@(isOn ? $"вернуть · {(string.IsNullOrWhiteSpace(comment) ? "остановлено вручную" : comment)}" : "в стоп")">
+                                <span class="tgl @(isOn ? "on" : "")" style="width:30px;height:18px;pointer-events:none"></span>
+                                @d.Name
+                            </button>
+                        </form>
+                    }
                 </div>
-            }
-        </div>
+            </div>
+        }
     </section>
 
     @* ===== Hot Offers ===== *@
-    <section class="sv-card fade-up">
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <img src="~/img/brand/m3-avo.png" style="width:42px" alt="" />
-            <div><div class="sv-section-title mb-0">Hot offers</div><span class="sv-muted" style="font-size:11px">продать до истечения срока</span></div>
-            <img src="~/img/brand/st-hot.png" class="sv-yuzu-st" alt="" />
+    <section class="glass card rise">
+        <div class="card-h">
+            <img src="~/img/brand/st-hot.png" style="width:32px" alt="" />
+            <div><div class="ttl">Hot Offers</div><div class="dim" style="font-size:12px">продать до истечения срока</div></div>
+            <span class="sp"></span>
+            <button class="btn sm pri" type="button"><img src="~/img/brand/st-sale.png" width="16" style="mix-blend-mode:lighten" alt="" />Все в акцию</button>
         </div>
         @if (hotOffers.Any())
         {
-            <div class="sv-recs-yuzu mb-3">
-                <img src="~/img/brand/m3-avo.png" alt="Юзу" />
-                <div class="sv-recs-say"><b>Юзу</b>Сортирую по score: чем раньше истекает ингредиент и чем больше его в блюде — тем выше. Первые три спасут горящие партии.</div>
+            <div class="sv-mnote">
+                <img src="~/img/brand/m-lemon.png" alt="Лимо" />
+                <div class="sv-mnote-tx"><div class="eyebrow" style="color:var(--ac);margin-bottom:4px">Лимо · совет</div>Сортирую по score: чем раньше истекает ингредиент и чем больше его в блюде — тем выше. Первые три спасут горящие партии.</div>
             </div>
-            <div class="sv-sl-list">
+            <div class="rows" style="margin-top:14px;gap:8px">
                 @foreach (var (h, i) in hotOffers.Select((x, i) => (x, i)))
                 {
-                    <div class="sv-sl-card">
-                        <div class="sv-sl-rank @(i < 3 ? "is-top" : "")">@($"{i + 1:00}")</div>
-                        <div class="sv-sl-main">
-                            <div class="sv-sl-top">
-                                <b>@h.Name</b>
-                                <span class="price">@($"{h.Price:0}") ₽</span>
-                                <span class="sv-pill4" style="--c:@sem((double)h.HoursLeft)">@($"{h.HoursLeft:0.#}") ч</span>
-                            </div>
-                            <div class="sv-sl-chain">@h.Reason</div>
-                            <div class="sv-sl-score"><i style="width:@Math.Min(100, h.Score * 2500)%"></i><span class="mono">score @($"{h.Score * 1000:0.##}")</span></div>
+                    <div class="row" style="grid-template-columns:44px 1fr auto;align-items:start;padding:14px">
+                        <span class="disp" style="font-size:22px;font-weight:700;color:@(i < 3 ? "var(--ac)" : "var(--tx3)")">@($"{i + 1:00}")</span>
+                        <div>
+                            <div style="display:flex;align-items:center;gap:8px"><b style="font-size:14.5px">@h.Name</b><span class="mono muted" style="font-size:12px">@($"{h.Price:0}") ₽</span><span class="badge @(h.HoursLeft < 12 ? "rd" : h.HoursLeft < 24 ? "ye" : "gr")">@($"{h.HoursLeft:0.#}") ч</span></div>
+                            <div class="dim" style="font-size:12px;margin:5px 0 8px;line-height:1.45">@h.Reason</div>
+                            <div style="display:flex;align-items:center;gap:10px"><div class="bar" style="flex:1;color:var(--ac)"><i style="width:@Math.Min(100, h.Score * 2500)%;background:linear-gradient(90deg,var(--gr),var(--ye),var(--ac))"></i></div><span class="mono dim" style="font-size:10.5px">score @($"{h.Score * 1000:0.##}")</span></div>
                         </div>
-                        <button class="sv-sl-btn" type="button" data-push>в акцию</button>
+                        <button class="btn sm ok" type="button" data-push><img src="~/img/brand/st-sale.png" width="16" style="mix-blend-mode:lighten" alt="" />в акцию</button>
                     </div>
                 }
             </div>
         }
         else
         {
-            <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Нет блюд с горящими ингредиентами.</p></div>
+            <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Нет блюд с горящими ингредиентами.</p></div>
         }
     </section>
 </div>
@@ -160,8 +157,8 @@
                 <input class="sv-input" type="text" name="stopComment" placeholder="например: нет повара на станции" maxlength="300" />
             </div>
             <div class="modal-footer" style="border-top:1px solid #ffffff10;padding:14px 18px;display:flex;gap:10px;justify-content:flex-end">
-                <button type="button" class="btn-sv-ghost" id="stopCancel">Отмена</button>
-                <button type="submit" class="btn-sv-danger-outline">В стоп</button>
+                <button type="button" class="btn ghost" id="stopCancel">Отмена</button>
+                <button type="submit" class="btn danger">В стоп</button>
             </div>
         </form>
     </div>
@@ -169,7 +166,7 @@
 
 @section Scripts {
     <script>
-        document.querySelectorAll('[data-push]').forEach(function(b){b.addEventListener('click',function(){var on=this.classList.toggle('on');this.textContent=on?'✓ в акции':'в акцию';});});
+        document.querySelectorAll('[data-push]').forEach(function(b){b.addEventListener('click',function(){var on=this.classList.toggle('on');this.classList.toggle('ok',!on);this.classList.toggle('pri',on);this.innerHTML=on?'✓ в акции':'<img src="/img/brand/st-sale.png" width="16" style="mix-blend-mode:lighten;vertical-align:-2px"> в акцию';});});
         var stopModal = document.getElementById('stopModal');
         document.querySelectorAll('[data-stop]').forEach(function(btn){
             btn.addEventListener('click',function(){

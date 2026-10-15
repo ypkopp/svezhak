@@ -947,3 +947,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sv-hero6-copy { padding:30px 32px; display:flex; flex-direction:column; gap:16px; position:relative; z-index:1; }
 .sv-hero6-spiral { position:relative; display:grid; place-items:center; padding:20px; background:radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--ac) 10%, transparent), transparent 70%); }
 .sv-kpi6 { padding:12px 14px; border-radius:14px; background:color-mix(in oklab, var(--bg2) 60%, transparent); border:1px solid var(--stroke); }
+
+/* Маскот-заметка (совет Лимо) */
+.sv-mnote { display:flex; align-items:flex-end; gap:14px; padding:14px 18px 12px 10px; border-radius:20px; background:color-mix(in oklab,var(--pn2) 60%,transparent); border:1px solid var(--stroke); }
+.sv-mnote img { height:84px; width:auto; margin-top:-28px; flex:none; }
+.sv-mnote-tx { font-size:13px; line-height:1.5; padding-bottom:4px; }
