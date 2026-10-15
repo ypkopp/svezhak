@@ -148,6 +148,9 @@ using (var scope = app.Services.CreateScope())
                 ""CreatedAt"" timestamp with time zone NOT NULL)");
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"LeadRequests\" ADD COLUMN IF NOT EXISTS \"Status\" character varying(20) NOT NULL DEFAULT 'новая'");
+        // Привязка сотрудника к точке (nullable — NULL = берём из последней смены)
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"AccessCodes\" ADD COLUMN IF NOT EXISTS \"RestaurantId\" integer NULL");
     }
     else
     {

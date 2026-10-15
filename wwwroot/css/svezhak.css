@@ -1008,6 +1008,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sv-menu-card{background:color-mix(in oklab,var(--pn2) 55%,transparent);}
 
 /* ===== Тотальная привязка поверхностей/текста к теме (фикс «чёрный текст на светлой») ===== */
+/* Лого: тёмная/светлая версия под тему */
+.sv-logo-light{display:none}
+[data-theme="paper"] .sv-logo-dark,[data-theme="paper"] .sv-logo-anim{display:none}
+[data-theme="paper"] .sv-logo-light{display:inline-block}
 /* Каркас приложения: сайдбар, топбар, фон — всегда из --pn/--bg темы */
 .sv-handoff-sidebar{background:color-mix(in oklab,var(--pn) 82%,transparent)!important;border-right-color:var(--stroke)!important;}
 .sv-handoff-topbar{background:color-mix(in oklab,var(--bg) 55%,transparent)!important;border-bottom-color:var(--stroke)!important;}

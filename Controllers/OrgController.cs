@@ -144,7 +144,9 @@ public sealed class OrgController(ApplicationDbContext db, OrderService orders) 
         var unassigned = new List<SmartInventory.Models.Structure.AccessCode>();
         foreach (var c in codes)
         {
-            if (restOf.TryGetValue(c.Id, out var rid) && byRestaurant.ContainsKey(rid)) byRestaurant[rid].Add(c);
+            // приоритет — явная привязка (RestaurantId), иначе последняя смена
+            var rid = c.RestaurantId ?? (restOf.TryGetValue(c.Id, out var r0) ? r0 : (int?)null);
+            if (rid.HasValue && byRestaurant.ContainsKey(rid.Value)) byRestaurant[rid.Value].Add(c);
             else unassigned.Add(c);
         }
 
@@ -208,6 +210,49 @@ public sealed class OrgController(ApplicationDbContext db, OrderService orders) 
 
         code.IsActive = !code.IsActive;
         await db.SaveChangesAsync();
+        return RedirectToAction(nameof(Employees));
+    }
+
+    // POST /Org/Employees/Assign — привязать сотрудника к точке (или снять привязку)
+    [HttpPost("Employees/Assign")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignEmployee(int id, int? restaurantId)
+    {
+        var orgId = await GetOrgIdAsync();
+        if (orgId is null) return Forbid();
+        var code = await db.AccessCodes.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == orgId);
+        if (code is null) return NotFound();
+        if (code.Role == AppRole.OrganizationOwner) { TempData["Error"] = "Владельца нельзя привязать."; return RedirectToAction(nameof(Employees)); }
+        if (restaurantId.HasValue)
+        {
+            var ok = await db.Restaurants.AnyAsync(r => r.Id == restaurantId.Value && r.OrganizationId == orgId);
+            if (!ok) { TempData["Error"] = "Точка не найдена."; return RedirectToAction(nameof(Employees)); }
+        }
+        code.RestaurantId = restaurantId;
+        await db.SaveChangesAsync();
+        TempData["Ok"] = restaurantId.HasValue ? "Сотрудник привязан к точке." : "Привязка снята — сотрудник без точки.";
+        return RedirectToAction(nameof(Employees));
+    }
+
+    // POST /Org/Employees/Delete — удалить access-код (не владельца и не себя)
+    [HttpPost("Employees/Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteEmployee(int id)
+    {
+        var orgId = await GetOrgIdAsync();
+        if (orgId is null) return Forbid();
+        var code = await db.AccessCodes.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == orgId);
+        if (code is null) return NotFound();
+        if (code.Role == AppRole.OrganizationOwner) { TempData["Error"] = "Владельца сети нельзя удалить."; return RedirectToAction(nameof(Employees)); }
+        var selfId = int.TryParse(User.FindFirst("AccessCodeId")?.Value, out var sc) ? sc : -1;
+        if (code.Id == selfId) { TempData["Error"] = "Нельзя удалить себя."; return RedirectToAction(nameof(Employees)); }
+
+        // убрать смены на код, чтобы FK не мешал удалению
+        var shifts = db.Shifts.Where(s => s.AccessCodeId == id);
+        db.Shifts.RemoveRange(shifts);
+        db.AccessCodes.Remove(code);
+        await db.SaveChangesAsync();
+        TempData["Ok"] = $"Код «{code.EmployeeName ?? code.Code}» удалён.";
         return RedirectToAction(nameof(Employees));
     }
 

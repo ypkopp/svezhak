@@ -48,6 +48,9 @@ public class AccessCode
     public int OrganizationId { get; init; }
     public Organization Organization { get; init; } = null!;
 
+    // Точка привязки сотрудника (owner назначает). Если null — берём из последней смены.
+    public int? RestaurantId { get; set; }
+
     public AccessCode() { }
 
     public AccessCode(string code, AppRole role, int organizationId)
