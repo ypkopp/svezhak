@@ -36,10 +36,9 @@
 | 🏢 Владелец сети | `OWNER1234` | все точки сети, персонал по ресторанам, аналитика сети |
 | 🏛 Платформа | `HQ000001` | заявки от сетей (`/Platform/Leads`) |
 
-**Живое демо:**
-- 🚀 https://app.umirhack.tech — полная версия
-- 🌐 https://umirhack.tech — лендинг
-- 🕰 https://old.umirhack.tech — первая версия
+**Живое демо:** 
+- 🌐 https://umirhack.tech | 🚀 https://app.umirhack.tech — лендинг
+
 
 ## Быстрый старт
 
