@@ -6,35 +6,40 @@
     var sums = (Dictionary<int, decimal>)ViewBag.DeliverySums;
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <h1 class="sv-page-title">Поставки</h1>
-        <div class="sv-page-sub mb-0">Приёмка новых партий и история поставок. Срок партии = сейчас + часы.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:8px">Приёмка</div>
+        <h1 class="disp">Поставки</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Приёмка новых партий и история поставок. Срок партии = сейчас + часы.</p>
     </div>
-    <img class="sv-sticker" src="~/img/brand/st-box.png" alt="" />
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <span class="dim mono" style="font-size:11px">CSV/XLSX · название;категория;ед;срок_ч;цена</span>
+        <a class="btn sm" href="@Url.Action("ProductImportTemplate")" download>↓ шаблон CSV</a>
+    </div>
 </div>
 
-@if (TempData["DeliveryOk"] is string ok) { <div class="sv-form-success mb-3 d-flex align-items-center gap-2"><img src="~/img/brand/m3-lemon.png" style="width:38px" alt="" />@ok</div> }
+@if (TempData["DeliveryOk"] is string ok) { <div class="sv-form-success mb-3 d-flex align-items-center gap-2"><img src="~/img/brand/m-lemon.png" style="width:38px" alt="" />@ok</div> }
 @if (TempData["DeliveryError"] is string err) { <div class="sv-form-alert mb-3">@err</div> }
 
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <span class="sv-muted" style="font-size:11px">База продуктов пополняется приёмкой или файлом.</span>
-    <form asp-action="ImportProductsPreview" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-2 flex-wrap">
+@* Полоса импорта *@
+<section class="glass rise" style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-style:dashed">
+    <img src="~/img/brand/st-box.png" style="width:38px" alt="" />
+    <div style="flex:1"><b>Загрузить ассортимент</b><div class="dim" style="font-size:12.5px">База продуктов пополняется приёмкой или файлом — выберите CSV/XLSX</div></div>
+    <form asp-action="ImportProductsPreview" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-2" style="display:flex;align-items:center;gap:8px">
         @Html.AntiForgeryToken()
-        <span class="sv-muted" style="font-size:11px">CSV/XLSX · название;категория;ед.;срок_ч;цена</span>
-        <a class="sv-chip" href="@Url.Action("ProductImportTemplate")" download style="text-decoration:none">↓ шаблон CSV</a>
-        <input type="file" name="file" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" class="sv-input" style="max-width:230px;padding:6px" required />
-        <button type="submit" class="btn-sv-ghost btn-sm"><img src="~/img/brand/st-truck.png" style="width:15px;height:15px;mix-blend-mode:lighten;vertical-align:-2px;margin-right:4px" alt="" />Загрузить ассортимент</button>
+        <label class="btn" style="cursor:pointer"><input type="file" name="file" accept=".csv,.xlsx,.xlsm,.xltx,.xltm" hidden required onchange="this.parentElement.querySelector('span').textContent=this.files[0]?this.files[0].name:'Выберите файл'" /><span>Выберите файл</span></label>
+        <button type="submit" class="btn pri">Предпросмотр</button>
     </form>
-</div>
+</section>
 
-@* ===== Предпросмотр импорта (если был загружен файл) ===== *@
+@* ===== Предпросмотр импорта ===== *@
 @if (ViewBag.ImportRows is List<SmartInventory.Services.ProductImportService.ImportRow> importRows && importRows.Any())
 {
-    <section class="sv-card fade-up mb-3" style="border:1px solid color-mix(in oklab,var(--a1) 35%,transparent)">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div><div class="sv-section-title mb-0">Предпросмотр импорта</div><span class="sv-muted" style="font-size:11px">поправь ошибки прямо в таблице, затем подтверди</span></div>
-            <span class="sv-badge @(importRows.Any(r => r.Errors.Count > 0) ? "sv-badge-yellow" : "sv-badge-green")">@importRows.Count(r => r.Errors.Count > 0) с ошибками / @importRows.Count всего</span>
+    <section class="glass card rise mb-3" style="border:1px solid color-mix(in oklab,var(--ac) 35%,transparent)">
+        <div class="card-h" style="flex-wrap:wrap">
+            <div><div class="ttl">Предпросмотр импорта</div><span class="dim" style="font-size:11px">поправь ошибки прямо в таблице, затем подтверди</span></div>
+            <span class="sp"></span>
+            <span class="badge @(importRows.Any(r => r.Errors.Count > 0) ? "ye" : "gr")">@importRows.Count(r => r.Errors.Count > 0) с ошибками / @importRows.Count</span>
         </div>
         <form asp-action="ImportProductsConfirm" method="post" id="importForm">
             @Html.AntiForgeryToken()
@@ -43,9 +48,9 @@
                 <table class="sv-table" id="importTable">
                     <thead><tr><th>Название</th><th>Категория</th><th>Ед.</th><th>Срок, ч</th><th>Цена, ₽</th><th></th></tr></thead>
                     <tbody>
-                    @foreach (var (r, i) in importRows.Select((x, i) => (x, i)))
+                    @foreach (var r in importRows)
                     {
-                        <tr class="@(r.Errors.Count > 0 ? "sv-import-bad" : "")" data-err="@(r.Errors.Count > 0 ? "1" : "0")">
+                        <tr class="@(r.Errors.Count > 0 ? "sv-import-bad" : "")">
                             <td><input class="sv-input sv-imp" data-f="Name" value="@r.Name" /></td>
                             <td><input class="sv-input sv-imp" data-f="Category" value="@r.Category" /></td>
                             <td><input class="sv-input sv-imp" data-f="Unit" value="@r.Unit" style="width:64px" /></td>
@@ -64,37 +69,35 @@
                 </table>
             </div>
             <div class="d-flex gap-2 mt-3 flex-wrap">
-                <button type="submit" class="btn-sv-primary">Подтвердить импорт</button>
-                <a class="btn-sv-ghost" asp-action="Deliveries">Отменить</a>
-                <span class="sv-muted" style="font-size:11px;align-self:center">строки с ошибками будут пропущены</span>
+                <button type="submit" class="btn pri">Подтвердить импорт</button>
+                <a class="btn ghost" asp-action="Deliveries">Отменить</a>
+                <span class="dim" style="font-size:11px;align-self:center">строки с ошибками будут пропущены</span>
             </div>
         </form>
     </section>
 }
 
-<div class="sv-delivery-layout">
-    <section class="sv-card fade-up">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="sv-section-title mb-0">Приёмка поставки</div>
-            <img src="~/img/brand/st-box.png" style="width:44px;mix-blend-mode:lighten;margin:-8px -4px -8px 0" alt="" />
+<div class="grid" style="grid-template-columns:1fr 1.15fr;align-items:start">
+    <section class="glass card rise" style="position:sticky;top:90px">
+        <div class="card-h">
+            <img src="~/img/brand/st-truck.png" style="width:32px" alt="" />
+            <span class="ttl">Приёмка поставки</span><span class="sp"></span>
+            <span class="mono dim" style="font-size:12px">сумма: <b class="c-gr" id="delivSum">0 ₽</b></span>
         </div>
         <form asp-action="Deliveries" method="post">
             @Html.AntiForgeryToken()
-            <div class="mb-3"><label class="sv-label">Номер поставки</label><input name="number" class="sv-input" placeholder="D-004" required /></div>
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="sv-label">Позиции</div>
-                <div class="sv-ai-note">сумма: <b id="delivSum" style="color:var(--gr)">0 ₽</b></div>
-            </div>
-            <div id="deliveryLines"></div>
-            <button type="button" id="addLine" class="btn-sv-ghost btn-sm mb-3">+ строка</button>
-            <button type="submit" class="btn-sv-primary w-100">Принять поставку</button>
+            <div class="field" style="margin-bottom:16px"><label>Номер поставки</label><input name="number" class="inp mono" placeholder="D-004" required /></div>
+            <div class="field"><label>Позиции</label></div>
+            <div id="deliveryLines" style="margin-top:8px"></div>
+            <button type="button" id="addLine" class="btn sm" style="margin-top:10px">+ строка</button>
+            <button type="submit" class="btn pri lg" style="width:100%;margin-top:18px">Принять поставку</button>
         </form>
     </section>
 
-    <section class="sv-card fade-up">
-        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-            <div class="sv-section-title mb-0">Журнал поставок</div>
-            <span class="sv-ai-note">@deliveries.Count записей</span>
+    <section class="glass card rise">
+        <div class="card-h" style="flex-wrap:wrap">
+            <span class="eyebrow">Журнал поставок</span><span class="sp"></span>
+            <span class="badge">@deliveries.Count записей</span>
         </div>
         @if (((List<DateTime>)ViewBag.Months).Count > 1)
         {
@@ -102,27 +105,29 @@
                 @foreach (var m in (List<DateTime>)ViewBag.Months)
                 {
                     var isCur = m == (DateTime)ViewBag.ActiveMonth;
-                    <a class="sv-chip @(isCur ? "active" : "")" href="@Url.Action("Deliveries", new { month = m.ToString("yyyy-MM") })">@m.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"))</a>
+                    <a class="chip @(isCur ? "on" : "")" href="@Url.Action("Deliveries", new { month = m.ToString("yyyy-MM") })">@m.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"))</a>
                 }
             </div>
         }
         @if (deliveries.Any())
         {
-            <div class="sv-timeline">
-                @foreach (var (d, i) in deliveries.Select((x, i) => (x, i)))
+            <div style="position:relative;padding-left:22px">
+                <i style="position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:linear-gradient(var(--gr),var(--ac),transparent)"></i>
+                @foreach (var d in deliveries)
                 {
-                    <div class="sv-timeline-item">
-                        <div class="sv-timeline-dot"></div>
-                        <div class="sv-timeline-head">
-                            <b>@d.Number</b>
-                            <span class="sv-badge sv-badge-muted">поставка</span>
-                            <span class="sv-muted mono" style="margin-left:auto">@d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
-                            <span class="sv-deliv-sum">@($"{sums[d.Id]:N0} ₽")</span>
+                    <div style="position:relative;padding:4px 0 20px">
+                        <i style="position:absolute;left:-21px;top:9px;width:12px;height:12px;border-radius:50%;border:2px solid var(--gr);background:var(--bg);box-shadow:0 0 10px var(--gr)"></i>
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                            <b class="mono" style="font-size:14px">@d.Number</b>
+                            <span class="badge">поставка</span>
+                            <span style="flex:1"></span>
+                            <span class="dim mono" style="font-size:12px">@d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                            <b class="mono c-gr">@($"{sums[d.Id]:N0} ₽")</b>
                         </div>
-                        <div class="d-flex flex-wrap gap-1">
+                        <div style="display:flex;flex-wrap:wrap;gap:6px">
                             @foreach (var b in d.Batches)
                             {
-                                <span class="sv-deliv-item"><span class="sv-dot" style="background:var(--a1)"></span>@b.Product?.Name <b>@($"{b.QtyInitial:0.##}") @b.Product?.Unit</b></span>
+                                <span class="chip" style="height:28px;font-size:12px;cursor:default"><i class="dot c-gr" style="width:5px;height:5px"></i>@b.Product?.Name <b class="mono">@($"{b.QtyInitial:0.##}") @b.Product?.Unit</b></span>
                             }
                         </div>
                     </div>
@@ -131,7 +136,7 @@
         }
         else
         {
-            <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Поставок ещё не было — самая первая приёмка появится здесь.</p></div>
+            <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Поставок ещё не было — самая первая приёмка появится здесь.</p></div>
         }
     </section>
 </div>
@@ -143,15 +148,13 @@
     function updateSum() {
         let sum = 0;
         lines.querySelectorAll('.sv-dynamic-line').forEach(row => {
-            const sel = row.querySelector('select'), qty = Number(row.querySelector('input[name=qty]').value || 0);
-            const p = products.find(x => x.Id == sel.value);
+            const nameIn = row.querySelector('[name=productName]'), qty = Number(row.querySelector('input[name=qty]').value || 0);
+            const p = products.find(x => x.Name.toLowerCase() === nameIn.value.trim().toLowerCase());
             if (p && qty > 0) sum += qty * p.price;
         });
         document.getElementById('delivSum').textContent = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(sum) + ' ₽';
     }
 
-    // ===== Автозаполнение: datalist по продуктам + инлайн «создать новый» =====
-    // Выбор из datalist подтягивает категорию/ед./срок; неизвестное имя → поля нового продукта.
     const prodList = document.createElement('datalist');
     prodList.id = 'svProductList';
     products.forEach(p => { const o = document.createElement('option'); o.value = p.Name; o.dataset.id = p.Id; prodList.appendChild(o); });
@@ -171,7 +174,7 @@
             </div>
             <input name="qty" type="number" step="0.01" min="0.01" class="sv-input" placeholder="кол-во" required />
             <input name="shelfHours" type="number" step="1" min="1" class="sv-input" placeholder="часов" required />
-            <button type="button" class="btn-sv-ghost px-2" aria-label="Удалить" onclick="this.parentElement.remove();updateSum()">×</button>`;
+            <button type="button" class="btn sm ico" aria-label="Удалить" onclick="this.parentElement.remove();updateSum()">×</button>`;
         lines.appendChild(row);
 
         const nameIn = row.querySelector('[name=productName]');
@@ -179,7 +182,6 @@
         const newBox = row.querySelector('.sv-new-prod');
         const ncat = newBox.querySelector('[data-f=ncat]');
         const nunit = newBox.querySelector('[data-f=nunit]');
-        const shelf = row.querySelector('[name=shelfHours]');
 
         nameIn.addEventListener('input', function () {
             const match = products.find(p => p.Name.toLowerCase() === this.value.trim().toLowerCase());
@@ -187,7 +189,6 @@
                 idIn.value = match.Id;
                 newBox.hidden = true;
                 ncat.removeAttribute('required'); nunit.removeAttribute('required');
-                // подтягиваем единицу в плейсхолдер кол-ва и подсказку срока
                 row.querySelector('[name=qty]').placeholder = 'кол-во, ' + match.Unit;
             } else {
                 idIn.value = '';
@@ -201,14 +202,12 @@
 
         row.querySelectorAll('input').forEach(x => x.addEventListener('input', updateSum));
     }
-    // ===== Предпросмотр импорта: правка в таблице → скрытый JSON =====
+
     var importForm = document.getElementById('importForm');
     if (importForm) {
-        // Удалить строку
         document.querySelectorAll('[data-delrow]').forEach(function (b) {
             b.addEventListener('click', function () { this.closest('tr').remove(); });
         });
-        // Сериализуем правки прямо перед отправкой
         importForm.addEventListener('submit', function () {
             var rows = [];
             document.querySelectorAll('#importTable tbody tr').forEach(function (tr) {
