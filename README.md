@@ -1,5 +1,5 @@
 # 🥑 СВЕЖАК
-
+https://umirhack.tech 
 ### Склад без просрочки — шеф и ИИ следят за кухней вместе
 
 ![stack](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
