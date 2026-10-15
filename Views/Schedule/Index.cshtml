@@ -1,0 +1,58 @@
+@model List<SmartInventory.Models.Inventory.Shift>
+@{
+    ViewData["Title"] = "Расписание";
+    var days = (List<DateOnly>)ViewBag.Days;
+    var weekOffset = (int)ViewBag.WeekOffset;
+    var today = (DateOnly)ViewBag.Today;
+    var meId = (int)ViewBag.MeId;
+    var dayNames = new[] { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс" };
+    var shiftsByDay = Model.GroupBy(s => s.Date).ToDictionary(g => g.Key, g => g.OrderBy(s => s.StartTime).ToList());
+    string PosColor(string p) => p == "шеф" ? "var(--ye)" : p == "менеджер" ? "var(--li)" : "var(--gr)";
+}
+
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:8px">Моя смена и команда</div>
+        <h1 class="disp">Расписание</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">@ViewBag.RestaurantName — неделя @days[0].ToString("dd.MM") – @days[6].ToString("dd.MM"). Свои смены подсвечены, остальное — команда. Изменения — через админа.</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+        <a class="btn sm ghost" asp-action="Index" asp-route-weekOffset="@(weekOffset - 1)" style="text-decoration:none">←</a>
+        @if (weekOffset != 0) { <a class="btn sm ghost" asp-action="Index" style="text-decoration:none">текущая</a> }
+        <a class="btn sm ghost" asp-action="Index" asp-route-weekOffset="@(weekOffset + 1)" style="text-decoration:none">→</a>
+    </div>
+</div>
+
+<section class="glass card rise" style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px">
+    @for (var i = 0; i < 7; i++)
+    {
+        var day = days[i];
+        var isToday = day == today;
+        shiftsByDay.TryGetValue(day, out var dayShifts);
+        <div style="border-radius:18px;padding:10px;min-height:330px;display:flex;flex-direction:column;gap:8px;background:@(isToday ? "color-mix(in oklab,var(--ac) 9%,transparent)" : "color-mix(in oklab,var(--bg2) 40%,transparent)");border:1px solid @(isToday ? "color-mix(in oklab,var(--ac) 50%,transparent)" : "var(--stroke)")">
+            <div style="display:flex;align-items:center;padding:2px 4px 6px">
+                <span class="eyebrow">@dayNames[i]</span>
+                <span style="flex:1"></span>
+                <b class="disp" style="font-size:16px;@(isToday ? "color:var(--on-ac);background:var(--ac);border-radius:8px;padding:2px 7px" : "")">@day.Day</b>
+            </div>
+            @if (dayShifts is { Count: > 0 })
+            {
+                foreach (var s in dayShifts)
+                {
+                    var mine = s.AccessCodeId == meId;
+                    <div class="sv-shift-card" style="--pos:@PosColor(s.Position);@(mine ? "border-color:color-mix(in oklab,var(--ac) 60%,transparent);box-shadow:0 0 14px -6px var(--ac)" : "")">
+                        <div class="sv-shift-name">@(s.AccessCode?.EmployeeName ?? "—")@(mine ? " · вы" : "")</div>
+                        <div class="sv-shift-pos">@s.Position</div>
+                        <div class="sv-shift-time">@s.StartTime.ToString("HH\\:mm")–@s.EndTime.ToString("HH\\:mm")</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <span class="dim" style="font-size:11px;padding:0 4px">выходной</span>
+            }
+        </div>
+    }
+</section>
+
+@section Scripts {}

@@ -117,9 +117,10 @@
         </div>
         @if (hotOffers.Any())
         {
-            <div class="sv-mnote">
+            <div class="sv-mnote" id="limoTip" hidden>
                 <img src="~/img/brand/m-lemon.png" alt="Лимо" />
                 <div class="sv-mnote-tx"><div class="eyebrow" style="color:var(--ac);margin-bottom:4px">Лимо · совет</div>Сортирую по score: чем раньше истекает ингредиент и чем больше его в блюде — тем выше. Первые три спасут горящие партии.</div>
+                <button type="button" class="btn sm ghost" id="limoOk">Понятно</button>
             </div>
             <div class="rows" style="margin-top:14px;gap:8px">
                 @foreach (var (h, i) in hotOffers.Select((x, i) => (x, i)))
@@ -178,6 +179,16 @@
         ['stopClose','stopCancel'].forEach(function(id){var b=document.getElementById(id);if(b)b.addEventListener('click',function(){stopModal.hidden=true;});});
         stopModal.addEventListener('click',function(e){if(e.target===stopModal)stopModal.hidden=true;});
         document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+        // Совет Лимо: скрыт, показывается раз за сессию; «Понятно» прячет
+        try {
+            var tip = document.getElementById('limoTip');
+            if (tip && !sessionStorage.getItem('sv-limo-ok')) tip.hidden = false;
+            var okBtn = document.getElementById('limoOk');
+            if (okBtn) okBtn.addEventListener('click', function () {
+                tip.hidden = true;
+                try { sessionStorage.setItem('sv-limo-ok', '1'); } catch (e) { }
+            });
+        } catch (e) { }
     </script>
     @await Html.PartialAsync("_InventoryRealtime")
 }
