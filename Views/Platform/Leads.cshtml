@@ -4,60 +4,54 @@
     var statuses = new[] { "новая", "в работе", "доступ выдан" };
     string StatusBadge(string s) => s switch
     {
-        "в работе" => "sv-badge-yellow",
-        "доступ выдан" => "sv-badge-green",
-        _ => "sv-badge-accent",
+        "в работе" => "ye",
+        "доступ выдан" => "gr",
+        _ => "ac",
     };
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <a class="sv-backlink" asp-controller="Inventory" asp-action="Index">← Назад</a>
-        <div class="sv-kicker">Платформа · лиды</div>
-        <h1 class="sv-page-title">Заявки с лендинга</h1>
-        <div class="sv-page-sub mb-0">Обработка офлайн — Telegram и выдача доступов.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Inventory" asp-action="Index" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← Назад</a>
+        <div class="eyebrow" style="margin-bottom:8px">Платформа · лиды</div>
+        <h1 class="disp">Заявки с лендинга</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Обработка офлайн — Telegram и выдача доступов.</p>
     </div>
-    <span class="sv-badge sv-badge-muted">@leads.Count заявок</span>
+    <span class="badge">@leads.Count заявок</span>
 </div>
 
-<div class="sv-card fade-up">
+<section class="glass card rise">
     @if (!leads.Any())
     {
-        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Заявок пока нет.</p></div>
+        <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Заявок пока нет.</p></div>
     }
     else
     {
-        <div class="sv-table-wrap">
-            <table class="sv-table">
-                <thead><tr><th>Дата</th><th>Сеть</th><th>Контакт</th><th>Ресторанов</th><th>Статус</th><th></th></tr></thead>
-                <tbody>
-                @foreach (var l in leads)
-                {
-                    <tr>
-                        <td class="sv-muted mono">@l.CreatedAt.ToLocalTime().ToString("dd.MM.yy HH:mm")</td>
-                        <td><b>@l.NetworkName</b></td>
-                        <td>@l.Contact</td>
-                        <td>@l.RestaurantCount</td>
-                        <td><span class="sv-badge @StatusBadge(l.Status)">@l.Status</span></td>
-                        <td style="text-align:right">
-                            <div class="d-flex gap-1" style="justify-content:flex-end">
-                                @foreach (var s in statuses.Where(x => x != l.Status))
-                                {
-                                    <form asp-action="SetStatus" method="post" style="display:inline">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@l.Id" />
-                                        <input type="hidden" name="status" value="@s" />
-                                        <button class="sv-chip" type="submit" style="height:26px;font-size:10px">@s</button>
-                                    </form>
-                                }
-                            </div>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+        <div class="thead" style="grid-template-columns:110px 1fr 1fr 90px 110px auto"><span>Дата</span><span>Сеть</span><span>Контакт</span><span>Ресторанов</span><span>Статус</span><span></span></div>
+        <div class="rows">
+        @foreach (var l in leads)
+        {
+            <div class="row" style="grid-template-columns:110px 1fr 1fr 90px 110px auto">
+                <span class="mono dim" style="font-size:11.5px">@l.CreatedAt.ToLocalTime().ToString("dd.MM.yy HH:mm")</span>
+                <b>@l.NetworkName</b>
+                <span class="muted">@l.Contact</span>
+                <span class="mono">@l.RestaurantCount</span>
+                <span><span class="badge @StatusBadge(l.Status)">@l.Status</span></span>
+                <div style="display:flex;gap:4px;justify-content:flex-end">
+                    @foreach (var s in statuses.Where(x => x != l.Status))
+                    {
+                        <form asp-action="SetStatus" method="post" style="display:inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@l.Id" />
+                            <input type="hidden" name="status" value="@s" />
+                            <button class="chip" type="submit" style="height:26px;font-size:10px">@s</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
         </div>
     }
-</div>
+</section>
 
 @section Scripts {<script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>}
