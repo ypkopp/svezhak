@@ -2,41 +2,43 @@
     ViewData["Title"] = "Вход";
 }
 
-<div class="sv-login-layout">
-    <section class="sv-login-art">
-        <img data-theme-art src="~/img/brand/key-visual.png" data-src-a="@Url.Content("~/img/brand/key-visual.png")" data-src-b="@Url.Content("~/img/brand/kv-warehouse.png")" asp-append-version="true" alt="Команда СВЕЖАКа" />
-        <div class="sv-login-art-fade"></div>
-        <div class="sv-login-art-copy">
-            <div class="sv-kicker">v4 · ресторанный склад</div>
-            <h1>Каждая партия —<br /><span class="sv-gradient-text">под наблюдением.</span></h1>
-            <div class="sv-login-stats">
-                <div><b class="sv-lamp-count" style="--metric:var(--gr)">0</b><span>просрочек<br />за неделю</span></div>
-                <div><b class="sv-lamp-count" style="--metric:var(--a1)">-31%</b><span>списаний<br />за месяц</span></div>
-                <div><b class="sv-lamp-count" style="--metric:var(--ye)">24/7</b><span>мониторинг<br />сроков</span></div>
+<div style="position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:1.15fr 1fr">
+    @* Левая половина — key-visual человек + аниме *@
+    <div style="position:relative;overflow:hidden">
+        <img src="~/img/brand/kv-collab.png" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:68% 50%" />
+        <div style="position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 2%,transparent 50%),linear-gradient(270deg,var(--bg),transparent 30%)"></div>
+        <div style="position:absolute;left:44px;bottom:44px;right:44px">
+            <div class="eyebrow">v6 · ресторанный склад</div>
+            <h1 class="disp" style="font-size:44px;line-height:1.02;margin:12px 0 22px">Каждая партия —<br /><span class="grad-tx">под наблюдением.</span></h1>
+            <div style="display:flex;gap:30px">
+                <div><b class="mono c-gr" style="font-size:24px">0</b><div class="dim" style="font-size:12px">просрочек за неделю</div></div>
+                <div><b class="mono c-ac" style="font-size:24px">−31%</b><div class="dim" style="font-size:12px">списаний за месяц</div></div>
+                <div><b class="mono c-ye" style="font-size:24px">24/7</b><div class="dim" style="font-size:12px">мониторинг</div></div>
             </div>
         </div>
-    </section>
-    <section class="sv-login-side">
-        <div class="sv-login-theme">
-            <button class="sv-theme-switch" type="button" data-theme-toggle>
-                <span class="sv-theme-knob"><img src="~/img/brand/favicon-32.png" alt="" /></span>
-                <span class="sv-theme-label"><strong data-theme-label>Тема A</strong><small data-theme-sub>Скан · оранж</small></span>
-            </button>
-        </div>
-        <div class="sv-login-card">
-            <img class="sv-login-logo" src="~/img/brand/svezhak-logo-dark-animated.svg" asp-append-version="true" alt="СВЕЖАК" />
-            <div class="sv-login-heading"><b>Вход для смены</b><span>Код доступа ресторана</span></div>
+    </div>
+    @* Правая — стеклянная карточка входа *@
+    <div style="display:grid;place-items:center;padding:40px;position:relative">
+        <div style="position:absolute;top:22px;right:22px"><div class="seg" id="themeSwatches"></div></div>
+        <div class="glass" style="width:420px;padding:36px 34px 30px;border-radius:28px">
+            <div style="display:flex;justify-content:center;margin-bottom:30px">
+                <img src="~/img/brand/svezhak-logo-dark-animated.svg" style="height:44px" alt="СВЕЖАК" />
+            </div>
+            <h2 class="disp" style="margin:0;font-size:22px">Вход для смены</h2>
+            <p class="muted" style="margin:6px 0 18px;font-size:13.5px">Введите код доступа ресторана</p>
             <form asp-controller="Account" asp-action="Login" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
-                <div class="sv-login-field">
-                    <input class="sv-input" type="text" name="code" placeholder="Код доступа" autocomplete="off" autofocus required />
-                </div>
-                @if (ViewBag.Error != null) { <div class="sv-login-message">@ViewBag.Error</div> }
-                <button class="btn-sv-primary w-100 mt-3" type="submit">Войти →</button>
+                <input class="inp mono @(ViewBag.Error != null ? "sv-err" : "")" style="height:52px;font-size:16px;letter-spacing:.12em" type="text" name="code" placeholder="КОД ДОСТУПА" autocomplete="off" autofocus required />
+                @if (ViewBag.Error != null) { <div class="c-rd" style="font-size:12.5px;margin-top:8px;display:flex;gap:6px;align-items:center">✕ Код не найден или отключён</div> }
+                <button class="btn pri lg" style="width:100%;margin-top:14px" type="submit">Войти →</button>
             </form>
-            <div class="sv-login-demo mt-3">Демо: <b>MANAGER1234</b> · админ <b>ADMIN1234</b></div>
+            <div class="dim" style="text-align:center;font-size:12px;margin-top:14px">Демо: <b class="mono">MANAGER1234</b> · админ <b class="mono">ADMIN1234</b></div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--stroke)">
+                <img src="~/img/brand/m-lemon.png" style="height:52px" alt="" />
+                <span class="muted" style="font-size:12.5px">Нет кода? Попросите его у администратора ресторана.</span>
+            </div>
+            <a class="lnk" asp-controller="Home" asp-action="Index" style="margin-top:14px;display:block">← на главную</a>
         </div>
-        <div class="sv-login-foot">СКЛАД БЕЗ ПРОСРОЧКИ · © 2026</div>
-    </section>
+    </div>
 </div>
