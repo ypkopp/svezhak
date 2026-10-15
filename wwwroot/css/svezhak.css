@@ -1014,7 +1014,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .muted,.sv-muted,.sv-page-sub,.sv-surface-caption,.sv-chart-hint{color:var(--tx2)}
 .eyebrow,.thead span,.dim,.sv-kicker{color:var(--tx3)}
 /* Лого: тёмная/светлая версия под тему */
-.sv-logo-light{display:none}
+.sv-logo-light{display:none!important}
 [data-theme="paper"] .sv-logo-dark{display:none!important}
 [data-theme="paper"] .sv-logo-light{display:block!important}
 /* лого чуть крупнее и с отступом как в меню */

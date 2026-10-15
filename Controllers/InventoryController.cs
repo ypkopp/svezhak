@@ -895,9 +895,14 @@ public class InventoryController(
         // Статдамп для ИИ: расход (поступило), списания, остатки по продуктам
         var dump = stats.OrderByDescending(s => s.WasteShare).Take(12).Select(s => new
         {
-            product = s.Name, category = s.Category, unit = s.Unit,
-            received30d = s.Received, expired30d = s.Expired, liveNow = s.Live,
-            wasteSharePct = Math.Round(s.WasteShare * 100, 1), wasteRub = s.WasteRub,
+            product = s.Name,
+            category = s.Category,
+            unit = s.Unit,
+            received30d = s.Received,
+            expired30d = s.Expired,
+            liveNow = s.Live,
+            wasteSharePct = Math.Round(s.WasteShare * 100, 1),
+            wasteRub = s.WasteRub,
         }).ToList();
         ViewBag.StatDump = dump;
 
@@ -933,7 +938,8 @@ public class InventoryController(
         var recvM = received.ToDictionary(x => x.ProductId, x => x.Qty);
         var expM = expired.ToDictionary(x => x.ProductId, x => x.Qty);
         var liveM = live.ToDictionary(x => x.ProductId, x => x.Qty);
-        var stats = products.Values.Select(p => {
+        var stats = products.Values.Select(p =>
+        {
             var r = recvM.GetValueOrDefault(p.Id); var e = expM.GetValueOrDefault(p.Id);
             return new { product = p.Name, unit = p.Unit, received30d = r, expired30d = e, liveNow = liveM.GetValueOrDefault(p.Id), wasteSharePct = r > 0 ? Math.Round(e / r * 100, 1) : 0 };
         }).OrderByDescending(s => s.wasteSharePct).ToList();

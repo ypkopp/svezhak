@@ -10,7 +10,7 @@ public class RestaurantMappingProfile : Profile
         CreateMap<Restaurant, RestaurantIndexViewModel>()
             .ForMember(dest => dest.OrganizationName,
                 opt => opt.MapFrom(src => src.Organization.Name));
-        
+
         CreateMap<Restaurant, RestaurantEditViewModel>()
             .ReverseMap();
     }

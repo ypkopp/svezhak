@@ -10,13 +10,13 @@ public static class OrganizationExtensions
     public static void UpdateRestaurants(this Organization organization, List<RestaurantEditViewModel> incomingRestaurants, ApplicationDbContext context)
     {
         var incomingIds = incomingRestaurants.Select(b => b.Id).ToList();
-        
+
         var toRemove = organization.Restaurants
             .Where(b => !incomingIds.Contains(b.Id))
             .ToList();
-        
+
         context.Restaurants.RemoveRange(toRemove);
-        
+
         foreach (var bModel in incomingRestaurants)
         {
             if (bModel.Id == 0)
@@ -39,17 +39,17 @@ public static class OrganizationExtensions
             }
         }
     }
-    
+
     public static void UpdateAccessCodes(this Organization organization, List<AccessCodeEditViewModel> incomingCodes, ApplicationDbContext context)
     {
         var incomingIds = incomingCodes.Select(a => a.Id).ToList();
-        
+
         var toRemove = organization.AccessCodes
             .Where(a => !incomingIds.Contains(a.Id))
             .ToList();
-        
+
         context.AccessCodes.RemoveRange(toRemove);
-        
+
         foreach (var cModel in incomingCodes)
         {
             if (cModel.Id == 0)

@@ -211,20 +211,20 @@ public sealed class AdvisorService(
     }
 
     private static string Transliterate(string s) => s
-        .Replace("А","A").Replace("Б","B").Replace("В","V").Replace("Г","G").Replace("Д","D")
-        .Replace("Е","E").Replace("Ё","Yo").Replace("Ж","Zh").Replace("З","Z").Replace("И","I")
-        .Replace("Й","Y").Replace("К","K").Replace("Л","L").Replace("М","M").Replace("Н","N")
-        .Replace("О","O").Replace("П","P").Replace("Р","R").Replace("С","S").Replace("Т","T")
-        .Replace("У","U").Replace("Ф","F").Replace("Х","Kh").Replace("Ц","Ts").Replace("Ч","Ch")
-        .Replace("Ш","Sh").Replace("Щ","Sch").Replace("Ъ","").Replace("Ы","Y").Replace("Ь","")
-        .Replace("Э","E").Replace("Ю","Yu").Replace("Я","Ya")
-        .Replace("а","a").Replace("б","b").Replace("в","v").Replace("г","g").Replace("д","d")
-        .Replace("е","e").Replace("ё","yo").Replace("ж","zh").Replace("з","z").Replace("и","i")
-        .Replace("й","y").Replace("к","k").Replace("л","l").Replace("м","m").Replace("н","n")
-        .Replace("о","o").Replace("п","p").Replace("р","r").Replace("с","s").Replace("т","t")
-        .Replace("у","u").Replace("ф","f").Replace("х","kh").Replace("ц","ts").Replace("ч","ch")
-        .Replace("ш","sh").Replace("щ","sch").Replace("ъ","").Replace("ы","y").Replace("ь","")
-        .Replace("э","e").Replace("ю","yu").Replace("я","ya");
+        .Replace("А", "A").Replace("Б", "B").Replace("В", "V").Replace("Г", "G").Replace("Д", "D")
+        .Replace("Е", "E").Replace("Ё", "Yo").Replace("Ж", "Zh").Replace("З", "Z").Replace("И", "I")
+        .Replace("Й", "Y").Replace("К", "K").Replace("Л", "L").Replace("М", "M").Replace("Н", "N")
+        .Replace("О", "O").Replace("П", "P").Replace("Р", "R").Replace("С", "S").Replace("Т", "T")
+        .Replace("У", "U").Replace("Ф", "F").Replace("Х", "Kh").Replace("Ц", "Ts").Replace("Ч", "Ch")
+        .Replace("Ш", "Sh").Replace("Щ", "Sch").Replace("Ъ", "").Replace("Ы", "Y").Replace("Ь", "")
+        .Replace("Э", "E").Replace("Ю", "Yu").Replace("Я", "Ya")
+        .Replace("а", "a").Replace("б", "b").Replace("в", "v").Replace("г", "g").Replace("д", "d")
+        .Replace("е", "e").Replace("ё", "yo").Replace("ж", "zh").Replace("з", "z").Replace("и", "i")
+        .Replace("й", "y").Replace("к", "k").Replace("л", "l").Replace("м", "m").Replace("н", "n")
+        .Replace("о", "o").Replace("п", "p").Replace("р", "r").Replace("с", "s").Replace("т", "t")
+        .Replace("у", "u").Replace("ф", "f").Replace("х", "kh").Replace("ц", "ts").Replace("ч", "ch")
+        .Replace("ш", "sh").Replace("щ", "sch").Replace("ъ", "").Replace("ы", "y").Replace("ь", "")
+        .Replace("э", "e").Replace("ю", "yu").Replace("я", "ya");
     private async Task<Snapshot> BuildSnapshotAsync(int restaurantId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -259,12 +259,12 @@ public sealed class AdvisorService(
         var consumption = new Dictionary<int, decimal>();
         var dishById = dishes.ToDictionary(d => d.Id);
         foreach (var order in recentOrders)
-        foreach (var item in order.Items)
-        {
-            if (!dishById.TryGetValue(item.DishId, out var dish)) continue;
-            foreach (var recipe in dish.RecipeItems)
-                consumption[recipe.ProductId] = consumption.GetValueOrDefault(recipe.ProductId) + recipe.Quantity * item.Qty;
-        }
+            foreach (var item in order.Items)
+            {
+                if (!dishById.TryGetValue(item.DishId, out var dish)) continue;
+                foreach (var recipe in dish.RecipeItems)
+                    consumption[recipe.ProductId] = consumption.GetValueOrDefault(recipe.ProductId) + recipe.Quantity * item.Qty;
+            }
         var remaining = liveBatches.GroupBy(b => b.ProductId).ToDictionary(g => g.Key, g => g.Sum(b => b.QtyRemaining));
         var dailyUse = consumption.ToDictionary(x => x.Key, x => x.Value / 7m);
 

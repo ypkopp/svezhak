@@ -48,13 +48,13 @@ public class HomeController(ApplicationDbContext db) : Controller
     {
         return View();
     }
-    
+
     [AuthorizeRole(AppRole.ServerAdmin, AppRole.OrganizationOwner, AppRole.RestaurantManager)]
     public IActionResult BuildingSettings()
     {
         return View();
     }
-    
+
     [Route("Home/Error")]
     public IActionResult Error(int statusCode)
     {
@@ -62,7 +62,7 @@ public class HomeController(ApplicationDbContext db) : Controller
         {
             return View("NotFound");
         }
-    
+
         return View("Error");
     }
 

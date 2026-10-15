@@ -89,7 +89,7 @@ builder.Services.AddAuthorization(options =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddAutoMapper(cfg => 
+builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddMaps(typeof(Program).Assembly);
 });

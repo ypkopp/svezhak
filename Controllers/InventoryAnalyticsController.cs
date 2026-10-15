@@ -33,12 +33,12 @@ public sealed class InventoryAnalyticsController(ApplicationDbContext db, OrderS
             .ToListAsync(ct);
         var use = new Dictionary<int, decimal>();
         foreach (var order in orders7d)
-        foreach (var item in order.Items)
-        {
-            if (!dishById.TryGetValue(item.DishId, out var dish)) continue;
-            foreach (var recipe in dish.RecipeItems)
-                use[recipe.ProductId] = use.GetValueOrDefault(recipe.ProductId) + recipe.Quantity * item.Qty;
-        }
+            foreach (var item in order.Items)
+            {
+                if (!dishById.TryGetValue(item.DishId, out var dish)) continue;
+                foreach (var recipe in dish.RecipeItems)
+                    use[recipe.ProductId] = use.GetValueOrDefault(recipe.ProductId) + recipe.Quantity * item.Qty;
+            }
         var productIds = dishes.SelectMany(x => x.RecipeItems).Select(x => x.ProductId).Distinct().ToList();
         var stockRows = await db.Batches.AsNoTracking()
             .Where(b => b.RestaurantId == rid && productIds.Contains(b.ProductId) && b.QtyRemaining > 0 && b.ExpiresAt > now)

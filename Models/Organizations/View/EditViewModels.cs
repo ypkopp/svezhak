@@ -7,13 +7,13 @@ namespace SmartInventory.Models.Organizations;
 public class OrganizationEditViewModel
 {
     public int Id { get; init; }
-    
+
     [Required(ErrorMessage = "Название организации обязательно")]
     public string Name { get; init; } = string.Empty;
-    
+
     public List<RestaurantEditViewModel> Restaurants { get; init; } = [];
     public List<AccessCodeEditViewModel> AccessCodes { get; init; } = [];
-    
+
     [Required(ErrorMessage = "ID владельца обязателен")]
     public string OwnerId { get; init; } = string.Empty;
 }

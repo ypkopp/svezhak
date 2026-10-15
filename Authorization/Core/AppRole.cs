@@ -26,7 +26,7 @@ public static class AppRoleExtensions
         AppRole.PlatformOwner => 8,
         _ => 0
     };
-    
+
     public static bool IsRoleOptionDisabled(this AppRole currentUserRole, AppRole originalRole, AppRole targetRole)
     {
         int currentWeight = currentUserRole.GetHierarchyLevel();

@@ -89,7 +89,7 @@ public class OrganizationsController(
 
         var authResult =
             await authorizationService.AuthorizeAsync(User, organization, new ManageOrganizationRequirement());
-        
+
         if (!authResult.Succeeded)
         {
             return Forbid();
@@ -106,7 +106,7 @@ public class OrganizationsController(
         {
             organization.Name = model.Name;
             organization.OwnerId = model.OwnerId;
-            
+
             organization.UpdateRestaurants(model.Restaurants, context);
             organization.UpdateAccessCodes(model.AccessCodes, context);
 
