@@ -1,6 +1,12 @@
-# 🥑 СВЕЖАК / СВЭЖАЧОК(с бел.)
+<p align="center">
+  <img src="docs/img/logo-led.png" width="84" alt="СВЕЖАК" />
+  &nbsp;&nbsp;
+  <img src="docs/img/svezhak-logo.svg" height="56" alt="СВЕЖАК" />
+</p>
 
-### Склад без просрочки — шеф и ИИ следят за кухней вместе
+<h1 align="center">СВЕЖАК / СВЭЖАЧОК</h1>
+
+<p align="center"><b>Склад без просрочки — шеф и ИИ следят за кухней вместе</b></p>
 
 ![stack](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![asp](https://img.shields.io/badge/ASP.NET_Core-MVC-6f42c1)
@@ -36,9 +42,10 @@
 | 🏢 Владелец сети | `OWNER1234` | все точки сети, персонал по ресторанам, аналитика сети |
 | 🏛 Платформа | `HQ000001` | заявки от сетей (`/Platform/Leads`) |
 
-**Живое демо:** 
-- 🌐 https://umirhack.tech | 🚀 https://app.umirhack.tech — лендинг
-
+**Живое демо:**
+- 🚀 https://app.umirhack.tech — полная версия
+- 🌐 https://umirhack.tech — лендинг
+- 🕰 https://old.umirhack.tech — первая версия
 
 ## Быстрый старт
 
@@ -103,7 +110,7 @@ dotnet test
 ```
 
 `Svezhak.Tests` покрывает ядро: **FEFO-порядок** списаний, дефицит и отказ заказа, просрочку партий, защиту от ухода в минус, авто-стоп-лист, генерацию hot offers.
-Трушное название - СВЭГАЧОК <>
+
 ## Команда
 
 **SSS** — Ан Марк · Литвинов Ренат · Мисюрин Андрей

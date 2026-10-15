@@ -9,11 +9,17 @@ namespace SmartInventory.Controllers;
 
 public class HomeController(ApplicationDbContext db) : Controller
 {
-    // GET / — публичный лендинг для гостей; авторизованным — дашборд
+    // GET / — публичный лендинг для гостей; авторизованным — их раздел
     public IActionResult Index()
     {
         if (User.Identity?.IsAuthenticated == true)
+        {
+            if (User.IsInRole(nameof(AppRole.PlatformOwner)))
+                return RedirectToAction("Leads", "Platform");
+            if (User.IsInRole(nameof(AppRole.OrganizationOwner)))
+                return RedirectToAction("Index", "Org");
             return RedirectToAction("Index", "Inventory");
+        }
         return View("Landing");
     }
 

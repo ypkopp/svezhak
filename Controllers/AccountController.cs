@@ -103,6 +103,12 @@ public class AccountController(ApplicationDbContext db) : Controller
             return LocalRedirect(returnUrl);
         }
 
+        // Платформа и владелец сети — на свои разделы, иначе 403 на Inventory
+        if (accessCode.Role == SmartInventory.Authorization.AppRole.PlatformOwner)
+            return RedirectToAction("Leads", "Platform");
+        if (accessCode.Role == SmartInventory.Authorization.AppRole.OrganizationOwner)
+            return RedirectToAction("Index", "Org");
+
         return RedirectToAction("Index", "Inventory");
     }
 
