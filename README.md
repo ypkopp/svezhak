@@ -1,122 +1,111 @@
-# SmartInventory Project
+# 🥑 СВЕЖАК
 
-Этот документ содержит руководства по развертыванию локального окружения, настройке секретов для .NET приложения и запуску базы данных Microsoft SQL Server с использованием Docker Compose.
+### Склад без просрочки — шеф и ИИ следят за кухней вместе
 
----
-
-## 🛠️ Требования
-
-Перед началом убедитесь, что у вас установлены:
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/download)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Git](https://git-scm.com/)
-
-Проверка:
-```bash
-dotnet --list-sdks
-docker --version
-git --version
-```
+![stack](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
+![asp](https://img.shields.io/badge/ASP.NET_Core-MVC-6f42c1)
+![ef](https://img.shields.io/badge/EF_Core-SQL_Server%2FPostgreSQL-2ea44f)
+![rt](https://img.shields.io/badge/SignalR-realtime-ED8936)
+![charts](https://img.shields.io/badge/ECharts-5.5-F56565)
+![case](https://img.shields.io/badge/UMIRHack3-кейс_«Флагман»-48BB78)
 
 ---
 
-## 🚀 Быстрый старт
+## Что это
 
-### 1. Клонирование репозитория
-```bash
-git clone <URL_ВАШЕГО_РЕПОЗИТОРИЯ>
-cd <ИМЯ_ПАПКИ_ПРОЕКТА>
-```
+**СВЕЖАК** — система мониторинга склада ресторана. Партии приходят со сроком годности в часах, кухня списывает их по **FEFO** (первой уходит самая ранняя), а система следит, чтобы ничего не сгорело. Перестаёт хватать ингредиента — блюдо само падает в стоп-лист, горит партия — поднимаются **hot offers** (что продать срочно), а **ИИ-советник** каждую смену подсказывает: что списать, что заказать, что убрать из закупок.
 
----
+Один экран — один смысл: дашборд тревог, склад с LED-сроком по каждой партии, приёмка за 30 секунд, стоп-лист и аналитика потерь.
 
-## 🐳 2. Настройка Docker и запуск базы данных
+## Интерфейс
 
-Для хранения паролей и конфигурации Docker используется файл локальных переменных `.env`.
+| Дашборд · Спираль свежести | Стоп-лист & Hot Offers |
+|:---:|:---:|
+| ![dashboard](docs/img/01-dashboard.png) | ![stop](docs/img/05-stop.png) |
+| **ИИ-советник** | **Аналитика потерь** |
+| ![advisor](docs/img/06-sovetnik.png) | ![analytics](docs/img/07-analitika.png) |
 
-#### Шаг 2.1. Создание файла `.env`
-Скопируйте пример файла конфигурации `.env.example` и создайте на его основе локальный файл `.env`:
+*5 тем (night / paper / mono / matcha / lilac) — переключаются свотчем в шапке.*
 
-_Для Linux / macOS:_
-```bash
-cp .env.example .env
-```
-_Для Windows (PowerShell):_
-```bash
-Copy-Item .env.example .env
-```
+## Демо-доступ
 
-#### Шаг 2.2. Заполнение секретов в `.env`
-Откройте созданный файл `.env` и задайте надежный пароль для учетной записи `sa`:
+| Роль | Код | Что видит |
+|---|---|---|
+| 👨‍🍳 Менеджер ресторана | `MANAGER1234` | полный склад: партии, приёмка, заказ, стоп-лист, советник, аналитика |
+| 🛠 Админ | `ADMIN1234` | смены, сотрудники, рестораны, продукты, импорт |
+| 🏢 Владелец сети | `OWNER1234` | все точки сети, персонал по ресторанам, аналитика сети |
+| 🏛 Платформа | `HQ000001` | заявки от сетей (`/Platform/Leads`) |
 
-```env
-MSSQL_SA_PASSWORD=passwd123
-```
+**Живое демо:**
+- 🚀 https://app.umirhack.tech — полная версия
+- 🌐 https://umirhack.tech — лендинг
+- 🕰 https://old.umirhack.tech — первая версия
 
-#### Шаг 2.3. Запуск контейнера SQL Server
-Запустите базу данных в фоновом режиме через Docker Compose:
+## Быстрый старт
+
+**Нужно:** [.NET 10 SDK](https://dotnet.microsoft.com/), Docker (для SQL Server).
 
 ```bash
+# 1) поднять БД (SQL Server в контейнере)
 docker compose up -d
-```
 
-Проверить статус запущенного контейнера можно командой:
-```bash
-docker ps
-```
+# 2) строка подключения в user-secrets
+dotnet user-secrets set "ConnectionStrings:Default" "Server=localhost,1433;Database=Svezhak;User Id=sa;Password=Your_password123;TrustServerCertificate=True"
 
----
-
-## 🔑 3. Настройка локальных секретов (.NET User Secrets)
-
-#### Шаг 3.1. Инициализация User Secrets
-Перейдите в папку с проектом (где находится файл `.csproj`) и выполните инициализацию:
-
-```bash
-dotnet user-secrets init
-```
-
-#### Шаг 3.2. Установка строки подключения
-Установите строку подключения к локальной базе данных SQL Server (пароль должен совпадать с указанным в `.env`):
-
-```bash
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=SmartInventoryDb;User Id=sa;Password=passwd123;TrustServerCertificate=True;"
-```
-
-#### Просмотр сохраненных секретов
-Вы всегда можете проверить текущие локальные секреты командой:
-```bash
-dotnet user-secrets list
-```
-
----
-
-## 🗄️ 4. Применение миграций базы данных
-
-После того как база данных запущенa в Docker, а секреты настроены, примените миграции Entity Framework Core для создания структур таблиц:
-
-```bash
+# 3) миграции + сид демо-данных
 dotnet ef database update
-```
 
-_Если утилита `dotnet ef` не установлена, установите её командой:_
-```bash
-dotnet tool install --global dotnet-ef
-```
-
----
-
-## 🎯 5. Запуск приложения
-
-Запустите проект в режиме разработки:
-
-```bash
+# 4) запуск
 dotnet run
+# → http://localhost:5201, вход MANAGER1234
 ```
 
-Приложение автоматически подтянет настройки из `appsettings.json` и переопределит строку подключения значениями из вашего локального `User Secrets`.
+На проде (Render) та же сборка работает на **PostgreSQL** — провайдер переключается конфигом, схема патчится идемпотентно на старте.
 
-## 🚫 Закрытие docker
+## ИИ-функции
+
+ИИ гоняется через OpenAI-совместимый endpoint (советник, чат склада, вывод аналитики, ежечасный инсайт смены). Включается ключом:
+
 ```bash
-docker compose down
+dotnet user-secrets set "Ai:BaseUrl" "<url провайдера>"
+dotnet user-secrets set "Ai:Model"   "<модель>"
+dotnet user-secrets set "Ai:ApiKey"  "<ключ>"
 ```
+
+> ⚠️ **Ключ нигде не хранится в репо.** Без него всё работает на локальных правилах (fallback): инсайты, hot offers, дедупликация рекомендаций — ничего не падает.
+
+## Архитектура
+
+```mermaid
+flowchart LR
+    A[Razor MVC / SignalR] --> B[Services]
+    B --> C[OrderService · FEFO]
+    B --> D[HotOffersService]
+    B --> E[AdvisorService · правила+ИИ]
+    B --> F[ExpirySweepService]
+    B --> G[AiInsightService · hourly]
+    C --> H[(EF Core)]
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+    H --> I[(SQL Server<br/>local / Docker)]
+    H --> J[(PostgreSQL<br/>Render)]
+    A -. push .-> K[SignalR hub]
+    L[tools/EventGenerator] -. demo load .-> H
+```
+
+Слои: контроллеры тонкие, вся бизнес-логика в `Services/` (FEFO-списание, дефицит, стоп-лист, скоринг офферов, агрегация потерь). Realtime — через `_InventoryRealtime` шину: изменение склада мягко подтягивает виджеты без перезагрузки.
+
+## Тесты
+
+```bash
+dotnet test
+```
+
+`Svezhak.Tests` покрывает ядро: **FEFO-порядок** списаний, дефицит и отказ заказа, просрочку партий, защиту от ухода в минус, авто-стоп-лист, генерацию hot offers.
+
+## Команда
+
+**SSS** — Ан Марк · Литвинов Ренат · Мисюрин Андрей
+Хакатон **UMIRHack3**, кейс «Флагман», октябрь 2026.

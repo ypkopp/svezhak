@@ -1007,10 +1007,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sv-card,.sv-modal,.sv-hero,.sv-ai-block,.sv-prod-group,.sv-adv-card,.sv-hero-kpi,.sv-kpi-p{position:relative;}
 .sv-menu-card{background:color-mix(in oklab,var(--pn2) 55%,transparent);}
 
-/* ===== Тотальная привязка поверхностей/текста к теме (фикс «чёрный текст на светлой») ===== */
+/* Bootstrap .card ставит color:var(--bs-card-color)=#212529 — ломает текст в тёмных темах.
+   Переопределяем цвет карточек на токены темы; дети наследуют как обычно. */
+.card,.glass,.sv-menu-card,.sv-card,.sv-panel,.sv-order-submitbar,.sv-modal,.sv-login-card,.sv-table,.sv-wf{color:var(--tx)}
+/* мелкий/приглушённый текст — на приглушённые токены темы */
+.muted,.sv-muted,.sv-page-sub,.sv-surface-caption,.sv-chart-hint{color:var(--tx2)}
+.eyebrow,.thead span,.dim,.sv-kicker{color:var(--tx3)}
 /* Лого: тёмная/светлая версия под тему */
 .sv-logo-light{display:none}
-.sv-handoff-logo .sv-logo-dark,[data-theme]:not([data-theme="paper"]) .sv-logo-light{display:none!important}
 [data-theme="paper"] .sv-logo-dark{display:none!important}
 [data-theme="paper"] .sv-logo-light{display:block!important}
 /* лого чуть крупнее и с отступом как в меню */
