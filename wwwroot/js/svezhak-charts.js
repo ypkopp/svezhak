@@ -63,6 +63,23 @@
       lanes[lane] = batch.hoursLeft + 7;
       data.push({ value: [batch.hoursLeft, lane], name: batch.name, batch: batch, itemStyle: { color: colorFor(batch.hoursLeft) } });
     });
+    // Подписи только когда места хватает: прячем текст у точки, если соседняя
+    // на той же линии ближе ~7 ч по X (иначе подписи наслаиваются друг на друга).
+    var X_GAP = 7;
+    var byLane = {};
+    data.forEach(function (d) { (byLane[d.value[1]] = byLane[d.value[1]] || []).push(d); });
+    Object.keys(byLane).forEach(function (ln) {
+      var pts = byLane[ln].sort(function (a, b) { return a.value[0] - b.value[0]; });
+      pts.forEach(function (d, i) {
+        var prev = i > 0 ? pts[i - 1] : null;
+        var next = i < pts.length - 1 ? pts[i + 1] : null;
+        // прячем подпись, если точка справа от предыдущей слишком близко
+        if (prev && (d.value[0] - prev.value[0]) < X_GAP) d.label = { show: false };
+        // и не прячем крайнюю — если следующая далеко, показываем
+        else if (!next || (next.value[0] - d.value[0]) >= X_GAP) d.label = { show: true };
+        else d.label = { show: false };
+      });
+    });
     chart.setOption({
       grid: { left: 48, right: 28, top: 34, bottom: 34 },
       xAxis: { type: 'value', min: 0, max: 72, name: 'часов до истечения', nameTextStyle: { color: axColor() }, axisLabel: { color: axColor(), formatter: function (v) { return v === 0 ? 'сейчас' : '+' + v + 'ч'; } }, axisLine: { lineStyle: { color: gridColor() } }, splitLine: { lineStyle: { color: gridColor() } } },
