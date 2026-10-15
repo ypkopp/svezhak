@@ -16,9 +16,12 @@
     <title>@ViewData["Title"] — СВЕЖАК</title>
     <script>
       // Тема применяется синхронно ДО загрузки CSS — без вспышки (FOUC).
-      // data-theme: бренд A/B (оранж/зел). data-mode: светлая/тёмная (sv-mode).
-      (function(){try{var t=localStorage.getItem('sv-theme')||'A';var r=document.documentElement;r.classList.add(t==='B'?'theme-b':'theme-a');r.dataset.theme=t;
-        var m=localStorage.getItem('sv-mode');if(m==='light')r.dataset.mode='light';}catch(e){}})();
+      // data-theme: 5 тем v6 (night|paper|mono|matcha|lilac), ключ sv6-theme.
+      // Совместимость: старый sv-theme A/B маппится на night/matcha.
+      (function(){try{var r=document.documentElement;
+        var t=localStorage.getItem('sv6-theme');
+        if(!t){var old=localStorage.getItem('sv-theme');t=(old==='B')?'matcha':'night';}
+        r.dataset.theme=t;}catch(e){}})();
     </script>
     <script type="importmap"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,6 +34,7 @@
     <link rel="stylesheet" href="~/SmartInventory.styles.css" asp-append-version="true" />
 </head>
 <body class="sv-app-body">
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="sv-background" aria-hidden="true"></div>
 @if (isAuthed)
 {
@@ -87,11 +91,7 @@
                     <button class="sv-icon-button" type="button" id="qrBtn" aria-label="QR для кухни" title="QR для кухни — стоп-лист">⌗</button>
                     @* скрыто до полной локализации *@
                     <button class="sv-lang-switch" type="button" id="langSwitch" aria-label="Сменить язык" style="display:none"><b id="langCur">RU</b></button>
-                    <button class="sv-icon-button sv-mode-btn" type="button" id="modeToggle" aria-label="Светлая тема" title="Светлая / тёмная"><span id="modeIc">☾</span></button>
-                    <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Сменить тему">
-                        <span class="sv-theme-knob"><img src="~/img/brand/svezhak-icon.png" alt="" /></span>
-                        <span class="sv-theme-label"><strong data-i18n="theme.switch">СМЕНИТЬ ТЕМУ</strong><small data-theme-sub>Скан · оранж</small></span>
-                    </button>
+                    <div class="seg" id="themeSwatches" title="Тема"></div>
                     <span class="sv-led-clock" data-led-clock>00:00</span>
                     <div class="sv-bell-wrap">
                         <button class="sv-icon-button" type="button" id="bellBtn" aria-label="Уведомления">♢<i id="bellDot" hidden></i></button>

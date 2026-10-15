@@ -1,33 +1,44 @@
 (function () {
   'use strict';
   var root = document.documentElement;
-  var stored = localStorage.getItem('sv-theme') || 'A';
 
-  // Логотипы тем: A «Скан» — LED-сегменты, B «Стебель» — знак с листом.
-  // Переключение подменой src (data-src-a/b в разметке), без CSS-фильтров.
-  function applyTheme(theme) {
-    var isB = theme === 'B';
-    root.classList.toggle('theme-b', isB);
-    root.classList.toggle('theme-a', !isB);
-    root.dataset.theme = theme;
-    localStorage.setItem('sv-theme', theme);
-    document.querySelectorAll('[data-theme-label]').forEach(function (el) {
-      el.textContent = isB ? 'Тема B' : 'Тема A';
+  /* ===== 5 тем v6: night / paper / mono / matcha / lilac ===== */
+  var THEMES = [
+    { id: 'night', n: 'Ночь', c: ['#0f1115', '#ED8936', '#48BB78'] },
+    { id: 'paper', n: 'Бумага', c: ['#F6F4EF', '#E07524', '#2F9E5F'] },
+    { id: 'mono', n: 'Ч/Б', c: ['#000', '#fff', '#777'] },
+    { id: 'matcha', n: 'Матча', c: ['#0B1712', '#9BE15D', '#3FD3A0'] },
+    { id: 'lilac', n: 'Лаванда', c: ['#120F1C', '#FF8FB1', '#8B7CF6'] },
+  ];
+  var stored = localStorage.getItem('sv6-theme');
+  if (!stored) { var old = localStorage.getItem('sv-theme'); stored = old === 'B' ? 'matcha' : 'night'; }
+
+  function applyTheme(id) {
+    root.dataset.theme = id;
+    try { localStorage.setItem('sv6-theme', id); } catch (e) { }
+    document.querySelectorAll('#themeSwatches button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.themeId === id);
     });
-    document.querySelectorAll('[data-theme-sub]').forEach(function (el) {
-      el.textContent = isB ? 'Стебель · зелень' : 'Скан · оранж';
-    });
-    // Фоновая иллюстрация логина: A — key-visual, B — kv-warehouse (зелёная)
-    document.querySelectorAll('[data-theme-art]').forEach(function (el) {
-      var src = isB ? el.dataset.srcB : el.dataset.srcA;
-      if (src) el.src = src;
+  }
+
+  // Построить свотчи в топбаре
+  var seg = document.getElementById('themeSwatches');
+  if (seg) {
+    THEMES.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.dataset.themeId = t.id; b.title = t.n;
+      b.innerHTML = '<span style="width:14px;height:14px;border-radius:5px;display:block;background:conic-gradient(' + t.c[1] + ' 0 50%,' + t.c[2] + ' 0 75%,' + t.c[0] + ' 0);border:1px solid var(--stroke2)"></span>';
+      b.addEventListener('click', function () { applyTheme(t.id); });
+      seg.appendChild(b);
     });
   }
   applyTheme(stored);
 
-  document.addEventListener('click', function (event) {
-    var toggle = event.target.closest('[data-theme-toggle]');
-    if (toggle) applyTheme(root.dataset.theme === 'B' ? 'A' : 'B');
+  // Логотипы тем для data-theme-art (логин): night/paper/mono — тёмный, matcha/lilac — светлый
+  document.querySelectorAll('[data-theme-art]').forEach(function (el) {
+    var dark = stored !== 'matcha' && stored !== 'lilac';
+    var src = dark ? el.dataset.srcA : el.dataset.srcB;
+    if (src) el.src = src;
   });
 
   function pad(value) { return String(value).padStart(2, '0'); }
@@ -239,20 +250,6 @@
   modal.addEventListener('click', function (e) { if (e.target === modal) done(); });
   render();
   modal.hidden = false;
-})();
-
-/* ===== Светлая/тёмная тема (data-mode) — отдельно от бренд-темы A/B ===== */
-(function () {
-  var btn = document.getElementById('modeToggle'), ic = document.getElementById('modeIc');
-  if (!btn) return;
-  function apply() { if (ic) ic.textContent = document.documentElement.dataset.mode === 'light' ? '☀' : '☾'; }
-  btn.addEventListener('click', function () {
-    var light = document.documentElement.dataset.mode === 'light';
-    if (light) delete document.documentElement.dataset.mode; else document.documentElement.dataset.mode = 'light';
-    try { localStorage.setItem('sv-mode', light ? 'dark' : 'light'); } catch (e) { }
-    apply();
-  });
-  apply();
 })();
 
 /* ===== ИИ-чат склада ===== */
