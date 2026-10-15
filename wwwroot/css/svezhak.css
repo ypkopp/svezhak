@@ -952,3 +952,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sv-mnote { display:flex; align-items:flex-end; gap:14px; padding:14px 18px 12px 10px; border-radius:20px; background:color-mix(in oklab,var(--pn2) 60%,transparent); border:1px solid var(--stroke); }
 .sv-mnote img { height:84px; width:auto; margin-top:-28px; flex:none; }
 .sv-mnote-tx { font-size:13px; line-height:1.5; padding-bottom:4px; }
+
+/* Заказ v6: липкий футер меню */
+.sv-order-submitbar6 { position:sticky; bottom:0; margin:14px -22px 0; padding:14px 22px; display:flex; align-items:center; gap:22px; border-top:1px solid var(--stroke); background:color-mix(in oklab,var(--pn) 85%,transparent); backdrop-filter:blur(14px); border-radius:0 0 22px 22px; flex-wrap:wrap; }

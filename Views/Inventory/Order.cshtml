@@ -6,135 +6,138 @@
     var categories = new[] { "Все", "Роллы", "Салаты", "Пицца", "Горячее", "Боулы" };
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <h1 class="sv-page-title">Оформление заказа</h1>
-        <div class="sv-page-sub mb-0">При приёме списание идёт по FEFO — самые ранние партии первыми.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:8px">Кухня · FEFO</div>
+        <h1 class="disp">Оформление заказа</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">При приёме списание идёт по FEFO — самые ранние партии первыми.</p>
     </div>
 </div>
 
 @if (TempData["OrderOk"] is string ok)
 {
-    <div class="sv-form-success mb-3 d-flex align-items-center gap-2"><img src="~/img/brand/m3-lemon.png" style="width:38px" alt="" /> @ok</div>
+    <div class="sv-form-success mb-3 d-flex align-items-center gap-2"><img src="~/img/brand/m-lemon.png" style="width:38px" alt="" /> @ok</div>
 }
 @if (TempData["OrderError"] is string err)
 {
     <div class="sv-form-alert mb-3">
-        <div class="d-flex align-items-center gap-2 mb-1"><img src="~/img/brand/m3-salmon.png" style="width:38px" alt="" /><strong>Заказ отклонён — дефицит:</strong></div>
+        <div class="d-flex align-items-center gap-2 mb-1"><img src="~/img/brand/m-salmon.png" style="width:38px" alt="" /><strong>Заказ отклонён — дефицит:</strong></div>
         <ul class="mb-0 mt-1">@foreach (var line in err.Split(';')) { <li>@line.Trim()</li> }</ul>
     </div>
 }
 
-<div class="sv-order-layout">
-    <section class="sv-card fade-up">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <div class="sv-section-title mb-0">Меню</div>
-            <div class="sv-order-cats">
+<div class="grid" style="grid-template-columns:1.35fr 1fr;align-items:start">
+    <section class="glass card rise" style="padding-bottom:0">
+        <div class="card-h" style="flex-wrap:wrap">
+            <span class="eyebrow">Меню</span><span class="sp"></span>
+            <div class="seg">
                 @foreach (var c in categories)
                 {
-                    <button type="button" class="@(c == "Все" ? "active" : "")" data-cat="@c">@c</button>
+                    <button type="button" class="@(c == "Все" ? "on" : "")" data-cat="@c">@c</button>
                 }
             </div>
         </div>
         <form asp-action="Order" method="post" id="orderForm">
             @Html.AntiForgeryToken()
-            <div class="sv-order-menu">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
                 @foreach (var d in dishes)
                 {
                     var category = d.Name.Contains("Ролл") ? "Роллы" : d.Name.Contains("Салат") ? "Салаты" : d.Name.Contains("Пицца") ? "Пицца" : d.Name.Contains("Поке") || d.Name.Contains("боул") ? "Боулы" : "Горячее";
                     <div class="sv-menu-card @(d.ManualStopped ? "is-stopped" : "")" data-cat="@category">
-                        <div class="d-flex justify-content-between align-items-start gap-1">
-                            <strong>@d.Name</strong>
+                        <div style="display:flex;gap:8px;align-items:flex-start">
+                            <b style="flex:1;font-size:14px;line-height:1.25;min-height:36px">@d.Name</b>
                             <button type="button" class="sv-stop-btn" title="@(d.ManualStopped ? "Вернуть в меню" : "В стоп")" data-stop-toggle data-id="@d.Id" data-name="@d.Name" data-stopped="@(d.ManualStopped ? "1" : "0")">
                                 <img src="~/img/brand/st-stop.png" alt="" />
                             </button>
                         </div>
-                        <div class="sv-menu-meta"><span>@($"{d.Price:0}") ₽</span><span>@(d.ManualStopped ? "стоп" : "заказ")</span></div>
-                        @if (d.ManualStopped)
-                        {
-                            <span class="sv-badge sv-badge-yellow" style="font-size:9px;align-self:flex-start">вручную</span>
-                        }
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span class="mono muted" style="font-size:13px">@($"{d.Price:0}") ₽</span>
+                            @if (d.ManualStopped) { <span class="badge rd">стоп</span><span class="badge ye">вручную</span> }
+                            else { <span class="badge gr">в наличии</span> }
+                        </div>
                         <div class="sv-qty-control" @(d.ManualStopped ? "hidden" : "")>
-                            <button type="button" data-delta="-1" aria-label="Меньше">−</button>
+                            <button type="button" data-delta="-1" aria-label="Меньше" class="btn sm ico ghost">−</button>
                             <input type="number" name="qty" value="0" min="0" step="1" data-dish-id="@d.Id" data-qty class="sv-qty-led" inputmode="numeric" @(d.ManualStopped ? "disabled" : "") />
-                            <button type="button" data-delta="1" aria-label="Больше">+</button>
+                            <button type="button" data-delta="1" aria-label="Больше" class="btn sm ico ghost">+</button>
                         </div>
                         <input type="hidden" name="dishId" value="@d.Id" />
                     </div>
                 }
             </div>
-            <div class="sv-order-submitbar">
-                <div><div class="sv-kicker">Позиций</div><b id="orderCount" class="sv-led" style="color:var(--a1)">0</b></div>
-                <div><div class="sv-kicker">Сумма</div><b id="orderSum">0 ₽</b></div>
-                <span class="sv-muted flex-grow-1">Списание по FEFO — сначала самые ранние партии</span>
-                <button class="btn-sv-primary" type="submit" id="orderSubmit" disabled>Отправить на кухню →</button>
+            <div class="sv-order-submitbar6">
+                <div><div class="eyebrow" style="font-size:9px">Позиций</div><b id="orderCount" class="mono" style="font-size:20px;color:var(--ac)">0</b></div>
+                <div><div class="eyebrow" style="font-size:9px">Сумма</div><b id="orderSum" class="mono" style="font-size:20px">0 ₽</b></div>
+                <span class="dim" style="font-size:12.5px;flex:1">Списание по FEFO — сначала самые ранние партии</span>
+                <button class="btn pri lg" type="submit" id="orderSubmit" disabled>Отправить на кухню →</button>
             </div>
         </form>
     </section>
 
-    <section class="sv-card fade-up">
-        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-            <div class="sv-section-title mb-0">Журнал заказов</div>
-            <div class="d-flex gap-1">
-                <a class="sv-chip @(!((bool)ViewBag.ShowArchive) ? "active" : "")" href="@Url.Action("Order")">Сегодня</a>
-                <a class="sv-chip @(((bool)ViewBag.ShowArchive) ? "active" : "")" href="@Url.Action("Order", new { archive = true })"><img src="~/img/brand/st-archive.png" style="width:13px;height:13px;margin-right:4px;vertical-align:-2px" alt="" />Архив</a>
+    <section class="glass card rise">
+        <div class="card-h" style="flex-wrap:wrap">
+            <span class="eyebrow">Журнал заказов</span><span class="sp"></span>
+            <div class="seg">
+                <button type="button" class="@(!((bool)ViewBag.ShowArchive) ? "on" : "")" onclick="location.href='@Url.Action("Order")'">Сегодня</button>
+                <button type="button" class="@(((bool)ViewBag.ShowArchive) ? "on" : "")" onclick="location.href='@Url.Action("Order", new { archive = true })'" style="display:flex;gap:6px;align-items:center"><img src="~/img/brand/st-archive.png" width="15" style="mix-blend-mode:lighten" alt="" />Архив</button>
             </div>
-            <span class="sv-ai-note"><b style="color:var(--gr)">@journal.Count(x => x.Status == "accepted")</b> принято · <b style="color:var(--rd)">@journal.Count(x => x.Status != "accepted")</b> отклонено</span>
         </div>
-        <div class="sv-spark-bars" aria-hidden="true">
+        <div style="display:flex;gap:10px;margin-bottom:10px;font-size:12.5px"><b class="c-gr">@journal.Count(x => x.Status == "accepted") принято</b><span class="dim">·</span><b class="c-rd">@journal.Count(x => x.Status != "accepted") отклонено</b></div>
+        <div style="display:flex;align-items:flex-end;gap:3px;height:54px;margin-bottom:14px">
             @foreach (var o in journal.Take(22).Reverse())
             {
-                var h = Math.Max(8, Math.Min(42, o.ItemCount * 8));
-                <i style="height:@(h)px;background:@(o.Status == "accepted" ? "#48BB78" : "#F56565");box-shadow:0 0 6px @(o.Status == "accepted" ? "#48BB78" : "#F56565")"></i>
+                var h = Math.Max(8, Math.Min(50, o.ItemCount * 8));
+                <i style="flex:1;height:@(h)px;border-radius:4px;background:@(o.Status == "accepted" ? "var(--gr)" : "var(--rd)");opacity:.85"></i>
             }
         </div>
         <div>
             @if (!(bool)ViewBag.ShowArchive)
             {
-                @* Журнал сегодняшнего дня *@
                 if (journal.Any())
                 {
+                    <div class="rows">
                     @foreach (var o in journal)
                     {
-                        <div class="sv-journal-row">
-                            <span class="sv-muted">#@o.Id</span>
-                            <span class="sv-badge @(o.Status == "accepted" ? "sv-badge-green" : "sv-badge-red")">@(o.Status == "accepted" ? "принят" : "отклонён")</span>
-                            <span>@o.ItemCount поз.</span>
-                            <span style="color:var(--tx);font-weight:700">@($"{o.Sum:0} ₽")</span>
-                            <span class="sv-muted">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
+                        <div class="row" style="grid-template-columns:44px 90px 1fr auto 50px;min-height:44px">
+                            <span class="mono dim">#@o.Id</span>
+                            <span class="badge @(o.Status == "accepted" ? "gr" : "rd")">@(o.Status == "accepted" ? "принят" : "отклонён")</span>
+                            <span class="muted">@o.ItemCount поз.</span>
+                            <b class="mono">@($"{o.Sum:0} ₽")</b>
+                            <span class="mono dim" style="font-size:11px">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
                         </div>
                     }
+                    </div>
                 }
                 else
                 {
-                    <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Сегодня заказов ещё не было.</p></div>
+                    <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Сегодня заказов ещё не было.</p></div>
                 }
             }
             else
             {
-                @* Архив: заказы старше 24ч, группировка по датам *@
                 var archive = (IEnumerable<dynamic>)ViewBag.Archive;
                 if (!archive.Any())
                 {
-                    <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Архив пуст — старых заказов нет.</p></div>
+                    <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Архив пуст — старых заказов нет.</p></div>
                 }
                 foreach (var day in archive)
                 {
-                    <div class="sv-arch-day">
-                        <div class="sv-arch-head">
-                            <b>@(day.Date == DateTime.Today.AddDays(-1) ? "Вчера" : ((DateTime)day.Date).ToString("dd.MM.yyyy"))</b>
-                            <span class="sv-ai-note"><b style="color:var(--gr)">@day.Accepted</b> принято · <b style="color:var(--rd)">@day.Rejected</b> отклонено · <b>@($"{day.Sum:0} ₽")</b></span>
+                    <div style="margin-bottom:14px">
+                        <div class="d-flex align-items-center gap-2 mb-2" style="padding:4px 0;border-bottom:1px solid var(--stroke)">
+                            <b class="mono">@(day.Date == DateTime.Today.AddDays(-1) ? "Вчера" : ((DateTime)day.Date).ToString("dd.MM.yyyy"))</b>
+                            <span class="dim" style="margin-left:auto;font-size:11px"><b class="c-gr">@day.Accepted</b> принято · <b class="c-rd">@day.Rejected</b> отклонено · <b class="mono">@($"{day.Sum:0} ₽")</b></span>
                         </div>
+                        <div class="rows">
                         @foreach (var o in day.Orders)
                         {
-                            <div class="sv-journal-row">
-                                <span class="sv-muted">#@o.Id</span>
-                                <span class="sv-badge @(o.Status == "accepted" ? "sv-badge-green" : "sv-badge-red")">@(o.Status == "accepted" ? "принят" : "отклонён")</span>
-                                <span>@o.ItemCount поз.</span>
-                                <span style="color:var(--tx);font-weight:700">@($"{o.Sum:0} ₽")</span>
-                                <span class="sv-muted">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
+                            <div class="row" style="grid-template-columns:44px 90px 1fr auto 50px;min-height:42px">
+                                <span class="mono dim">#@o.Id</span>
+                                <span class="badge @(o.Status == "accepted" ? "gr" : "rd")">@(o.Status == "accepted" ? "принят" : "отклонён")</span>
+                                <span class="muted">@o.ItemCount поз.</span>
+                                <b class="mono">@($"{o.Sum:0} ₽")</b>
+                                <span class="mono dim" style="font-size:11px">@o.CreatedAt.ToLocalTime().ToString("HH:mm")</span>
                             </div>
                         }
+                        </div>
                     </div>
                 }
             }
@@ -158,8 +161,8 @@
                 </div>
             </div>
             <div class="modal-footer" style="border-top:1px solid #ffffff10;padding:14px 18px;display:flex;gap:10px;justify-content:flex-end">
-                <button type="button" class="btn-sv-ghost" id="stopCancel">Отмена</button>
-                <button type="submit" class="btn-sv-danger-outline" id="stopSubmit">В стоп</button>
+                <button type="button" class="btn ghost" id="stopCancel">Отмена</button>
+                <button type="submit" class="btn danger" id="stopSubmit">В стоп</button>
             </div>
         </form>
     </div>
@@ -196,7 +199,6 @@
             submitEl.disabled = count === 0;
         }
 
-        // Делегирование на форму — работает и для динамического контента
         form.addEventListener('click', function (e) {
             const btn = e.target.closest('button[data-delta]');
             if (!btn) return;
@@ -207,23 +209,20 @@
         form.addEventListener('input', function (e) {
             if (e.target.matches('input[data-qty]')) updateTotals();
         });
-        // Enter в поле qty не отправляет форму — просто пересчёт
         form.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && e.target.matches('input[data-qty]')) { e.preventDefault(); updateTotals(); }
         });
         form.addEventListener('submit', function (e) { if (submitEl.disabled) e.preventDefault(); });
 
-        // Категории
-        document.querySelectorAll('.sv-order-cats button').forEach(button => button.addEventListener('click', function () {
-            document.querySelectorAll('.sv-order-cats button').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+        document.querySelectorAll('.sv-order-cats button, .seg [data-cat]').forEach(button => button.addEventListener('click', function () {
+            this.closest('.seg').querySelectorAll('button').forEach(b => b.classList.remove('on'));
+            this.classList.add('on');
             const cat = this.dataset.cat;
             document.querySelectorAll('.sv-menu-card').forEach(card => card.style.display = (cat === 'Все' || card.dataset.cat === cat) ? '' : 'none');
         }));
 
         updateTotals();
 
-        // Ручной стоп: кнопка на карточке → модалка → POST StopToggle
         var stopModal = document.getElementById('stopModal');
         document.querySelectorAll('[data-stop-toggle]').forEach(function (btn) {
             btn.addEventListener('click', function () {
