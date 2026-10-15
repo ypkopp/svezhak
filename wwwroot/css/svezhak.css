@@ -596,6 +596,9 @@ a:hover { color:var(--tx); }
 .sv-cmd-h { color:var(--mut); font:600 11px var(--mono); }
 .sv-cmd-empty { padding:22px; text-align:center; color:var(--mut); font-size:12px; }
 .sv-modal-wrap { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#07080bd9; backdrop-filter:blur(4px); }
+/* Онбординг не глотает первый клик по навигации: клики вне карточки проходят вниз */
+#onboard.sv-modal-wrap{background:transparent;backdrop-filter:none;pointer-events:none;place-items:end center;padding-bottom:5vh}
+#onboard.sv-modal-wrap .sv-modal{pointer-events:auto}
 .sv-modal { width:min(340px,90vw); border-radius:20px; background:linear-gradient(165deg,#1b1e27f5,#111318f5); border:1px solid var(--bd); box-shadow:0 40px 90px -20px #000; overflow:hidden; }
 .sv-modal-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #ffffff0c; font:700 15px var(--disp); }
 .sv-modal-head button { background:none; border:0; color:var(--mut); font-size:22px; line-height:1; }
@@ -1003,3 +1006,37 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sv-card,.sv-modal,.sv-menu-card,.sv-hero,.sv-ai-block,.sv-prod-group,.sv-adv-card,.sv-hero-kpi,.sv-kpi-p{background:var(--glass);border:1px solid var(--stroke);border-radius:22px;backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);box-shadow:var(--shadow),inset 0 1px 0 var(--glass-hi);}
 .sv-card,.sv-modal,.sv-hero,.sv-ai-block,.sv-prod-group,.sv-adv-card,.sv-hero-kpi,.sv-kpi-p{position:relative;}
 .sv-menu-card{background:color-mix(in oklab,var(--pn2) 55%,transparent);}
+
+/* ===== Тотальная привязка поверхностей/текста к теме (фикс «чёрный текст на светлой») ===== */
+/* Каркас приложения: сайдбар, топбар, фон — всегда из --pn/--bg темы */
+.sv-handoff-sidebar{background:color-mix(in oklab,var(--pn) 82%,transparent)!important;border-right-color:var(--stroke)!important;}
+.sv-handoff-topbar{background:color-mix(in oklab,var(--bg) 55%,transparent)!important;border-bottom-color:var(--stroke)!important;}
+/* Панели и карточки, которые были захардкожены тёмными */
+.sv-card,.sv-river,.sv-panel,.sv-order-submitbar,.sv-login-card,.sv-search-drop,.sv-bell-drop,.sv-modal,.sv-chat-panel,.sv-flow-pin,.sv-hero-hud,.sv-kpi6,.sv-wf3{
+  background:color-mix(in oklab,var(--pn) 78%,transparent)!important;border-color:var(--stroke)!important;}
+.sv-order-submitbar6{background:color-mix(in oklab,var(--pn) 85%,transparent)!important;}
+/* Текст: жёсткие тёмные/серые литералы -> токены темы */
+.sv-hero-copy p,.sv-advisor-card p,.sv-adv-tx,.sv-stop-tx p,.sv-deliv-item,.sv-flow-pin small,.sv-login-stats span,.sv-recs-say,.sv-th-out b{color:var(--tx2);}
+.sv-sl-top .price{color:var(--tx2);}
+.sv-sl-rank,.sv-rec-n,.sv-day-empty,.sv-qty-led{color:var(--tx3);}
+.btn-sv-ghost:hover{color:var(--tx);}
+/* Табличные заголовки и thead — по теме */
+.sv-table thead th{background:color-mix(in oklab,var(--pn) 90%,transparent)!important;color:var(--tx3)!important;}
+.thead span{color:var(--tx3)!important;}
+/* LED-часы/плашки: тёмная подложка только в тёмных темах; в paper — тёмный чип сохраняем, он читаем */
+.sv-wf3{background:color-mix(in oklab,var(--rd) 10%,transparent);color:var(--tx2);}
+/* Hover/актив навигации — контраст к теме */
+.sv-handoff-nav-item:hover{color:var(--tx);background:color-mix(in oklab,var(--tx) 6%,transparent);}
+.sv-handoff-nav-item.active{color:var(--tx);background:linear-gradient(90deg,color-mix(in oklab,var(--ac) 22%,transparent),transparent);}
+/* Поля ввода/новый-продукт подсветки следуют теме */
+.sv-prod-field .sv-new-prod .sv-np{background:color-mix(in oklab,var(--rd) 6%,transparent);border-color:color-mix(in oklab,var(--rd) 30%,transparent);}
+/* Paper: гарантированно светлые поверхности + тёмный текст */
+[data-theme="paper"] .sv-card,[data-theme="paper"] .sv-modal,[data-theme="paper"] .sv-panel,[data-theme="paper"] .sv-order-submitbar,[data-theme="paper"] .sv-login-card,[data-theme="paper"] .sv-search-drop,[data-theme="paper"] .sv-bell-drop,[data-theme="paper"] .sv-chat-panel,[data-theme="paper"] .sv-menu-card,[data-theme="paper"] .sv-hero,[data-theme="paper"] .sv-prod-group,[data-theme="paper"] .sv-adv-card,[data-theme="paper"] .sv-hero-kpi,[data-theme="paper"] .sv-kpi-p,[data-theme="paper"] .sv-kpi6{
+  background:var(--glass);color:var(--tx);}
+[data-theme="paper"] .sv-handoff-sidebar{background:color-mix(in oklab,var(--pn) 88%,transparent)!important;color:var(--tx);}
+[data-theme="paper"] .sv-handoff-topbar{background:color-mix(in oklab,var(--pn) 80%,transparent)!important;color:var(--tx);}
+[data-theme="paper"] .sv-order-submitbar6{background:color-mix(in oklab,var(--pn) 88%,transparent)!important;}
+[data-theme="paper"] .rows>.row{background:color-mix(in oklab,var(--pn2) 60%,transparent);}
+/* Все generic-тексты в paper жёстко к --tx (на случай инлайновых лёгких литералов) */
+[data-theme="paper"] .sv-card,[data-theme="paper"] .glass,[data-theme="paper"] .sv-modal,[data-theme="paper"] .sv-handoff-sidebar,[data-theme="paper"] .sv-handoff-topbar{color:var(--tx);}
+

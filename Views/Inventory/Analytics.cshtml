@@ -23,14 +23,16 @@
     </div>
 </div>
 
-<div id="aiOut" class="glass card rise mb-3" hidden>
-    <div class="card-h" style="margin-bottom:10px">
-        <img src="~/img/brand/m-lemon.png" style="width:40px" alt="" />
-        <span class="eyebrow" style="color:var(--ac)">Вывод ИИ — что убрать из закупок</span>
-        <span class="sp"></span>
-        <button class="btn sm ico ghost" type="button" id="aiClose" title="Закрыть">×</button>
+<div id="aiOut" class="glass card rise mb-3" style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start" hidden>
+    <img src="~/img/brand/m-lemon.png" style="height:110px;width:auto;object-fit:contain" alt="" />
+    <div style="min-width:0">
+        <div class="card-h" style="margin-bottom:10px">
+            <span class="eyebrow" style="color:var(--ac)">Вывод ИИ — что убрать из закупок</span>
+            <span class="sp"></span>
+            <button class="btn sm ico ghost" type="button" id="aiClose" title="Закрыть">×</button>
+        </div>
+        <p id="aiText" class="sv-ai-text" style="white-space:pre-wrap;margin:0;font-size:14px;line-height:1.6">Анализирую статдамп…</p>
     </div>
-    <p id="aiText" class="sv-ai-text" style="white-space:pre-wrap;margin:0">Анализирую статдамп…</p>
 </div>
 
 <div class="grid" style="grid-template-columns:1.2fr 1fr">

@@ -94,7 +94,7 @@
   }
 
   function renderOsc(node, labels, today, yesterday) {
-    var OC = ACC(), HI = document.documentElement.classList.contains('theme-b') ? '#A6F0C3' : '#FFC48F';
+    var OC = ACC();
     var W = node.clientWidth || 600, H = 210, pad = 28, maxV = Math.max(4, Math.max.apply(null, today.concat(yesterday)));
     var X = function (i) { return pad + (i / (today.length - 1)) * (W - pad * 2); };
     var Y = function (v) { return H - 26 - (v / maxV) * (H - 50); };
@@ -103,38 +103,22 @@
     var dT = smoothPath(pT);
     var area = dT + ' L' + X(today.length - 1) + ',' + (H - 26) + ' L' + X(0) + ',' + (H - 26) + ' Z';
     var last = pT[pT.length - 1];
-    var svg = '<svg width="' + W + '" height="' + H + '" style="display:block">'
-        + '<defs><linearGradient id="osca" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + OC + '" stop-opacity=".55"/><stop offset=".6" stop-color="' + OC + '" stop-opacity=".08"/><stop offset="1" stop-color="' + OC + '" stop-opacity="0"/></linearGradient>'
-        + '<linearGradient id="oscs" x1="0" x2="1"><stop offset="0" stop-color="' + OC + '" stop-opacity="0"/><stop offset="1" stop-color="' + OC + '" stop-opacity=".35"/></linearGradient>'
-        + '<clipPath id="oscc"><rect x="0" y="0" width="0" height="' + H + '"/></clipPath></defs>';
-    for (var i = 0; i < 9; i++) svg += '<line x1="' + (pad + i * (W - pad * 2) / 8) + '" x2="' + (pad + i * (W - pad * 2) / 8) + '" y1="10" y2="' + (H - 26) + '" stroke="#ffffff" stroke-opacity="' + (i % 4 === 0 ? .1 : .04) + '"/>';
+    var svg = '<svg width="' + W + '" height="' + H + '" style="display:block;overflow:visible">'
+        + '<defs><linearGradient id="pcF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + OC + '" stop-opacity=".45"/><stop offset="1" stop-color="' + OC + '" stop-opacity="0"/></linearGradient>'
+        + '<linearGradient id="pcS" x1="0" x2="1"><stop offset="0" stop-color="var(--gr)"/><stop offset=".6" stop-color="' + OC + '"/><stop offset="1" stop-color="var(--li,#A78BFA)"/></linearGradient></defs>';
+    for (var i = 0; i < 9; i++) svg += '<line x1="' + (pad + i * (W - pad * 2) / 8) + '" x2="' + (pad + i * (W - pad * 2) / 8) + '" y1="10" y2="' + (H - 26) + '" stroke="var(--stroke)" stroke-opacity="1"/>';
     [0, Math.ceil(maxV / 3), Math.ceil(2 * maxV / 3), maxV].forEach(function (v) {
-      svg += '<line x1="' + pad + '" x2="' + (W - pad) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#fff" stroke-opacity=".05" stroke-dasharray="2 4"/>'
-          + '<text x="' + (pad - 8) + '" y="' + (Y(v) + 3) + '" text-anchor="end" class="sv-osc-ax">' + v + '</text>';
+      svg += '<line x1="' + pad + '" x2="' + (W - pad) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="var(--stroke)" stroke-dasharray="2 4"/>'
+          + '<text x="' + (pad - 8) + '" y="' + (Y(v) + 3) + '" text-anchor="end" class="sv-osc-ax" fill="var(--tx3)">' + v + '</text>';
     });
-    labels.forEach(function (h, i) { if (i % 4 === 0) svg += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" class="sv-osc-ax">' + esc(h.slice(0, 2)) + 'ч</text>'; });
-    svg += '<path d="' + smoothPath(pY) + '" fill="none" stroke="#7C8595" stroke-opacity=".5" stroke-width="1.2" stroke-dasharray="3 4"/>'
-        + '<path d="' + area + '" fill="url(#osca)"/>'
-        + '<path d="' + dT + '" fill="none" stroke="' + OC + '" stroke-width="6" stroke-opacity=".18" style="filter:blur(4px)"/>'
-        + '<path d="' + dT + '" fill="none" stroke="' + HI + '" stroke-width="2"/>'
-        + '<g clip-path="url(#oscc)"><path d="' + dT + '" fill="none" stroke="#fff" stroke-width="2.4" stroke-opacity=".85" style="filter:drop-shadow(0 0 6px ' + OC + ')"/></g>'
-        + '<g class="sv-osc-sweepg"><rect x="-80" y="10" width="80" height="' + (H - 36) + '" fill="url(#oscs)" class="sv-osc-sweeprect"/><line x1="0" x2="0" y1="10" y2="' + (H - 26) + '" stroke="' + OC + '" stroke-opacity=".8" class="sv-osc-sweepline"/></g>'
-        + '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="5" fill="' + OC + '" class="sv-osc-head"/>';
-    svg += '</svg><div class="sv-osc-scan"></div>';
+    labels.forEach(function (h, i) { if (i % 4 === 0) svg += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" class="sv-osc-ax" fill="var(--tx3)">' + esc(h.slice(0, 2)) + 'ч</text>'; });
+    svg += '<path d="' + smoothPath(pY) + '" fill="none" stroke="var(--tx3)" stroke-width="1.5" stroke-dasharray="4 5"/>'
+        + '<path d="' + area + '" fill="url(#pcF)"/>'
+        + '<path d="' + dT + '" fill="none" stroke="url(#pcS)" stroke-width="2.6" style="filter:drop-shadow(0 0 8px ' + OC + ')"/>'
+        + '<rect class="pc-scan" x="' + pad + '" y="10" width="70" height="' + (H - 36) + '" fill="url(#pcF)" opacity=".25"/>'
+        + '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="5" fill="' + OC + '" style="filter:drop-shadow(0 0 6px ' + OC + ')"/>';
+    svg += '</svg>';
     node.innerHTML = svg;
-    // развёртка: бегущий луч + clipPath-подсветка пройденного участка
-    var clip = node.querySelector('#oscc rect'), sweep = node.querySelector('.sv-osc-sweepg');
-    var start = null;
-    function frame(now) {
-      if (!node.isConnected) return;
-      if (start === null) start = now;
-      var sweep01 = (((now - start) / 1000) * 0.12) % 1;
-      var sx = pad + sweep01 * (W - pad * 2);
-      clip.setAttribute('width', sx);
-      sweep.setAttribute('transform', 'translate(' + sx + ',0)');
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
   }
 
   /* ---------- LED-водопад массы (v2 LedWaterfall) ---------- */
