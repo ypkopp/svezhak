@@ -15,6 +15,40 @@
     return '<b class="sv-led" style="color:' + color + ';text-shadow:0 0 12px ' + color + '">' + esc(text) + '</b>';
   }
 
+  /* ---------- Спираль свежести (v6 FreshSpiral): 3 витка = 72 ч, центр = сейчас ---------- */
+  function renderSpiral(node, batches) {
+    var size = 330, c = size / 2, r0 = size * .1, rMax = size * .46, turns = 3;
+    function pos(h) { var t = Math.min(h, 72) / 72; var a = -Math.PI / 2 + t * turns * Math.PI * 2; var r = r0 + t * (rMax - r0); return [c + r * Math.cos(a), c + r * Math.sin(a)]; }
+    function seg(h1, h2) { var d = ''; for (var h = h1; h <= h2; h += .5) { var p = pos(h); d += (h === h1 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); } return d; }
+    var list = (batches || []).filter(function (b) { return b.hoursLeft <= 72; });
+    var under24 = list.filter(function (b) { return b.hoursLeft < 24; }).length;
+    var acc = ACC();
+    var svg = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" style="overflow:visible;display:block;margin:0 auto">';
+    svg += '<defs><radialGradient id="spGlow"><stop offset="0" stop-color="#F56565" stop-opacity=".3"/><stop offset=".45" stop-color="#ECC94B" stop-opacity=".08"/><stop offset="1" stop-color="#48BB78" stop-opacity="0"/></radialGradient>'
+        + '<linearGradient id="spSweep" x1="0" x2="1"><stop offset="0" stop-color="' + acc + '" stop-opacity="0"/><stop offset="1" stop-color="' + acc + '" stop-opacity=".5"/></linearGradient></defs>';
+    svg += '<circle cx="' + c + '" cy="' + c + '" r="' + (rMax + 6) + '" fill="url(#spGlow)"/>';
+    [1, 2, 3].forEach(function (k) { svg += '<circle cx="' + c + '" cy="' + c + '" r="' + (r0 + k / 3 * (rMax - r0)) + '" fill="none" stroke="var(--stroke)" stroke-dasharray="2 6"/>'; });
+    svg += '<path d="' + seg(0, 12) + '" fill="none" stroke="#F56565" stroke-width="10" stroke-linecap="round" opacity=".28"/>'
+        + '<path d="' + seg(12, 24) + '" fill="none" stroke="#ECC94B" stroke-width="10" stroke-linecap="round" opacity=".22"/>'
+        + '<path d="' + seg(24, 72) + '" fill="none" stroke="#48BB78" stroke-width="6" stroke-linecap="round" opacity=".14"/>';
+    svg += '<g style="transform-origin:' + c + 'px ' + c + 'px;animation:spin 6s linear infinite">'
+        + '<path d="M' + c + ' ' + c + ' L' + c + ' ' + (c - rMax - 4) + ' A' + (rMax + 4) + ' ' + (rMax + 4) + ' 0 0 1 ' + (c + (rMax + 4) * Math.sin(.6)) + ' ' + (c - (rMax + 4) * Math.cos(.6)) + ' Z" fill="url(#spSweep)" opacity=".35"/>'
+        + '<line x1="' + c + '" y1="' + c + '" x2="' + c + '" y2="' + (c - rMax - 4) + '" stroke="' + acc + '" stroke-width="1.5" opacity=".8"/></g>';
+    ['+24ч', '+48ч', '+72ч'].forEach(function (t, i) { var r = r0 + (i + 1) / 3 * (rMax - r0); svg += '<text x="' + (c + 4) + '" y="' + (c - r - 4) + '" fill="var(--tx3)" style="font:600 9.5px \'JetBrains Mono\'">' + t + '</text>'; });
+    list.forEach(function (b) {
+      var p = pos(b.hoursLeft), col = SEM(b.hoursLeft), s = 5 + Math.min(9, Math.sqrt(b.qty || 1) * 2.4);
+      svg += '<g><circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (s + 6) + '" fill="' + col + '" opacity=".14"/>'
+          + '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + s + '" fill="' + col + '" style="filter:drop-shadow(0 0 6px ' + col + ')"/>';
+      if (b.hoursLeft < 12) svg += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + s + '" fill="none" stroke="' + col + '" stroke-width="2" class="sp-ping"/>';
+      svg += '</g>';
+    });
+    svg += '<circle cx="' + c + '" cy="' + c + '" r="' + (r0 - 8) + '" fill="var(--pn)" stroke="var(--stroke2)"/>'
+        + '<text x="' + c + '" y="' + (c - 2) + '" text-anchor="middle" fill="var(--tx)" style="font:700 20px Unbounded">' + under24 + '</text>'
+        + '<text x="' + c + '" y="' + (c + 14) + '" text-anchor="middle" fill="var(--tx3)" style="font:700 8px \'JetBrains Mono\';letter-spacing:.12em">&lt;24 Ч</text>';
+    svg += '</svg>';
+    node.innerHTML = svg;
+  }
+
   /* ---------- Радар героя (v3 Radar3) ---------- */
   function renderRadar(node, batches) {
     var R = 170, rings = [12, 24, 48, 72];
@@ -164,6 +198,7 @@
   /* ---------- Экспорт + загрузчики ---------- */
   window.SvProto = {
     radar: function (id, url) { fetch(url).then(function (r) { return r.json(); }).then(function (d) { var n = el(id); if (n) renderRadar(n, d); }); },
+    spiral: function (id, url) { fetch(url).then(function (r) { return r.json(); }).then(function (d) { var n = el(id); if (n) renderSpiral(n, d); }); },
     osc: function (id, url) {
       fetch(url).then(function (r) { return r.json(); }).then(function (d) {
         var n = el(id); if (!n) return;

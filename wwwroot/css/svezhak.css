@@ -941,3 +941,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .shot-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--stroke2); }
 .shot-bar span { margin-left: 10px; font-size: 10.5px; color: var(--tx3); }
 .shot img { display: block; width: 100%; height: auto; }
+
+/* ===== Дашборд v6: hero 2-колонки + спираль + KPI ===== */
+.sv-hero6 { display:grid; grid-template-columns:1.1fr .9fr; overflow:hidden; min-height:360px; }
+.sv-hero6-copy { padding:30px 32px; display:flex; flex-direction:column; gap:16px; position:relative; z-index:1; }
+.sv-hero6-spiral { position:relative; display:grid; place-items:center; padding:20px; background:radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--ac) 10%, transparent), transparent 70%); }
+.sv-kpi6 { padding:12px 14px; border-radius:14px; background:color-mix(in oklab, var(--bg2) 60%, transparent); border:1px solid var(--stroke); }

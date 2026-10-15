@@ -8,38 +8,42 @@
     Func<string, string> sevColor = s => s == "high" ? "var(--rd)" : s == "medium" ? "var(--ye)" : "var(--mut)";
 }
 
-@* ============ HERO: одна мысль + радар (v3 Hero3) ============ *@
-<section class="sv-card sv-hero fade-up">
-    <img class="sv-hero-fullbg" src="~/img/brand/kv-warehouse.png" asp-append-version="true" alt="" />
-    <div class="sv-hero-fullfade"></div>
-    <div class="sv-hero-copy">
-        <div class="sv-kicker"><span class="sv-live-dot"></span> Тревога · обновлено @now.ToLocalTime().ToString("HH:mm")</div>
-        <h1><span data-i18n="hero.threat">Под угрозой</span> <span class="sv-gradient-text">@threat <span data-i18n="hero.batches">партий</span></span>.</h1>
-        <p>
+@* ============ HERO (v6): 2 колонки — тревога + Спираль свежести ============ *@
+<section class="glass sv-hero6 fade-up">
+    <div class="sv-hero6-copy">
+        <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge rd"><i class="dot pulse" style="width:6px;height:6px"></i>тревога</span>
+            <span class="eyebrow">обновлено @now.ToLocalTime().ToString("HH:mm") · SignalR</span>
+        </div>
+        <h1 class="disp" style="margin:0;font-size:46px;line-height:1;font-weight:700">Под угрозой<br /><span class="grad-tx">@threat партии</span></h1>
+        <p class="muted" style="margin:0;max-width:470px;font-size:15px">
             @if (ViewBag.NextExpiryProduct is string np)
             {
-                @:«@np» уходит через @($"{(double)ViewBag.NextExpiryHours:0.#}") ч — это @($"{(decimal)ViewBag.NextExpiryQty:0.##}") @ViewBag.NextExpiryUnit и ~@($"{(decimal)ViewBag.NextExpiryRub:N0}") ₽ себестоимости. Сора уже нашла блюда, которые его съедят.
+                @:«@np» уходит через <b class="c-rd">@($"{(double)ViewBag.NextExpiryHours:0.#}") ч</b> — это @($"{(decimal)ViewBag.NextExpiryQty:0.##}") @ViewBag.NextExpiryUnit и ~@($"{(decimal)ViewBag.NextExpiryRub:N0}") ₽ себестоимости. Лимо уже нашла блюда, которые его съедят.
             }
             else
             {
                 @:Все партии свежие — срочных угроз нет. Склад под контролем, FEFO следит за порядком списаний.
             }
         </p>
-        <div class="d-flex flex-wrap gap-2">
-            <a class="btn-sv-primary" href="#riverWrap"><img src="~/img/brand/st-hot.png" style="width:18px;height:18px;mix-blend-mode:lighten" alt="" /> Включить @ViewBag.KpiHotOffers hot offers</a>
-            <a class="btn-sv-ghost" asp-action="Stock">Открыть склад →</a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn pri lg" asp-action="StopList"><img src="~/img/brand/st-hot.png" style="width:20px;height:20px;mix-blend-mode:lighten" alt="" />Включить @ViewBag.KpiHotOffers hot offers</a>
+            <a class="btn lg" asp-action="Stock">Открыть склад <span style="opacity:.7">→</span></a>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+            <div class="sv-kpi6"><div class="eyebrow" style="font-size:9px">позиций</div><div class="mono" data-count="@ViewBag.KpiPositions" style="font-size:24px;font-weight:700;margin-top:8px;color:var(--gr)">@ViewBag.KpiPositions</div></div>
+            <div class="sv-kpi6"><div class="eyebrow" style="font-size:9px">истекает &lt;24 ч</div><div class="mono" data-count="@ViewBag.KpiExpiring" style="font-size:24px;font-weight:700;margin-top:8px;color:var(--rd)">@ViewBag.KpiExpiring</div></div>
+            <div class="sv-kpi6"><div class="eyebrow" style="font-size:9px">в стоп-листе</div><div class="mono" data-count="@stopCount" style="font-size:24px;font-weight:700;margin-top:8px;color:var(--ye)">@stopCount</div></div>
+            <div class="sv-kpi6"><div class="eyebrow" style="font-size:9px">до конца смены</div><div class="mono" id="shiftCountdown" style="font-size:24px;font-weight:700;margin-top:8px;color:var(--ac)">--:--</div></div>
         </div>
     </div>
-    <div class="sv-hero-art">
-        <div class="sv-hero-radar" id="heroRadar"></div>
-        <img class="sv-hero-chef" src="~/img/brand/chef-3-cut.png" asp-append-version="true" alt="Сора" />
-        <div class="sv-hero-hud"><div class="sv-kicker">до конца смены</div><b id="shiftCountdown" style="color:var(--a1);font-family:var(--mono)">--:--</b></div>
-    </div>
-    <div class="sv-hero-kpis" style="grid-column:1/-1">
-        <div class="sv-hero-kpi"><span data-i18n="kpi.pos">позиций на складе</span><b data-count="@ViewBag.KpiPositions" style="--metric:var(--gr)">@ViewBag.KpiPositions</b></div>
-        <div class="sv-hero-kpi" style="--metric:var(--rd)"><span data-i18n="kpi.exp">истекает &lt;24 ч</span><b data-count="@ViewBag.KpiExpiring" style="--metric:var(--rd)">@ViewBag.KpiExpiring</b></div>
-        <div class="sv-hero-kpi"><span data-i18n="kpi.stop">в стоп-листе</span><b data-count="@stopCount" style="--metric:var(--ye)">@stopCount</b></div>
-@* HOT OFFERS убран — он уже в CTA-кнопке «Включить N hot offers» *@
+    <div class="sv-hero6-spiral">
+        <div class="eyebrow" style="position:absolute;left:20px;top:20px">Спираль свежести · 72 ч</div>
+        <div id="heroRadar"></div>
+        <div class="eyebrow" style="position:absolute;right:18px;bottom:18px;display:flex;gap:10px">
+            <span class="c-rd">● &lt;12</span><span class="c-ye">● 12–24</span><span class="c-gr">● &gt;24</span>
+        </div>
     </div>
 </section>
 
@@ -184,7 +188,7 @@
             stopForecast: { el:'stopForecast', skel:'forecastSkel', empty:'forecastEmpty', error:'forecastError', url:'@Url.Action("StopForecast","InventoryAnalytics")' },
             lossShare: { el:'lossShare', skel:'lossSkel', empty:'lossEmpty', error:'lossError', url:'@Url.Action("LossShare","InventoryAnalytics")' }
         });
-        SvProto.radar('heroRadar', '@Url.Action("ChartDataRiver","Inventory")');
+        SvProto.spiral('heroRadar', '@Url.Action("ChartDataRiver","Inventory")');
         SvProto.osc('orderOsc', '@Url.Action("ChartDataOrderPulse","Inventory")');
         SvProto.waterfall('massWf', '@Url.Action("ChartDataWaterfall","Inventory")');
         fetch('@Url.Action("WriteoffRisk","InventoryAnalytics")').then(r=>r.json()).then(d=>{
