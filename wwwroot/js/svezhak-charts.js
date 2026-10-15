@@ -2,8 +2,13 @@
 (function () {
   'use strict';
 
-  var AX = '#7C8595', GRID = 'rgba(255,255,255,.05)';
-  var TIP = { backgroundColor: '#151923', borderColor: '#2a2f3a', borderWidth: 1, textStyle: { color: '#E2E8F0', fontSize: 12 }, confine: true };
+  // Тема: читаем токены из CSS-переменных при каждом init (переключение темы пересоздаёт график)
+  function tk(n, fb) { var v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || fb; }
+  function isLight() { return document.documentElement.dataset.theme === 'paper'; }
+  function axColor() { return tk('--tx3', '#7C8595'); }
+  function txColor() { return tk('--tx', '#E2E8F0'); }
+  function gridColor() { return isLight() ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.05)'; }
+  function tipStyle() { return { backgroundColor: tk('--pn2', '#151923'), borderColor: tk('--stroke', '#2a2f3a'), borderWidth: 1, textStyle: { color: txColor(), fontSize: 12 }, confine: true }; }
   var charts = [];
 
   function el(id) { return document.getElementById(id); }
@@ -60,14 +65,14 @@
     });
     chart.setOption({
       grid: { left: 48, right: 28, top: 34, bottom: 34 },
-      xAxis: { type: 'value', min: 0, max: 72, name: 'часов до истечения', nameTextStyle: { color: AX }, axisLabel: { color: AX, formatter: function (v) { return v === 0 ? 'сейчас' : '+' + v + 'ч'; } }, axisLine: { lineStyle: { color: GRID } }, splitLine: { lineStyle: { color: GRID } } },
+      xAxis: { type: 'value', min: 0, max: 72, name: 'часов до истечения', nameTextStyle: { color: axColor() }, axisLabel: { color: axColor(), formatter: function (v) { return v === 0 ? 'сейчас' : '+' + v + 'ч'; } }, axisLine: { lineStyle: { color: gridColor() } }, splitLine: { lineStyle: { color: gridColor() } } },
       yAxis: { type: 'value', min: -0.5, max: laneCount - .4, axisLabel: { show: false }, splitLine: { show: false }, axisTick: { show: false } },
-      tooltip: Object.assign({ trigger: 'item', formatter: function (p) { var b = p.data.batch; return '<b>' + b.name + '</b><br>' + b.delivery + ' · ' + b.qty + ' ' + b.unit + '<br><b style="color:' + colorFor(b.hoursLeft) + '">' + b.hoursLeft + ' ч</b>'; } }, TIP),
+      tooltip: Object.assign({ trigger: 'item', formatter: function (p) { var b = p.data.batch; return '<b>' + b.name + '</b><br>' + b.delivery + ' · ' + b.qty + ' ' + b.unit + '<br><b style="color:' + colorFor(b.hoursLeft) + '">' + b.hoursLeft + ' ч</b>'; } }, tipStyle()),
       series: [{
         type: 'scatter', symbolSize: 16, data: data,
         // Подписи не слипаются: hideOverlap + при столкновении ECharts разводит их
         labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' },
-        label: { show: true, position: 'right', distance: 9, formatter: function (p) { return p.data.name + ' · ' + p.data.batch.hoursLeft + ' ч'; }, color: '#E2E8F0', fontSize: 10, fontWeight: 700 },
+        label: { show: true, position: 'right', distance: 9, formatter: function (p) { return p.data.name + ' · ' + p.data.batch.hoursLeft + ' ч'; }, color: txColor(), fontSize: 10, fontWeight: 700 },
         labelLine: { show: true, length2: 8, lineStyle: { color: 'rgba(255,255,255,.25)' } },
         itemStyle: { shadowBlur: 13, shadowColor: 'rgba(237,137,54,.55)', borderColor: '#0b0d11', borderWidth: 2 },
         emphasis: { scale: true, scaleSize: 8, label: { fontSize: 11 } },
@@ -83,9 +88,9 @@
   function renderPulse(chart, d) {
     chart.setOption({
       grid: { left: 8, right: 14, top: 20, bottom: 24, containLabel: true },
-      xAxis: { type: 'category', data: d.labels, boundaryGap: false, axisLabel: { color: AX }, axisLine: { lineStyle: { color: GRID } } },
-      yAxis: { type: 'value', axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
-      tooltip: Object.assign({ trigger: 'axis' }, TIP),
+      xAxis: { type: 'category', data: d.labels, boundaryGap: false, axisLabel: { color: axColor() }, axisLine: { lineStyle: { color: gridColor() } } },
+      yAxis: { type: 'value', axisLabel: { color: axColor() }, splitLine: { lineStyle: { color: gridColor() } } },
+      tooltip: Object.assign({ trigger: 'axis' }, tipStyle()),
       series: [{
         name: 'заказы', type: 'line', smooth: true, symbol: 'circle', symbolSize: 8, data: d.values,
         lineStyle: { width: 3, color: '#ED8936', shadowColor: 'rgba(237,137,54,.7)', shadowBlur: 14 },
@@ -100,9 +105,9 @@
     var base = [0, d.start - d.byOrder, d.start - d.byOrder - d.byExpired, 0];
     chart.setOption({
       grid: { left: 8, right: 8, top: 24, bottom: 24, containLabel: true },
-      xAxis: { type: 'category', data: ['Утро', 'По заказам', 'Просрочка', 'Сейчас'], axisLabel: { color: AX }, axisLine: { lineStyle: { color: GRID } } },
-      yAxis: { type: 'value', axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
-      tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' } }, TIP),
+      xAxis: { type: 'category', data: ['Утро', 'По заказам', 'Просрочка', 'Сейчас'], axisLabel: { color: axColor() }, axisLine: { lineStyle: { color: gridColor() } } },
+      yAxis: { type: 'value', axisLabel: { color: axColor() }, splitLine: { lineStyle: { color: gridColor() } } },
+      tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' } }, tipStyle()),
       series: [
         { type: 'bar', stack: 'w', itemStyle: { color: 'rgba(255,255,255,0.03)' }, data: base, tooltip: { show: false }, silent: true },
         { type: 'bar', stack: 'w', barWidth: '48%', itemStyle: { borderRadius: [8, 8, 0, 0] },
@@ -111,7 +116,7 @@
             { value: d.byOrder, itemStyle: { color: gradient('#ED8936', '#c56a21') } },
             { value: d.byExpired, itemStyle: { color: gradient('#F56565', '#c93e3e') } },
             { value: d.current, itemStyle: { color: gradient('#48BB78', '#2f9e63') } }
-          ], label: { show: true, position: 'top', color: '#E2E8F0', fontSize: 10 } }
+          ], label: { show: true, position: 'top', color: txColor(), fontSize: 10 } }
       ]
     });
   }
@@ -120,11 +125,11 @@
     var max = d.data && d.data.length ? Math.max.apply(null, d.data.map(function (x) { return x[2]; })) : 1;
     chart.setOption({
       grid: { left: 10, right: 14, top: 10, bottom: 40, containLabel: true },
-      xAxis: { type: 'category', data: d.days, axisLabel: { color: AX }, splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.015)', 'rgba(255,255,255,0)'] } } },
-      yAxis: { type: 'category', data: d.products, axisLabel: { color: AX, fontSize: 10 } },
-      visualMap: { min: 0, max: max, calculable: true, orient: 'horizontal', left: 'center', bottom: 0, inRange: { color: ['#1d3a2a', '#ED8936', '#F56565'] }, textStyle: { color: AX } },
-      tooltip: Object.assign({ position: 'top' }, TIP),
-      series: [{ type: 'heatmap', data: d.data, label: { show: true, color: '#E2E8F0', fontSize: 9 }, itemStyle: { borderRadius: 4, borderColor: '#111318', borderWidth: 1 }, emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,.6)' } } }]
+      xAxis: { type: 'category', data: d.days, axisLabel: { color: axColor() }, splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.015)', 'rgba(255,255,255,0)'] } } },
+      yAxis: { type: 'category', data: d.products, axisLabel: { color: axColor(), fontSize: 10 } },
+      visualMap: { min: 0, max: max, calculable: true, orient: 'horizontal', left: 'center', bottom: 0, inRange: { color: ['#1d3a2a', '#ED8936', '#F56565'] }, textStyle: { color: axColor() } },
+      tooltip: Object.assign({ position: 'top' }, tipStyle()),
+      series: [{ type: 'heatmap', data: d.data, label: { show: true, color: txColor(), fontSize: 9 }, itemStyle: { borderRadius: 4, borderColor: '#111318', borderWidth: 1 }, emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,.6)' } } }]
     });
   }
 
@@ -132,20 +137,20 @@
     var rows = (d.dishes || []).slice(0, 12);
     chart.setOption({
       grid: { left: 10, right: 12, top: 18, bottom: 24, containLabel: true },
-      xAxis: { type: 'category', data: rows.map(function (x) { return x.dish; }), axisLabel: { color: AX, fontSize: 10, interval: 0, rotate: 20 }, axisLine: { lineStyle: { color: GRID } } },
-      yAxis: { type: 'value', name: 'дней до стопа', nameTextStyle: { color: AX }, axisLabel: { color: AX }, splitLine: { lineStyle: { color: GRID } } },
-      tooltip: Object.assign({ trigger: 'axis', formatter: function (params) { var x = rows[params[0].dataIndex]; return '<b>' + x.dish + '</b><br>' + x.limitingProduct + '<br>запас ' + x.stock + ' · расход ' + x.dailyUse + '/день<br>' + x.daysUntilStop + ' дн.'; } }, TIP),
-      series: [{ type: 'bar', barWidth: '48%', data: rows.map(function (x) { return { value: x.daysUntilStop, itemStyle: { color: x.alreadyStopped ? '#F56565' : x.daysUntilStop < 2 ? '#ED8936' : '#48BB78', borderRadius: [8,8,0,0] } }; }), label: { show: true, position: 'top', color: '#E2E8F0', fontSize: 9, formatter: function (p) { return p.value + 'д'; } } }]
+      xAxis: { type: 'category', data: rows.map(function (x) { return x.dish; }), axisLabel: { color: axColor(), fontSize: 10, interval: 0, rotate: 20 }, axisLine: { lineStyle: { color: gridColor() } } },
+      yAxis: { type: 'value', name: 'дней до стопа', nameTextStyle: { color: axColor() }, axisLabel: { color: axColor() }, splitLine: { lineStyle: { color: gridColor() } } },
+      tooltip: Object.assign({ trigger: 'axis', formatter: function (params) { var x = rows[params[0].dataIndex]; return '<b>' + x.dish + '</b><br>' + x.limitingProduct + '<br>запас ' + x.stock + ' · расход ' + x.dailyUse + '/день<br>' + x.daysUntilStop + ' дн.'; } }, tipStyle()),
+      series: [{ type: 'bar', barWidth: '48%', data: rows.map(function (x) { return { value: x.daysUntilStop, itemStyle: { color: x.alreadyStopped ? '#F56565' : x.daysUntilStop < 2 ? '#ED8936' : '#48BB78', borderRadius: [8,8,0,0] } }; }), label: { show: true, position: 'top', color: txColor(), fontSize: 9, formatter: function (p) { return p.value + 'д'; } } }]
     });
   }
 
   function renderLossShare(chart, d) {
     chart.setOption({
-      tooltip: Object.assign({ trigger: 'item', formatter: function (p) { return p.name + '<br><b>' + p.value + ' ₽</b> · ' + p.percent + '%'; } }, TIP),
-      legend: { bottom: 4, left: 'center', orient: 'horizontal', itemGap: 18, padding: [6, 0], textStyle: { color: AX, fontSize: 11 } },
+      tooltip: Object.assign({ trigger: 'item', formatter: function (p) { return p.name + '<br><b>' + p.value + ' ₽</b> · ' + p.percent + '%'; } }, tipStyle()),
+      legend: { bottom: 4, left: 'center', orient: 'horizontal', itemGap: 18, padding: [6, 0], textStyle: { color: axColor(), fontSize: 11 } },
       series: [{ type: 'pie', radius: ['48%', '72%'], center: ['50%', '44%'],
         itemStyle: { borderRadius: 6, borderColor: '#111318', borderWidth: 2 },
-        label: { color: '#E2E8F0', fontSize: 10 },
+        label: { color: txColor(), fontSize: 10 },
         data: [
           { name: 'Использовано в заказах', value: d.values[0], itemStyle: { color: '#48BB78' } },
           { name: 'Списано просроченным', value: d.values[1], itemStyle: { color: '#F56565' } },
@@ -190,12 +195,26 @@
   };
 
   window.SvCharts = {
+    _map: null,
     initAll: function (map) {
+      this._map = map;
       Object.keys(map).forEach(function (key) {
         var cfg = map[key];
         initChart({ el: cfg.el, skel: cfg.skel, empty: cfg.empty, error: cfg.error, url: cfg.url, render: renders[key], isEmpty: empties[key] });
       });
     },
+    // при смене темы пересоздаём графики, чтобы цвета осей/сетки/лейблов перечитались из новых токенов
+    retheme: function () {
+      charts.forEach(function (c) { try { c.observer && c.observer.disconnect(); c.chart.dispose(); } catch (e) { } });
+      charts.length = 0;
+      if (this._map) this.initAll(this._map);
+    },
     drawSparkline: drawSparkline
   };
+  // реагируем на смену data-theme у <html>
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(function (m) {
+      if (m.some(function (x) { return x.attributeName === 'data-theme'; }) && window.SvCharts._map) window.SvCharts.retheme();
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }
 })();

@@ -13,11 +13,16 @@ namespace SmartInventory.Controllers;
 /// Раздел «Админ»: управление сотрудниками (access-коды ресторана)
 /// и недельное расписание смен. Доступен только роли Admin.
 /// </summary>
-[AuthorizeRole(AppRole.Admin)]
+[AuthorizeRole(AppRole.Admin, AppRole.RestaurantManager)]
 [Route("Admin")]
 public sealed class AdminController(ApplicationDbContext db) : Controller
 {
     private static readonly string[] AllowedPositions = ["шеф", "повар", "менеджер"];
+    // Роли, которыми может управлять менеджер (повара своего ресторана, не админы)
+    private static readonly AppRole[] ManagerManagedRoles = [AppRole.Staff, AppRole.HeadChef, AppRole.Manager];
+
+    private bool IsAdmin() => User.IsInRole(nameof(AppRole.Admin));
+    private bool IsManager() => User.IsInRole(nameof(AppRole.RestaurantManager));
 
     // ---------- helpers ----------
 
@@ -62,8 +67,14 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
             .ThenBy(c => c.EmployeeName)
             .ToListAsync();
 
+        // Менеджер — мини-админка: видит только поваров (не админов, не владельца, не себя)
+        var selfId = CurrentAccessCodeId();
+        if (!IsAdmin())
+            codes = codes.Where(c => ManagerManagedRoles.Contains(c.Role) && c.Id != selfId).ToList();
+
         ViewBag.Codes = codes;
-        ViewBag.SelfCodeId = CurrentAccessCodeId();
+        ViewBag.SelfCodeId = selfId;
+        ViewBag.IsManagerView = !IsAdmin();
         ViewBag.NewCode = TempData["NewCode"];
         ViewBag.NewCodeName = TempData["NewCodeName"];
         ViewBag.Error = TempData["Error"];
@@ -85,11 +96,13 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
             return RedirectToAction(nameof(Employees));
         }
 
-        // Роль — только из белого списка, чтобы формой нельзя было выдать лишнее
+        // Роль — только из белого списка, чтобы формой нельзя было выдать лишнее.
+        // Менеджер может создавать только поваров (Staff), не админов.
         var appRole = role switch
         {
-            "админ" or nameof(AppRole.Admin) => AppRole.Admin,
-            "менеджер" or nameof(AppRole.Manager) => AppRole.Manager,
+            "админ" or nameof(AppRole.Admin) when IsAdmin() => AppRole.Admin,
+            "менеджер" or nameof(AppRole.Manager) when IsAdmin() => AppRole.Manager,
+            "шеф" or nameof(AppRole.HeadChef) => AppRole.HeadChef,
             _ => AppRole.Staff,
         };
 
@@ -125,6 +138,18 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
             return RedirectToAction(nameof(Employees));
         }
 
+        // Владельца сети деактивировать нельзя — ни через UI, ни через прямой POST
+        if (code.Role == AppRole.OrganizationOwner)
+        {
+            TempData["Error"] = "Владельца сети нельзя деактивировать.";
+            return RedirectToAction(nameof(Employees));
+        }
+        if (!IsAdmin() && !ManagerManagedRoles.Contains(code.Role))
+        {
+            TempData["Error"] = "Менеджер может управлять только поварами.";
+            return RedirectToAction(nameof(Employees));
+        }
+
         code.IsActive = !code.IsActive;
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(Employees));
@@ -156,11 +181,17 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         return View();
     }
 
-    // POST /Admin/Restaurants/Create — добавить ресторан
+    // POST /Admin/Restaurants/Create — только владелец сети (форма в /Org)
     [HttpPost("Restaurants/Create")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateRestaurant(string address)
     {
+        // Создавать точки может только владелец организации (форма живёт в /Org)
+        if (!User.IsInRole(nameof(AppRole.OrganizationOwner)))
+        {
+            TempData["Error"] = "Создавать рестораны может только владелец сети.";
+            return RedirectToAction(nameof(Restaurants));
+        }
         var orgId = await GetOrganizationIdAsync();
         if (orgId is null) return Forbid();
 
@@ -181,6 +212,84 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         return RedirectToAction(nameof(Restaurants));
     }
 
+    // ---------- Ассортимент (импорт продуктов) ----------
+
+    // GET /Admin/Products — список + загрузка файла
+    [HttpGet("Products")]
+    public async Task<IActionResult> Products()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var products = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .OrderBy(p => p.Category).ThenBy(p => p.Name)
+            .ToListAsync();
+
+        ViewBag.Products = products;
+        ViewBag.ImportRows = TempData["ImportRows"] is string json && !string.IsNullOrEmpty(json)
+            ? SmartInventory.Services.ProductImportService.DeserializeRows(json) : null;
+        if (ViewBag.ImportRows is not null)
+            SmartInventory.Services.ProductImportService.Validate((List<SmartInventory.Services.ProductImportService.ImportRow>)ViewBag.ImportRows, products.Select(p => p.Name));
+        ViewBag.Error = TempData["Error"];
+        ViewBag.Ok = TempData["Ok"];
+        return View();
+    }
+
+    // POST /Admin/Products/Import — файл → предпросмотр (строки в TempData → GET)
+    [HttpPost("Products/Import")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ImportProducts(IFormFile? file)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        if (file is null || file.Length == 0) { TempData["Error"] = "Файл не выбран."; return RedirectToAction(nameof(Products)); }
+
+        List<SmartInventory.Services.ProductImportService.ImportRow> rows;
+        await using (var s = file.OpenReadStream())
+            rows = SmartInventory.Services.ProductImportService.Parse(s, file.FileName);
+        if (rows.Count == 0) { TempData["Error"] = "В файле нет строк."; return RedirectToAction(nameof(Products)); }
+
+        TempData["ImportRows"] = SmartInventory.Services.ProductImportService.SerializeRows(rows);
+        return RedirectToAction(nameof(Products));
+    }
+
+    // POST /Admin/Products/Confirm — подтверждение предпросмотра
+    [HttpPost("Products/Confirm")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmProducts(string importJson)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var rows = SmartInventory.Services.ProductImportService.DeserializeRows(importJson);
+        var existing = await db.Products.AsNoTracking().Where(p => p.RestaurantId == rid).Select(p => p.Name).ToListAsync();
+        SmartInventory.Services.ProductImportService.Validate(rows, existing);
+        var valid = rows.Where(r => r.Errors.Count == 0).ToList();
+        if (valid.Count == 0) { TempData["Error"] = "Нет валидных строк."; return RedirectToAction(nameof(Products)); }
+
+        foreach (var r in valid)
+            db.Products.Add(new Product { RestaurantId = rid.Value, Name = r.Name.Trim(), Category = string.IsNullOrWhiteSpace(r.Category) ? "Прочее" : r.Category.Trim(), Unit = r.Unit.Trim(), PurchasePrice = r.PurchasePrice });
+        await db.SaveChangesAsync();
+        TempData["Ok"] = $"Импортировано {valid.Count} продуктов.";
+        return RedirectToAction(nameof(Products));
+    }
+
+    // POST /Admin/Restaurants/RegenKitchen — новый токен терминала кухни
+    [HttpPost("Restaurants/RegenKitchen")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegenKitchen(int id)
+    {
+        var orgId = await GetOrganizationIdAsync();
+        if (orgId is null) return Forbid();
+        var r = await db.Restaurants.FirstOrDefaultAsync(x => x.Id == id && x.OrganizationId == orgId);
+        if (r is null) return NotFound();
+        r.KitchenToken = Guid.NewGuid();
+        await db.SaveChangesAsync();
+        TempData["Ok"] = "Ссылка терминала кухни обновлена.";
+        return RedirectToAction(nameof(Restaurants));
+    }
+
     private static string GenerateCode()
     {
         // 8 символов: читаемый набор без неоднозначных (0/O, 1/I)
@@ -192,6 +301,88 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
     }
 
     // ---------- Расписание ----------
+
+    // POST /Admin/Schedule/Autofill — собрать неделю правилами (без записи): 2 смены/день, повара по кругу
+    [HttpPost("Schedule/Autofill")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AutofillSchedule(int weekOffset = 0)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var orgId = await GetOrganizationIdAsync();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)).AddDays(weekOffset * 7);
+        var days = Enumerable.Range(0, 7).Select(monday.AddDays).ToList();
+
+        var employees = await db.AccessCodes.AsNoTracking()
+            .Where(c => c.OrganizationId == orgId && c.IsActive)
+            .OrderBy(c => c.Id)
+            .ToListAsync();
+        if (employees.Count == 0) { TempData["Error"] = "Нет активных сотрудников."; return RedirectToAction(nameof(Schedule), new { weekOffset }); }
+
+        // Уже существующие смены недели — не задваиваем повара в один день
+        var existing = await db.Shifts.AsNoTracking()
+            .Where(s => s.RestaurantId == rid && s.Date >= days[0] && s.Date <= days[6])
+            .Select(s => new { s.Date, s.AccessCodeId })
+            .ToListAsync();
+        var busy = existing.GroupBy(s => s.Date).ToDictionary(g => g.Key, g => g.Select(x => x.AccessCodeId).ToHashSet());
+
+        var draft = new List<DraftShift>();
+        var slots = new[] { (new TimeOnly(9, 0), new TimeOnly(17, 0)), (new TimeOnly(17, 0), new TimeOnly(23, 0)) };
+        var idx = 0;
+        for (var d = 0; d < 7; d++)
+        {
+            var day = days[d];
+            var usedToday = busy.GetValueOrDefault(day) ?? [];
+            foreach (var (st, en) in slots)
+            {
+                // Первый свободный сотрудник по кругу (без пересечений у одного человека в день)
+                AccessCode? picked = null;
+                for (var k = 0; k < employees.Count; k++)
+                {
+                    var cand = employees[(idx + k) % employees.Count];
+                    if (!usedToday.Contains(cand.Id)) { picked = cand; idx = (idx + k + 1) % employees.Count; break; }
+                }
+                if (picked is null) continue;
+                usedToday.Add(picked.Id);
+                draft.Add(new DraftShift(d, picked.Id, picked.EmployeeName ?? $"#{picked.Id}", "повар", st.ToString("HH:mm"), en.ToString("HH:mm")));
+            }
+        }
+        if (draft.Count == 0) { TempData["Error"] = "Некого ставить — все заняты."; return RedirectToAction(nameof(Schedule), new { weekOffset }); }
+
+        TempData["Draft"] = System.Text.Json.JsonSerializer.Serialize(draft);
+        return RedirectToAction(nameof(Schedule), new { weekOffset });
+    }
+
+    // POST /Admin/Schedule/SaveDraft — подтвердить черновик недели
+    [HttpPost("Schedule/SaveDraft")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveDraft(string draftJson, int weekOffset = 0)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var rows = System.Text.Json.JsonSerializer.Deserialize<List<DraftShift>>(draftJson) ?? [];
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)).AddDays(weekOffset * 7);
+
+        var added = 0;
+        foreach (var r in rows)
+        {
+            var date = monday.AddDays(r.Day);
+            var start = TimeOnly.Parse(r.Start); var end = TimeOnly.Parse(r.End);
+            // пропускаем, если у сотрудника уже есть пересекающаяся смена в этот день
+            var overlap = await db.Shifts.AnyAsync(s => s.RestaurantId == rid && s.AccessCodeId == r.AccessCodeId && s.Date == date && s.StartTime < end && start < s.EndTime);
+            if (overlap) continue;
+            db.Shifts.Add(new Shift { RestaurantId = rid.Value, AccessCodeId = r.AccessCodeId, Date = date, StartTime = start, EndTime = end, Position = r.Position });
+            added++;
+        }
+        await db.SaveChangesAsync();
+        TempData["Ok"] = $"Неделя собрана — добавлено {added} смен.";
+        return RedirectToAction(nameof(Schedule), new { weekOffset });
+    }
+    public sealed record DraftShift(int Day, int AccessCodeId, string Name, string Position, string Start, string End);
 
     // GET /Admin/Schedule?weekOffset=-1|0|1
     [HttpGet("Schedule")]
@@ -224,6 +415,13 @@ public sealed class AdminController(ApplicationDbContext db) : Controller
         ViewBag.Employees = employees;
         ViewBag.Positions = AllowedPositions;
         ViewBag.Error = TempData["Error"];
+        ViewBag.Ok = TempData["Ok"];
+        // Черновик недели из «Собрать неделю» — показываем пунктиром, не сохранён
+        if (TempData["Draft"] is string dj && !string.IsNullOrEmpty(dj))
+        {
+            ViewBag.Draft = System.Text.Json.JsonSerializer.Deserialize<List<DraftShift>>(dj);
+            ViewBag.DraftJson = dj;
+        }
         return View();
     }
 

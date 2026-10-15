@@ -154,10 +154,56 @@ public class InventoryController(
         if (todayShift is TimeOnly endTime)
             ViewBag.ShiftEndLocal = endTime;
 
-        // ИИ-анализ смены — текстовое резюме (fallback на локальные правила)
-        ViewBag.AiSummary = await advisorService.GetSummaryAsync(rid.Value);
+        // ИИ-анализ смены — читаем ПОСЛЕДНИЙ сохранённый авто-анализ из таблицы.
+        // LLM на каждый просмотр не дёргаем: фоновый сервис пишет раз в час.
+        var lastInsight = await db.AiInsights.AsNoTracking()
+            .Where(a => a.RestaurantId == rid)
+            .OrderByDescending(a => a.CreatedAt)
+            .FirstOrDefaultAsync();
+        var feed = await db.AiInsights.AsNoTracking()
+            .Where(a => a.RestaurantId == rid)
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(5)
+            .ToListAsync();
+        if (lastInsight is not null)
+        {
+            var chips = System.Text.Json.JsonSerializer
+                .Deserialize<List<AiChip>>(lastInsight.ChipsJson) ?? [];
+            ViewBag.AiInsight = lastInsight;
+            ViewBag.AiChips = chips;
+            ViewBag.AiFeed = feed;
+        }
+        else
+        {
+            // Таблица ещё пустая (сервис не успел отработать) — живой fallback
+            ViewBag.AiSummary = await advisorService.GetSummaryAsync(rid.Value);
+        }
         return View();
     }
+
+    /// <summary>Чип сводки из сохранённого AiInsight.</summary>
+    public sealed record AiChip(string Category, string Title, string Severity, string ActionUrl);
+
+    // POST /Inventory/Ask — чат с ИИ по снапшоту склада
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> Ask([FromBody] AskRequest req)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var q = (req?.Question ?? "").Trim();
+        if (q.Length == 0) return BadRequest(new { error = "empty" });
+
+        var data = await advisorService.GetSnapshotDataAsync(rid.Value);
+        var prompt = $"You are an assistant for the restaurant warehouse system SVEZHAK. " +
+                     $"Answer in Russian, briefly (under 300 words), using ONLY the facts in the snapshot below — " +
+                     $"do not invent numbers. Question: {q}";
+        var answer = await advisorService.AskAiAsync(prompt, data);
+        if (answer is null)
+            return Json(new { answer = (string?)"ИИ недоступен — откройте Советник для локальных рекомендаций." });
+        return Json(new { answer });
+    }
+    public sealed record AskRequest(string Question);
 
     // GET /Inventory/ChartData/river — партии для «реки свежести»
     [HttpGet]
@@ -387,12 +433,104 @@ public class InventoryController(
         return RedirectToAction(nameof(Stock));
     }
 
+    // POST /Inventory/ImportProductsPreview — загрузил файл → предпросмотр с валидацией
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ImportProductsPreview(IFormFile? file)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        if (file is null || file.Length == 0)
+        {
+            TempData["DeliveryError"] = "Файл не выбран.";
+            return RedirectToAction(nameof(Deliveries));
+        }
+
+        List<ProductImportService.ImportRow> rows;
+        await using (var stream = file.OpenReadStream())
+            rows = ProductImportService.Parse(stream, file.FileName);
+
+        if (rows.Count == 0)
+        {
+            TempData["DeliveryError"] = "В файле нет строк с продуктами.";
+            return RedirectToAction(nameof(Deliveries));
+        }
+
+        var existing = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .Select(p => p.Name)
+            .ToListAsync();
+        ProductImportService.Validate(rows, existing);
+
+        // Строки передаются обратно через форму в скрытом JSON — пользователь правит в таблице
+        ViewBag.ImportRows = rows;
+        ViewBag.ImportJson = ProductImportService.SerializeRows(rows);
+        return await DeliveriesView(rid.Value, null);
+    }
+
+    // POST /Inventory/ImportProductsConfirm — пользователь подтвердил → создаём продукты
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ImportProductsConfirm(string importJson)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var rows = ProductImportService.DeserializeRows(importJson);
+        var existing = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .Select(p => p.Name)
+            .ToListAsync();
+        ProductImportService.Validate(rows, existing);
+
+        // Импортируем только валидные строки
+        var valid = rows.Where(r => r.Errors.Count == 0).ToList();
+        if (valid.Count == 0)
+        {
+            TempData["DeliveryError"] = "После правок не осталось валидных строк — ничего не импортировано.";
+            return RedirectToAction(nameof(Deliveries));
+        }
+
+        foreach (var r in valid)
+        {
+            db.Products.Add(new Product
+            {
+                RestaurantId = rid.Value,
+                Name = r.Name.Trim(),
+                Category = string.IsNullOrWhiteSpace(r.Category) ? "Прочее" : r.Category.Trim(),
+                Unit = r.Unit.Trim(),
+                PurchasePrice = r.PurchasePrice,
+            });
+        }
+        await db.SaveChangesAsync();
+        TempData["DeliveryOk"] = $"Импортировано {valid.Count} продуктов.";
+        return RedirectToAction(nameof(Deliveries));
+    }
+
+    // GET /Inventory/ProductImportTemplate — шаблон CSV для загрузки базы (на лету)
+    [HttpGet]
+    public IActionResult ProductImportTemplate()
+    {
+        var csv = "название;категория;ед.;срок_ч;цена\n" +
+                  "Лайм;Овощи;кг;72;250\n" +
+                  "Икра тобико;Рыба;кг;96;3200\n";
+        var bytes = System.Text.Encoding.UTF8.GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(csv)).ToArray();
+        return File(bytes, "text/csv", "svezhak-products-template.csv");
+    }
+
     // GET /Inventory/Deliveries?month=2026-10 — журнал по месяцам + форма приёма
     public async Task<IActionResult> Deliveries(string? month = null)
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
+        return await DeliveriesView(rid.Value, month);
+    }
 
+    // Общий рендер страницы Поставки — вызывается и из GET, и из предпросмотра импорта.
+    private async Task<IActionResult> DeliveriesView(int rid, string? month)
+    {
         var all = await db.Deliveries
             .Where(d => d.RestaurantId == rid)
             .Include(d => d.Batches).ThenInclude(b => b.Product)
@@ -429,18 +567,23 @@ public class InventoryController(
         ViewBag.Months = monthGroups.Select(g => g.Key).ToList();
         ViewBag.ActiveMonth = activeMonth;
         ViewBag.CurrentMonth = currentMonth;
-        return View();
+        return View("Deliveries");
     }
 
     // POST /Inventory/Deliveries — приёмка поставки
+    // productName: имя из datalist; productId — если выбран существующий.
+    // Новый продукт создаётся инлайн по (productName + ncat + nunit).
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Deliveries(string number, int[] productId, decimal[] qty, double[] shelfHours)
+    public async Task<IActionResult> Deliveries(
+        string number, int[] productId, string[] productName, string[] ncat, string[] nunit,
+        decimal[] qty, double[] shelfHours)
     {
         var rid = await GetRestaurantIdAsync();
         if (rid is null) return Forbid();
 
-        if (string.IsNullOrWhiteSpace(number) || productId.Length == 0)
+        var lines = Math.Max(productId?.Length ?? 0, productName?.Length ?? 0);
+        if (string.IsNullOrWhiteSpace(number) || lines == 0)
         {
             TempData["DeliveryError"] = "Укажите номер поставки и хотя бы одну позицию.";
             return RedirectToAction(nameof(Deliveries));
@@ -455,25 +598,63 @@ public class InventoryController(
         };
         db.Deliveries.Add(delivery);
 
-        var lines = productId.Length;
+        // Кэш продуктов ресторана по имени — чтобы «создать новый» дал тот же Product
+        var existing = await db.Products
+            .Where(p => p.RestaurantId == rid)
+            .ToDictionaryAsync(p => p.Name.Trim(), p => p, StringComparer.OrdinalIgnoreCase);
+
+        var added = 0;
         for (var i = 0; i < lines; i++)
         {
             if (i >= qty.Length || i >= shelfHours.Length || qty[i] <= 0) continue;
+
+            var pid = productId is not null && i < productId.Length ? productId[i] : 0;
+            var name = productName is not null && i < productName.Length ? (productName[i] ?? "").Trim() : "";
+
+            // Поиск продукта: сначала по Id, потом по имени из datalist
+            Product? product = null;
+            if (pid > 0) product = await db.Products.FindAsync(pid);
+            if (product is null && name.Length > 0 && existing.TryGetValue(name, out var found)) product = found;
+
+            // Инлайн-создание нового продукта
+            if (product is null && name.Length > 0)
+            {
+                var cat = ncat is not null && i < ncat.Length ? (ncat[i] ?? "").Trim() : "";
+                var unt = nunit is not null && i < nunit.Length ? (nunit[i] ?? "").Trim() : "";
+                product = new Product
+                {
+                    RestaurantId = rid.Value,
+                    Name = name,
+                    Category = cat.Length > 0 ? cat : "Прочее",
+                    Unit = unt.Length > 0 ? unt : "шт",
+                };
+                db.Products.Add(product);
+                existing[name] = product;
+            }
+            if (product is null) continue;
+
             db.Batches.Add(new Batch
             {
                 RestaurantId = rid.Value,
                 Delivery = delivery,
-                ProductId = productId[i],
+                Product = product,
                 QtyInitial = qty[i],
                 QtyRemaining = qty[i],
                 ReceivedAt = now,
                 ExpiresAt = now.AddHours(shelfHours[i]),
             });
+            added++;
+        }
+
+        if (added == 0)
+        {
+            TempData["DeliveryError"] = "Ни одной валидной позиции — укажите продукт и количество.";
+            return RedirectToAction(nameof(Deliveries));
         }
 
         await db.SaveChangesAsync();
         await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
-        TempData["DeliveryOk"] = $"Поставка {delivery.Number} принята.";
+        TempData["DeliveryOk"] = $"Поставка {delivery.Number} принята ({added} поз.).";
         return RedirectToAction(nameof(Deliveries));
     }
 
@@ -560,6 +741,35 @@ public class InventoryController(
         return RedirectToAction(nameof(Order));
     }
 
+    // POST /Inventory/StopToggle — ручной стоп / возврат блюда
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> StopToggle(int dishId, string? stopComment, string? returnTo)
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+
+        var dish = await db.Dishes.FirstOrDefaultAsync(d => d.Id == dishId && d.RestaurantId == rid);
+        if (dish is null) return NotFound();
+
+        if (dish.ManualStopped)
+        {
+            dish.ManualStopped = false;
+            dish.StopComment = null;
+            TempData["OrderOk"] = $"«{dish.Name}» возвращено в меню.";
+        }
+        else
+        {
+            dish.ManualStopped = true;
+            dish.StopComment = string.IsNullOrWhiteSpace(stopComment) ? null : stopComment.Trim();
+            TempData["OrderOk"] = $"«{dish.Name}» остановлено вручную.";
+        }
+        await db.SaveChangesAsync();
+        await eventBus.PublishAsync(InventoryEventBus.StockChanged, rid.Value);
+
+        return RedirectToAction(returnTo == "order" ? nameof(Order) : nameof(StopList));
+    }
+
     // GET /Inventory/StopList — стоп-лист + hot offers
     public async Task<IActionResult> StopList()
     {
@@ -602,7 +812,138 @@ public class InventoryController(
 
         ViewBag.StopList = stopList;
         ViewBag.HotOffers = hotOffers;
+        // Все активные блюда — для кнопок «В стоп»/«Вернуть»
+        ViewBag.Dishes = dishes.Select(d => new { d.Id, d.Name, d.ManualStopped }).ToList();
         return View();
+    }
+
+    // GET /Inventory/Analytics?period=7|30|90|all — аналитика периода: неликвиды + ходовые + ИИ-вывод
+    [HttpGet]
+    public async Task<IActionResult> Analytics(string? period = "30")
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+        var days = period switch { "7" => 7, "90" => 90, "all" => 3650, _ => 30 };
+        var from = now.AddDays(-days);
+        ViewBag.Period = days >= 3650 ? "all" : days.ToString();
+        ViewBag.PeriodLabel = days >= 3650 ? "всё время" : $"{days} дней";
+
+        var products = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .ToListAsync();
+
+        // Поступления за 30дн (кол-во и сумма), списания за 30дн, текущий живой остаток
+        var received = await db.Batches.AsNoTracking()
+            .Where(b => b.RestaurantId == rid && b.ReceivedAt >= from)
+            .GroupBy(b => b.ProductId)
+            .Select(g => new { ProductId = g.Key, Qty = g.Sum(b => b.QtyInitial) })
+            .ToListAsync();
+        var receivedQty = received.ToDictionary(x => x.ProductId, x => x.Qty);
+
+        var writeoffs = await db.WriteOffs.AsNoTracking()
+            .Where(w => w.RestaurantId == rid && w.CreatedAt >= from)
+            .GroupBy(w => w.ProductId)
+            .Select(g => new { ProductId = g.Key, Qty = g.Sum(w => w.Qty) })
+            .ToListAsync();
+        var writeoffQty = writeoffs.ToDictionary(x => x.ProductId, x => x.Qty);
+        // Отдельно «просрочка» — то, что реально потеряно, а не продано/списано вручную
+        var expiredQty = await db.WriteOffs.AsNoTracking()
+            .Where(w => w.RestaurantId == rid && w.CreatedAt >= from && w.Reason == OrderService.ReasonExpired)
+            .GroupBy(w => w.ProductId)
+            .Select(g => new { ProductId = g.Key, Qty = g.Sum(w => w.Qty) })
+            .ToListAsync();
+        var expiredByProduct = expiredQty.ToDictionary(x => x.ProductId, x => x.Qty);
+
+        var liveQty = await db.Batches.AsNoTracking()
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now)
+            .GroupBy(b => b.ProductId)
+            .Select(g => new { ProductId = g.Key, Qty = g.Sum(b => b.QtyRemaining) })
+            .ToListAsync();
+        var liveByProduct = liveQty.ToDictionary(x => x.ProductId, x => x.Qty);
+
+        var stats = products.Select(p =>
+        {
+            var recv = receivedQty.GetValueOrDefault(p.Id);
+            var wo = writeoffQty.GetValueOrDefault(p.Id);
+            var exp = expiredByProduct.GetValueOrDefault(p.Id);
+            var live = liveByProduct.GetValueOrDefault(p.Id);
+            var wasteShare = recv > 0 ? exp / recv : 0m; // доля просроченных списаний от поступлений
+            return new
+            {
+                p.Id,
+                p.Name,
+                p.Category,
+                p.Unit,
+                Received = recv,
+                WriteOff = wo,
+                Expired = exp,
+                Live = live,
+                WasteShare = wasteShare,
+                WasteRub = Math.Round(exp * p.PurchasePrice, 0),
+            };
+        }).ToList();
+
+        // Неликвиды — максимальная доля просрочки от поступлений (только с реальными потерями)
+        var deadStock = stats.Where(s => s.Expired > 0).OrderByDescending(s => s.WasteShare).ThenByDescending(s => s.WasteRub).Take(5).ToList();
+        // Ходовые — максимальный выход (поступило − остаток − просрочка) = реальная отгрузка на кухню
+        var movers = stats
+            .Select(s => new { s.Id, s.Name, s.Category, s.Unit, Throughput = s.Received - s.Expired })
+            .Where(s => s.Throughput > 0)
+            .OrderByDescending(s => s.Throughput).Take(5).ToList();
+
+        // Статдамп для ИИ: расход (поступило), списания, остатки по продуктам
+        var dump = stats.OrderByDescending(s => s.WasteShare).Take(12).Select(s => new
+        {
+            product = s.Name, category = s.Category, unit = s.Unit,
+            received30d = s.Received, expired30d = s.Expired, liveNow = s.Live,
+            wasteSharePct = Math.Round(s.WasteShare * 100, 1), wasteRub = s.WasteRub,
+        }).ToList();
+        ViewBag.StatDump = dump;
+
+        ViewBag.DeadStock = deadStock;
+        ViewBag.Movers = movers;
+        return View();
+    }
+
+    // POST /Inventory/AnalyticsAi — «Анализ ИИ» по статдампу периода
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> AnalyticsAi(string? period = "30")
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var now = DateTime.UtcNow;
+        var days = period switch { "7" => 7, "90" => 90, "all" => 3650, _ => 30 };
+        var from = now.AddDays(-days);
+
+        var products = await db.Products.AsNoTracking()
+            .Where(p => p.RestaurantId == rid)
+            .ToDictionaryAsync(p => p.Id);
+        var received = await db.Batches.AsNoTracking()
+            .Where(b => b.RestaurantId == rid && b.ReceivedAt >= from)
+            .GroupBy(b => b.ProductId).Select(g => new { ProductId = g.Key, Qty = g.Sum(b => b.QtyInitial) }).ToListAsync();
+        var expired = await db.WriteOffs.AsNoTracking()
+            .Where(w => w.RestaurantId == rid && w.CreatedAt >= from && w.Reason == OrderService.ReasonExpired)
+            .GroupBy(w => w.ProductId).Select(g => new { ProductId = g.Key, Qty = g.Sum(w => w.Qty) }).ToListAsync();
+        var live = await db.Batches.AsNoTracking()
+            .Where(b => b.RestaurantId == rid && b.QtyRemaining > 0 && b.ExpiresAt > now)
+            .GroupBy(b => b.ProductId).Select(g => new { ProductId = g.Key, Qty = g.Sum(b => b.QtyRemaining) }).ToListAsync();
+
+        var recvM = received.ToDictionary(x => x.ProductId, x => x.Qty);
+        var expM = expired.ToDictionary(x => x.ProductId, x => x.Qty);
+        var liveM = live.ToDictionary(x => x.ProductId, x => x.Qty);
+        var stats = products.Values.Select(p => {
+            var r = recvM.GetValueOrDefault(p.Id); var e = expM.GetValueOrDefault(p.Id);
+            return new { product = p.Name, unit = p.Unit, received30d = r, expired30d = e, liveNow = liveM.GetValueOrDefault(p.Id), wasteSharePct = r > 0 ? Math.Round(e / r * 100, 1) : 0 };
+        }).OrderByDescending(s => s.wasteSharePct).ToList();
+
+        var dump = new { period = "30 days", note = "received vs expired writeoffs vs current live stock per product", stats };
+        var prompt = "You are a restaurant purchasing advisor. From the 30-day stats below, " +
+            "say in Russian (under 250 words): which products should be removed or reduced in procurement " +
+            "(highest waste share), and which are safe to keep. Plain advice, no markdown tables.";
+        var answer = await advisorService.AskAiAsync(prompt, dump);
+        return Json(new { answer });
     }
 
     // GET /Inventory/Notifications — «Центр смены»: события смен, мотивация, алерты
@@ -725,6 +1066,17 @@ public class InventoryController(
 
     // ---------- Служебные эндпоинты для event-генератора ----------
     // Доступны любому авторизованному пользователю (вход по access-коду).
+
+    // GET /Inventory/KitchenLink — URL терминала кухни для QR (токен текущего ресторана)
+    [HttpGet]
+    public async Task<IActionResult> KitchenLink()
+    {
+        var rid = await GetRestaurantIdAsync();
+        if (rid is null) return Forbid();
+        var token = await db.Restaurants.Where(r => r.Id == rid).Select(r => r.KitchenToken).FirstOrDefaultAsync();
+        var url = Url.Action("Index", "Kitchen", new { token }, Request.Scheme, Request.Host.Value);
+        return Json(new { url });
+    }
 
     // GET /Inventory/Menu — список активных блюд и продуктов (для генератора)
     [HttpGet]

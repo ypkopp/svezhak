@@ -1,64 +1,88 @@
 @model SmartInventory.Services.AdvisorService.InsightsResult
 @{
     ViewData["Title"] = "Советник";
-    Func<string, string> catColor = c => c switch
-    {
-        "продать срочно" => "var(--rd)",
-        "заказать" => "var(--gr)",
-        "списать" => "var(--ye)",
-        _ => "var(--mut)"
+    var cats = new[] {
+        ("продать срочно", "Продать срочно", "st-hot.png", "var(--rd)", "danger"),
+        ("заказать", "Заказать", "st-box.png", "var(--gr)", "ok"),
+        ("списать", "Списать", "st-stop.png", "var(--ye)", ""),
+        ("риски", "Риски", "st-hourglass.png", "var(--li)", "")
     };
-    Func<string, string> catIcon = c => c switch
-    {
-        "продать срочно" => "st-hot.png",
-        "заказать" => "st-box.png",
-        "списать" => "st-hourglass.png",
-        _ => "st-stop.png"
-    };
+    var sevOrd = new Dictionary<string,int>{{"high",0},{"medium",1},{"low",2}};
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <div class="sv-kicker">Юзу + локальные правила инвентаря</div>
-        <h1 class="sv-page-title">Советник склада</h1>
-        <div class="sv-page-sub mb-0">Инсайты по горящим партиям, стоп-листу, расходу и остаткам.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:8px">Юзу · локальные правила инвентаря</div>
+        <h1 class="disp">Советник склада</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Инсайты по горящим партиям, стоп-листу, расходу и остаткам.</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <img src="~/img/brand/m3-avo.png" style="width:36px" alt="Юзу" />
-        <span class="sv-badge @(Model.UsedAi ? "sv-badge-accent" : "sv-badge-muted")">@(Model.UsedAi ? "AI-инсайты" : "локальные правила")</span>
-        <span class="sv-ai-note">обновлено @Model.GeneratedAtUtc.ToLocalTime().ToString("HH:mm")</span>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <span class="badge">@(Model.UsedAi ? "AI-инсайты" : "локальные правила")</span>
+        <span class="dim mono" style="font-size:11px">обновлено @Model.GeneratedAtUtc.ToLocalTime().ToString("HH:mm")</span>
     </div>
 </div>
 
 @if (!Model.Insights.Any())
 {
-    <div class="sv-card fade-up">
-        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Сейчас нет срочных рекомендаций — склад под контролем.</p></div>
-    </div>
+    <section class="glass rise">
+        <div class="sv-empty"><img src="~/img/brand/m-avo.png" alt="" style="height:110px" /><p><b>Рисков нет</b></p><p class="dim">Ави следит за сроками — сейчас ничего не горит.</p></div>
+    </section>
 }
 else
 {
-    <div class="sv-advisor-grid">
-        @foreach (var item in Model.Insights)
+    @* Фильтр-чипы со стикерами и счётчиками *@
+    <div class="d-flex flex-wrap gap-1 mb-3 rise" id="advFilters" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button type="button" class="chip on" data-adv-filter="all">Все<span class="n">@Model.Insights.Count()</span></button>
+        @foreach (var c in cats)
         {
-            var color = catColor(item.Category);
-            <article class="sv-advisor-card sv-hover-card fade-up" data-category="@item.Category" data-severity="@item.Severity">
-                <img src="~/img/brand/@catIcon(item.Category)" alt="" />
-                <div>
-                    <div class="sv-advisor-meta">
-                        <div class="sv-advisor-category" style="color:@color">@item.Category</div>
-                        <span class="sv-badge @(item.Severity == "high" ? "sv-badge-red" : item.Severity == "medium" ? "sv-badge-yellow" : "sv-badge-muted")">@item.Severity</span>
-                    </div>
-                    <h3>@item.Title</h3>
-                    <p>@item.Explanation</p>
-                    <a class="btn-sv-ghost btn-sm" href="@item.ActionUrl">@item.ActionLabel →</a>
-                </div>
-            </article>
+            var n = Model.Insights.Count(i => i.Category == c.Item1);
+            <button type="button" class="chip" data-adv-filter="@c.Item1"><img src="~/img/brand/@c.Item3" alt="" />@c.Item2<span class="n" style="color:@c.Item4">@n</span></button>
         }
     </div>
+
+    @foreach (var c in cats)
+    {
+        var items = Model.Insights.Where(i => i.Category == c.Item1)
+            .OrderBy(i => sevOrd.GetValueOrDefault(i.Severity ?? "low", 3)).ToList();
+        if (!items.Any()) continue;
+        <div class="sv-adv-section" data-adv-section="@c.Item1">
+            <div class="eyebrow" style="margin:6px 0 12px;color:@c.Item4;display:flex;gap:8px;align-items:center"><img src="~/img/brand/@c.Item3" width="18" alt="" />@c.Item2 · @items.Count</div>
+            <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+                @foreach (var item in items)
+                {
+                    <section class="glass card rise sv-adv-card" data-severity="@item.Severity" style="display:flex;flex-direction:column;gap:10px;overflow:hidden">
+                        <i style="position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,@c.Item4,transparent)"></i>
+                        <div style="display:flex;gap:12px;align-items:flex-start">
+                            <img src="~/img/brand/@c.Item3" style="width:40px" alt="" />
+                            <b style="flex:1;font-size:15px;line-height:1.3">@item.Title</b>
+                            <span class="badge @(item.Severity == "high" ? "rd" : item.Severity == "medium" ? "ye" : "gr")">@item.Severity</span>
+                        </div>
+                        <p class="muted" style="margin:0;font-size:13px;line-height:1.5;flex:1">@item.Explanation</p>
+                        <div style="display:flex;gap:8px">
+                            <a class="btn sm @c.Item5" href="@item.ActionUrl">@item.ActionLabel →</a>
+                            <button class="btn sm ghost" type="button" title="Скрыть" data-hide-card>×</button>
+                        </div>
+                    </section>
+                }
+            </div>
+        </div>
+    }
 }
 
 @section Scripts {
-    <script>document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });</script>
+    <script>
+        document.querySelectorAll('[data-adv-filter]').forEach(function(b){
+            b.addEventListener('click',function(){
+                document.querySelectorAll('[data-adv-filter]').forEach(x=>x.classList.remove('on'));
+                this.classList.add('on');
+                var f=this.dataset.advFilter;
+                document.querySelectorAll('[data-adv-section]').forEach(function(s){
+                    s.style.display=(f==='all'||s.dataset.advSection===f)?'':'none';
+                });
+            });
+        });
+        document.querySelectorAll('[data-hide-card]').forEach(function(b){b.addEventListener('click',function(){this.closest('.sv-adv-card').style.display='none';});});
+        document.querySelectorAll('.fade-up').forEach(function (el, i) { setTimeout(function () { el.classList.add('in'); }, 50 + i * 60); });
+    </script>
     @await Html.PartialAsync("_InventoryRealtime")
 }

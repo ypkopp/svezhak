@@ -1,33 +1,44 @@
 (function () {
   'use strict';
   var root = document.documentElement;
-  var stored = localStorage.getItem('sv-theme') || 'A';
 
-  // Логотипы тем: A «Скан» — LED-сегменты, B «Стебель» — знак с листом.
-  // Переключение подменой src (data-src-a/b в разметке), без CSS-фильтров.
-  function applyTheme(theme) {
-    var isB = theme === 'B';
-    root.classList.toggle('theme-b', isB);
-    root.classList.toggle('theme-a', !isB);
-    root.dataset.theme = theme;
-    localStorage.setItem('sv-theme', theme);
-    document.querySelectorAll('[data-theme-label]').forEach(function (el) {
-      el.textContent = isB ? 'Тема B' : 'Тема A';
+  /* ===== 5 тем v6: night / paper / mono / matcha / lilac ===== */
+  var THEMES = [
+    { id: 'night', n: 'Ночь', c: ['#0f1115', '#ED8936', '#48BB78'] },
+    { id: 'paper', n: 'Бумага', c: ['#F6F4EF', '#E07524', '#2F9E5F'] },
+    { id: 'mono', n: 'Ч/Б', c: ['#000', '#fff', '#777'] },
+    { id: 'matcha', n: 'Матча', c: ['#0B1712', '#9BE15D', '#3FD3A0'] },
+    { id: 'lilac', n: 'Лаванда', c: ['#120F1C', '#FF8FB1', '#8B7CF6'] },
+  ];
+  var stored = localStorage.getItem('sv6-theme');
+  if (!stored) { var old = localStorage.getItem('sv-theme'); stored = old === 'B' ? 'matcha' : 'night'; }
+
+  function applyTheme(id) {
+    root.dataset.theme = id;
+    try { localStorage.setItem('sv6-theme', id); } catch (e) { }
+    document.querySelectorAll('#themeSwatches button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.themeId === id);
     });
-    document.querySelectorAll('[data-theme-sub]').forEach(function (el) {
-      el.textContent = isB ? 'Стебель · зелень' : 'Скан · оранж';
-    });
-    // Фоновая иллюстрация логина: A — key-visual, B — kv-warehouse (зелёная)
-    document.querySelectorAll('[data-theme-art]').forEach(function (el) {
-      var src = isB ? el.dataset.srcB : el.dataset.srcA;
-      if (src) el.src = src;
+  }
+
+  // Построить свотчи в топбаре
+  var seg = document.getElementById('themeSwatches');
+  if (seg) {
+    THEMES.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.dataset.themeId = t.id; b.title = t.n;
+      b.innerHTML = '<span style="width:14px;height:14px;border-radius:5px;display:block;background:conic-gradient(' + t.c[1] + ' 0 50%,' + t.c[2] + ' 0 75%,' + t.c[0] + ' 0);border:1px solid var(--stroke2)"></span>';
+      b.addEventListener('click', function () { applyTheme(t.id); });
+      seg.appendChild(b);
     });
   }
   applyTheme(stored);
 
-  document.addEventListener('click', function (event) {
-    var toggle = event.target.closest('[data-theme-toggle]');
-    if (toggle) applyTheme(root.dataset.theme === 'B' ? 'A' : 'B');
+  // Логотипы тем для data-theme-art (логин): night/paper/mono — тёмный, matcha/lilac — светлый
+  document.querySelectorAll('[data-theme-art]').forEach(function (el) {
+    var dark = stored !== 'matcha' && stored !== 'lilac';
+    var src = dark ? el.dataset.srcA : el.dataset.srcB;
+    if (src) el.src = src;
   });
 
   function pad(value) { return String(value).padStart(2, '0'); }
@@ -124,14 +135,18 @@
   function openQr() {
     if (!qrModal) return;
     qrModal.hidden = false;
-    var url = location.origin + '/Inventory/StopList';
-    if (qrLink) { qrLink.href = url; qrLink.textContent = url; }
-    if (qrBox && typeof QRCode !== 'undefined') {
-      qrBox.innerHTML = '';
-      new QRCode(qrBox, { text: url, width: 200, height: 200, colorDark: '#0f1115', colorLight: '#F3EEE4', correctLevel: QRCode.CorrectLevel.M });
-    } else if (qrBox) {
-      qrBox.innerHTML = '<div class="sv-bell-empty">QR-библиотека не загрузилась — ссылка ниже.</div>';
-    }
+    if (qrLink) qrLink.textContent = '…';
+    // Терминал кухни — публичная read-only ссылка по токену ресторана
+    fetch('/Inventory/KitchenLink').then(function (r) { return r.json(); }).then(function (d) {
+      var url = d.url || (location.origin + '/Kitchen');
+      if (qrLink) { qrLink.href = url; qrLink.textContent = url; }
+      if (qrBox && typeof QRCode !== 'undefined') {
+        qrBox.innerHTML = '';
+        new QRCode(qrBox, { text: url, width: 200, height: 200, colorDark: '#0f1115', colorLight: '#F3EEE4', correctLevel: QRCode.CorrectLevel.M });
+      } else if (qrBox) {
+        qrBox.innerHTML = '<div class="sv-bell-empty">QR-библиотека не загрузилась — ссылка ниже.</div>';
+      }
+    }).catch(function () { if (qrLink) qrLink.textContent = 'не удалось получить ссылку'; });
   }
   var qrBtn = document.getElementById('qrBtn');
   if (qrBtn) qrBtn.addEventListener('click', openQr);
@@ -200,4 +215,91 @@
       window.requestAnimationFrame(tick);
     });
   });
+})();
+
+/* ===== Онбординг менеджера: 5 шагов, показывается один раз (localStorage) ===== */
+(function () {
+  var modal = document.getElementById('onboard');
+  if (!modal) return;
+  var KEY = 'sv-onboard-done';
+  try { if (localStorage.getItem(KEY)) return; } catch (e) { }
+
+  var STEPS = [
+    { img: 'chef-3-cut.png', t: 'Поставка', x: 'Принимайте партии на странице «Поставки»: номер, продукт, количество и срок в часах. Система сама ставит дату истечения.' },
+    { img: 'st-fridge.png', t: 'Склад', x: 'На «Складе» партии сгруппированы по продукту и идут по FEFO — самые ранние первыми. Порчу списывайте кнопкой-стоп.' },
+    { img: 'st-box.png', t: 'Заказ', x: 'В «Заказе» выбирайте блюда — списание идёт по FEFO, при дефиците заказ отклоняется со списком нехватки.' },
+    { img: 'st-stop.png', t: 'Стоп-лист', x: 'Блюдо уходит в стоп, когда не хватает ингредиентов или вы остановили его вручную. Заказ с ним не пройдёт.' },
+    { img: 'm3-avo.png', t: 'Советник', x: 'Юзу каждую смену подсказывает: что продать срочно, что заказать, что списать — с расходом и остатками.' },
+  ];
+  var i = 0;
+  var img = document.getElementById('obImg'), step = document.getElementById('obStep'),
+      name = document.getElementById('obName'), tx = document.getElementById('obTx'),
+      next = document.getElementById('obNext'), prev = document.getElementById('obPrev');
+  var imgBase = '/img/brand/';
+  function render() {
+    var s = STEPS[i];
+    img.src = imgBase + s.img; step.textContent = 'шаг ' + (i + 1) + ' / ' + STEPS.length;
+    name.textContent = s.t; tx.textContent = s.x;
+    prev.disabled = i === 0;
+    next.textContent = i === STEPS.length - 1 ? 'Начать работу →' : 'Далее →';
+  }
+  function done() { try { localStorage.setItem(KEY, '1'); } catch (e) { } modal.hidden = true; }
+  next.addEventListener('click', function () { if (i < STEPS.length - 1) { i++; render(); } else done(); });
+  prev.addEventListener('click', function () { if (i > 0) { i--; render(); } });
+  ['obSkip', 'obSkip2'].forEach(function (id) { var b = document.getElementById(id); if (b) b.addEventListener('click', done); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) done(); });
+  render();
+  modal.hidden = false;
+})();
+
+/* ===== ИИ-чат склада ===== */
+(function () {
+  var btn = document.getElementById('chatBtn'), panel = document.getElementById('chatPanel');
+  if (!btn || !panel) return;
+  var close = document.getElementById('chatClose'), msgs = document.getElementById('chatMsgs'),
+      input = document.getElementById('chatInput'), send = document.getElementById('chatSend');
+  function open() { panel.hidden = false; input.focus(); }
+  function hide() { panel.hidden = true; }
+  btn.addEventListener('click', open);
+  close.addEventListener('click', hide);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) hide(); });
+
+  function addMsg(role, text) {
+    var div = document.createElement('div');
+    div.className = 'sv-chat-msg ' + (role === 'user' ? 'sv-chat-user' : 'sv-chat-ai');
+    if (role !== 'user') div.innerHTML = '<b>Юзу:</b> ';
+    var span = document.createElement('span'); span.textContent = text;
+    div.appendChild(span); msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  // Опционально: блок ```chart в ответе → ECharts (если либа уже на странице)
+  function tryChart(text) {
+    var m = text.match(/```chart\s*([\s\S]*?)```/);
+    if (!m) return text;
+    try {
+      var cfg = JSON.parse(m[1]);
+      if (!cfg || !cfg.type || !cfg.data) return text;
+      var box = document.createElement('div'); box.style.cssText = 'height:160px;margin-top:8px;';
+      var msg = addMsg('ai', ''); msg.appendChild(box);
+      if (window.echarts) { var c = echarts.init(box); c.setOption({ backgroundColor: 'transparent', textStyle: { color: '#8b93a7', fontSize: 10 }, title: { text: cfg.title || '', textStyle: { color: '#e8eaf0', fontSize: 11 } }, xAxis: cfg.data.x ? { type: 'category', data: cfg.data.x } : undefined, yAxis: cfg.data.x ? { type: 'value' } : undefined, series: [{ type: cfg.type || 'bar', data: cfg.data.series || cfg.data.y || [] }], grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true } }); }
+      return text.replace(m[0], '').trim();
+    } catch (e) { return text; }
+  }
+
+  async function ask() {
+    var q = input.value.trim(); if (!q) return;
+    input.value = ''; addMsg('user', q);
+    var t = addMsg('ai', 'думаю…'); t.classList.add('sv-chat-typing');
+    try {
+      var r = await fetch('/Inventory/Ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+      var d = await r.json();
+      t.remove();
+      var answer = d.answer || '…';
+      var rest = tryChart(answer);
+      addMsg('ai', rest || answer);
+    } catch (e) { t.remove(); addMsg('ai', 'Не удалось получить ответ — попробуй ещё раз.'); }
+  }
+  send.addEventListener('click', ask);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') ask(); });
 })();

@@ -9,6 +9,7 @@ public enum AppRole
     OrganizationOwner,
     ServerAdmin,
     Admin,
+    PlatformOwner,
 }
 
 public static class AppRoleExtensions
@@ -22,6 +23,7 @@ public static class AppRoleExtensions
         AppRole.OrganizationOwner => 5,
         AppRole.Admin => 6,
         AppRole.ServerAdmin => 7,
+        AppRole.PlatformOwner => 8,
         _ => 0
     };
     

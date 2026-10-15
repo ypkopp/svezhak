@@ -5,6 +5,8 @@
     string Active(string action) => currentController == "Inventory" && currentAction == action ? " active" : "";
     var isAuthed = User.Identity?.IsAuthenticated == true;
     var isAdmin = User.IsInRole("Admin");
+    var isOwner = User.IsInRole("OrganizationOwner");
+    var isManager = User.IsInRole("RestaurantManager");
 }
 <!DOCTYPE html>
 <html lang="ru">
@@ -14,26 +16,33 @@
     <title>@ViewData["Title"] — СВЕЖАК</title>
     <script>
       // Тема применяется синхронно ДО загрузки CSS — без вспышки (FOUC).
-      (function(){try{var t=localStorage.getItem('sv-theme')||'A';var r=document.documentElement;r.classList.add(t==='B'?'theme-b':'theme-a');r.dataset.theme=t;}catch(e){}})();
+      // data-theme: 5 тем v6 (night|paper|mono|matcha|lilac), ключ sv6-theme.
+      // Совместимость: старый sv-theme A/B маппится на night/matcha.
+      (function(){try{var r=document.documentElement;
+        var t=localStorage.getItem('sv6-theme');
+        if(!t){var old=localStorage.getItem('sv-theme');t=(old==='B')?'matcha':'night';}
+        r.dataset.theme=t;}catch(e){}})();
     </script>
     <script type="importmap"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="icon" type="image/png" href="~/img/brand/svezhak-logo-dark-2x.png" />
+    <link rel="icon" type="image/png" href="~/img/brand/svezhak-icon.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/svezhak.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SmartInventory.styles.css" asp-append-version="true" />
 </head>
 <body class="sv-app-body">
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="sv-background" aria-hidden="true"></div>
 @if (isAuthed)
 {
     <div class="sv-app-shell">
         <aside class="sv-handoff-sidebar">
             <a class="sv-handoff-logo" asp-controller="Inventory" asp-action="Index">
-                <img src="~/img/brand/svezhak-logo-dark-animated.svg" asp-append-version="true" alt="СВЕЖАК" />
+                <img src="~/img/brand/svezhak-logo-dark-animated.svg" asp-append-version="true" alt="СВЕЖАК" class="sv-logo-img sv-logo-dark" style="height:38px" />
+                <img src="~/img/brand/svezhak-logo-light.svg" asp-append-version="true" alt="СВЕЖАК" class="sv-logo-img sv-logo-light" style="height:38px" />
             </a>
             <nav class="sv-handoff-nav sv-nav-offset" aria-label="Основная навигация">
                 <a asp-controller="Inventory" asp-action="Index" class="sv-handoff-nav-item@(Active("Index"))">
@@ -44,9 +53,18 @@
                 <a asp-controller="Inventory" asp-action="Order" class="sv-handoff-nav-item@(Active("Order"))"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z"/><path d="M9 8h6M9 11.5h6M9 15h3"/></svg></span><span data-i18n="nav.order">Заказ</span></a>
                 <a asp-controller="Inventory" asp-action="StopList" class="sv-handoff-nav-item@(Active("StopList"))"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3h8l5 5v8l-5 5H8l-5-5V8z"/><path d="M8 12h8"/></svg></span><span data-i18n="nav.stop">Стоп-лист</span><b class="sv-nav-badge sv-badge-success">0</b></a>
                 <a asp-controller="Advisor" asp-action="Index" class="sv-handoff-nav-item@(currentController == "Advisor" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l6.5-6.5"/></svg></span><span data-i18n="nav.advisor">Советник</span></a>
+                <a asp-controller="Inventory" asp-action="Analytics" class="sv-handoff-nav-item@(Active("Analytics"))"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20V10M9 20V4M15 20v-8M21 20V7"/></svg></span><span>Аналитика</span></a>
                 @if (isAdmin)
                 {
                     <a asp-controller="Admin" asp-action="Employees" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20v-4M4 8V4M20 4v4M20 16v4M4 12h16"/><circle cx="12" cy="8" r="3"/><circle cx="12" cy="16" r="3"/></svg></span><span data-i18n="nav.admin">Админ</span></a>
+                }
+                @if (isOwner)
+                {
+                    <a asp-controller="Org" asp-action="Index" class="sv-handoff-nav-item@(currentController == "Org" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 7.5l3 3M17 7.5l-3 3M7 16.5l3-3M17 16.5l-3-3"/></svg></span><span>Сеть</span></a>
+                }
+                @if (isManager && !isAdmin)
+                {
+                    <a asp-controller="Admin" asp-action="Employees" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M15 15.5c2.4.3 4 2 4 4.5"/></svg></span><span>Команда</span></a>
                 }
             </nav>
             @await Component.InvokeAsync("ShiftWidget")
@@ -72,11 +90,9 @@
                 </label>
                 <div class="sv-topbar-tools">
                     <button class="sv-icon-button" type="button" id="qrBtn" aria-label="QR для кухни" title="QR для кухни — стоп-лист">⌗</button>
-                    <button class="sv-lang-switch" type="button" id="langSwitch" aria-label="Сменить язык"><b id="langCur">RU</b></button>
-                    <button class="sv-theme-switch" type="button" data-theme-toggle aria-label="Сменить тему">
-                        <span class="sv-theme-knob"><img src="~/img/brand/favicon-32.png" alt="" /></span>
-                        <span class="sv-theme-label"><strong data-i18n="theme.switch">СМЕНИТЬ ТЕМУ</strong><small data-theme-sub>Скан · оранж</small></span>
-                    </button>
+                    @* скрыто до полной локализации *@
+                    <button class="sv-lang-switch" type="button" id="langSwitch" aria-label="Сменить язык" style="display:none"><b id="langCur">RU</b></button>
+                    <div class="seg" id="themeSwatches" title="Тема"></div>
                     <span class="sv-led-clock" data-led-clock>00:00</span>
                     <div class="sv-bell-wrap">
                         <button class="sv-icon-button" type="button" id="bellBtn" aria-label="Уведомления">♢<i id="bellDot" hidden></i></button>
@@ -85,6 +101,7 @@
                             <div id="bellList"><div class="sv-bell-empty">Загрузка…</div></div>
                         </div>
                     </div>
+                    <button class="sv-icon-button" type="button" id="chatBtn" aria-label="Чат со складом" title="Спросить ИИ о складе">✦</button>
                     <a class="sv-profile" asp-controller="Account" asp-action="Profile" title="Профиль"><b>@((User.Identity?.Name ?? "?").FirstOrDefault())</b><span><strong>@User.Identity?.Name</strong><small>профиль →</small></span></a>
                 </div>
             </header>
@@ -110,6 +127,43 @@
                 <p class="sv-surface-caption">Повар сканирует с телефона и видит стоп-лист — что нельзя готовить.</p>
                 <a id="qrLink" href="@Url.Action("StopList","Inventory")" class="sv-ai-note d-block mb-3" target="_blank"></a>
                 <button class="btn-sv-primary w-100" type="button" id="qrPrint">Распечатать</button>
+            </div>
+        </div>
+    </div>
+
+    @* ===== ИИ-чат — выезжающая панель ===== *@
+    <div class="sv-chat-panel" id="chatPanel" hidden>
+        <div class="sv-chat-head">
+            <div><div class="sv-kicker">ассистент склада</div><b>Спросить Юзу</b></div>
+            <button type="button" id="chatClose" aria-label="Закрыть">×</button>
+        </div>
+        <div class="sv-chat-msgs" id="chatMsgs">
+            <div class="sv-chat-msg sv-chat-ai"><b>Юзу:</b> спроси про остатки, сроки, стоп-лист или потери — отвечу по текущему снапшоту склада.</div>
+        </div>
+        <div class="sv-chat-form">
+            <input id="chatInput" type="text" placeholder="что сгорит первым?" autocomplete="off" maxlength="400" />
+            <button type="button" id="chatSend" aria-label="Отправить">→</button>
+        </div>
+    </div>
+
+    @* ===== Онбординг — первый вход менеджера/админа ===== *@
+    <div class="sv-modal-wrap" id="onboard" hidden>
+        <div class="sv-modal" style="width:min(480px,92vw)" role="dialog" aria-modal="true" aria-label="Обучение">
+            <div class="sv-modal-head"><b id="obTitle">Добро пожаловать</b><button type="button" id="obSkip" aria-label="Пропустить">×</button></div>
+            <div class="sv-modal-body" style="text-align:left">
+                <div style="border-radius:14px;overflow:hidden;background:#0b0d11;height:150px;display:grid;place-items:center;margin-bottom:14px">
+                    <img id="obImg" src="~/img/brand/chef-3-cut.png" style="max-height:130px" alt="" />
+                </div>
+                <div class="sv-kicker" id="obStep">шаг 1 / 5</div>
+                <h3 id="obName" style="font:700 18px var(--disp);margin:6px 0 8px"></h3>
+                <p id="obTx" style="color:var(--mut);font-size:13px;margin:0"></p>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ffffff10;padding:14px 18px;display:flex;gap:10px;justify-content:space-between;align-items:center">
+                <button type="button" class="btn-sv-ghost btn-sm" id="obSkip2">Пропустить</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn-sv-ghost" id="obPrev" style="min-height:36px">←</button>
+                    <button type="button" class="btn-sv-primary" id="obNext" style="min-height:36px">Далее →</button>
+                </div>
             </div>
         </div>
     </div>

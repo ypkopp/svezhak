@@ -6,39 +6,46 @@
     if (string.IsNullOrEmpty(initialsStr)) initialsStr = "?";
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <div class="sv-kicker">Аккаунт</div>
-        <h1 class="sv-page-title">Профиль сотрудника</h1>
-        <div class="sv-page-sub mb-0">Данные доступа и привязка к ресторану.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:8px">Аккаунт</div>
+        <h1 class="disp">Профиль сотрудника</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Данные доступа и привязка к ресторану.</p>
     </div>
 </div>
 
-<div class="sv-grid-12">
-    <div class="sv-card sv-col-5 fade-up" style="text-align:center;padding-top:30px">
-        <div class="sv-profile-avatar">@initialsStr</div>
-        <div style="font:700 20px var(--disp);margin-top:14px">@name</div>
-        <div class="sv-badge sv-badge-accent" style="margin-top:8px">@ViewBag.Role</div>
-        <div class="sv-surface-caption" style="margin-top:16px">
-            @(ViewBag.IsActive ? "Доступ активен" : "Доступ деактивирован")
+<section class="glass rise" style="display:grid;grid-template-columns:1fr 1.1fr;overflow:hidden;min-height:520px">
+    @* Юзу-операторка с карточками интерфейса *@
+    <div style="position:relative;background:radial-gradient(circle at 45% 40%,color-mix(in oklab,var(--au2) 26%,transparent),transparent 60%),radial-gradient(circle at 70% 80%,color-mix(in oklab,var(--au1) 22%,transparent),transparent 55%)">
+        <img src="~/img/brand/profile-girl-sm.png" alt="Юзу — операторка склада" style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);height:108%;filter:drop-shadow(0 20px 40px rgba(0,0,0,.4))" />
+        <div class="glass" style="position:absolute;left:22px;top:22px;padding:10px 14px;border-radius:14px">
+            <div class="eyebrow" style="font-size:9px">Юзу · ассистент</div>
+            <div style="font-size:13px;margin-top:4px;max-width:190px">Твой доступ @(ViewBag.IsActive ? "активен" : "отключён"). Следи за сроками — всё под контролем.</div>
         </div>
-        <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:18px">
+        <div class="glass" style="position:absolute;right:20px;bottom:30px;padding:12px 16px;border-radius:16px;display:flex;gap:12px;align-items:center">
+            <span class="ava" style="width:44px;height:44px;font-size:18px">@initialsStr</span>
+            <div><b>@name</b><div style="display:flex;gap:6px;margin-top:4px"><span class="badge rd">@ViewBag.Role</span><span class="badge gr"><i class="dot" style="width:5px;height:5px"></i>активен</span></div></div>
+        </div>
+    </div>
+    @* Данные доступа *@
+    <div style="padding:26px 28px;display:flex;flex-direction:column;gap:6px">
+        <div class="eyebrow" style="margin-bottom:10px">Данные доступа</div>
+        <div class="row" style="grid-template-columns:140px 1fr"><span class="eyebrow" style="font-size:9.5px">Имя</span><b style="text-align:right">@name</b></div>
+        <div class="row" style="grid-template-columns:140px 1fr"><span class="eyebrow" style="font-size:9.5px">Роль</span><b style="text-align:right">@ViewBag.Role</b></div>
+        <div class="row" style="grid-template-columns:140px 1fr"><span class="eyebrow" style="font-size:9.5px">Ресторан</span><b style="text-align:right">@ViewBag.Restaurant</b></div>
+        <div class="row" style="grid-template-columns:140px 1fr"><span class="eyebrow" style="font-size:9.5px">Организация</span><b style="text-align:right">@ViewBag.Organization</b></div>
+        <div class="row" style="grid-template-columns:140px 1fr auto">
+            <span class="eyebrow" style="font-size:9.5px">Код доступа</span>
+            <span class="mono" style="justify-self:end;padding:6px 12px;border-radius:10px;background:#06080a;color:var(--gr);font-weight:700;letter-spacing:.1em;text-shadow:0 0 8px var(--gr)">@ViewBag.MaskedCode</span>
+        </div>
+        <p class="dim" style="font-size:12px;margin:6px 4px 0">Код скрыт — показываются только последние 4 символа. Полный код выдаёт администратор.</p>
+        <div style="flex:1"></div>
+        <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:14px">
             @Html.AntiForgeryToken()
-            <button class="btn-sv-danger-outline w-100" type="submit">↪ Выйти</button>
+            <button class="btn danger lg" style="width:100%" type="submit">↪ Выйти</button>
         </form>
     </div>
-    <div class="sv-card sv-col-7 fade-up">
-        <div class="sv-section-title">Данные доступа</div>
-        <div class="sv-prof-rows">
-            <div class="sv-prof-row"><span class="sv-prof-k">Имя</span><b>@name</b></div>
-            <div class="sv-prof-row"><span class="sv-prof-k">Роль</span><b>@ViewBag.Role</b></div>
-            <div class="sv-prof-row"><span class="sv-prof-k">Ресторан</span><b>@ViewBag.Restaurant</b></div>
-            <div class="sv-prof-row"><span class="sv-prof-k">Организация</span><b>@ViewBag.Organization</b></div>
-            <div class="sv-prof-row"><span class="sv-prof-k">Код доступа</span><code class="sv-led-clock" style="font-size:15px;min-width:auto;padding:8px 14px">@ViewBag.MaskedCode</code></div>
-        </div>
-        <div class="sv-surface-caption mt-3">Код скрыт — показываются только последние 4 символа. Полный код выдаёт администратор.</div>
-    </div>
-</div>
+</section>
 
 @section Scripts {
     <script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>

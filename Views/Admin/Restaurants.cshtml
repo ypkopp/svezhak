@@ -5,72 +5,56 @@
     var sort = (string?)ViewBag.Sort;
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <a class="sv-backlink" asp-controller="Inventory" asp-action="Index">← Назад</a>
-        <div class="sv-kicker">Админ · точки</div>
-        <h1 class="sv-page-title">Рестораны</h1>
-        <div class="sv-page-sub mb-0">Точки вашей организации. Склад и расписание ведутся по активному ресторану.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Inventory" asp-action="Index" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← Назад</a>
+        <div class="eyebrow" style="margin-bottom:8px">Админ · точки</div>
+        <h1 class="disp">Рестораны</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Точки вашей организации. Склад и расписание ведутся по активному ресторану.</p>
     </div>
-    <button class="btn-sv-primary" type="button" data-bs-toggle="modal" data-bs-target="#addRestModal">＋ Добавить</button>
+    <span class="badge">просмотр · создание у владельца сети</span>
 </div>
 
 @if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
 @if (ViewBag.Error is string err) { <div class="sv-form-alert mb-3">@err</div> }
 
-<div class="sv-card fade-up">
-    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-        <div class="sv-section-title mb-0">Точки организации</div>
-        <div class="d-flex gap-1">
-            <a class="sv-chip @(sort != "address" ? "active" : "")" href="@Url.Action("Restaurants")">по дате</a>
-            <a class="sv-chip @(sort == "address" ? "active" : "")" href="@Url.Action("Restaurants", new { sort = "address" })">по адресу</a>
+<section class="glass card rise">
+    <div class="card-h" style="flex-wrap:wrap">
+        <span class="eyebrow">Точки организации</span><span class="sp"></span>
+        <div class="seg">
+            <a class="btn sm ghost @(sort != "address" ? "on" : "")" href="@Url.Action("Restaurants")" style="text-decoration:none">по дате</a>
+            <a class="btn sm ghost @(sort == "address" ? "on" : "")" href="@Url.Action("Restaurants", new { sort = "address" })" style="text-decoration:none">по адресу</a>
         </div>
     </div>
     @if (list.Count == 0)
     {
-        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Ресторанов пока нет.</p></div>
+        <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Ресторанов пока нет.</p></div>
     }
     else
     {
-        <div class="sv-table-wrap">
-            <table class="sv-table">
-                <thead><tr><th>ID</th><th>Адрес</th><th></th></tr></thead>
-                <tbody>
-                @foreach (var r in list)
-                {
-                    <tr>
-                        <td class="sv-muted">#@r.Id</td>
-                        <td><b>@r.Address</b></td>
-                        <td><span class="sv-badge sv-badge-green">активна</span></td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+        <div class="thead" style="grid-template-columns:60px 1.4fr 1.4fr 120px"><span>ID</span><span>Адрес</span><span>Терминал кухни</span><span>Статус</span></div>
+        <div class="rows">
+        @foreach (var r in list)
+        {
+            <div class="row" style="grid-template-columns:60px 1.4fr 1.4fr 120px">
+                <span class="mono dim">#@r.Id</span>
+                <b>@r.Address</b>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <img src="~/img/brand/st-qr.png" width="24" alt="" />
+                    <a class="mono dim" style="font-size:12px;text-decoration:none" href="/Kitchen/@r.KitchenToken" target="_blank" title="Открыть терминал">/Kitchen/@r.KitchenToken.ToString()[..8]…</a>
+                    <button class="btn sm ico ghost" type="button" title="Копировать" onclick="navigator.clipboard&&navigator.clipboard.writeText(location.origin+'/Kitchen/@r.KitchenToken')">⧉</button>
+                    <form asp-action="RegenKitchen" method="post" style="display:inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@r.Id" />
+                        <button class="btn sm ico ghost" type="submit" title="Перевыпустить">↻</button>
+                    </form>
+                </div>
+                <span class="badge gr"><i class="dot" style="width:5px;height:5px"></i>активна</span>
+            </div>
+        }
         </div>
     }
-</div>
-
-<div class="modal fade" id="addRestModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:linear-gradient(165deg,#1b1e27f2,#111318f2);border:1px solid var(--bd);border-radius:20px;color:var(--tx)">
-            <form asp-action="CreateRestaurant" method="post">
-                @Html.AntiForgeryToken()
-                <div class="modal-header" style="border-color:#ffffff10">
-                    <div><div class="sv-kicker">Новая точка</div><h5 class="modal-title" style="font:700 17px var(--disp)">Добавить ресторан</h5></div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                </div>
-                <div class="modal-body">
-                    <label class="sv-label d-block mb-1">Адрес / название</label>
-                    <input class="sv-input" type="text" name="address" placeholder="ул. Тверская, 12" required maxlength="100" />
-                </div>
-                <div class="modal-footer" style="border-color:#ffffff10">
-                    <button type="button" class="btn-sv-ghost" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn-sv-primary">Добавить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+</section>
 
 @section Scripts {
     <script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>

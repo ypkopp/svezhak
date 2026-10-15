@@ -17,93 +17,102 @@
     };
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <h1 class="sv-page-title">Склад</h1>
-        <div class="sv-page-sub mb-0">Партии сгруппированы по продукту — внутри по FEFO. Порчу списывай вручную.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:8px">Склад · FEFO</div>
+        <h1 class="disp">Склад</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Партии сгруппированы по продукту — внутри по FEFO. Порчу списываем вручную.</p>
     </div>
-    <img class="sv-sticker sv-sticker-bob" src="~/img/brand/st-fridge.png" alt="" />
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <a class="btn" asp-action="Deliveries">+ Приёмка</a>
+    </div>
 </div>
 
 @if (TempData["StockOk"] is string sok) { <div class="sv-form-success mb-3">@sok</div> }
 @if (TempData["StockError"] is string serr) { <div class="sv-form-alert mb-3">@serr</div> }
 
-<section class="sv-card fade-up mb-3">
-    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-        <div class="sv-stock-summary mb-0" style="flex:1;min-width:280px">
-            <div class="sv-sema-lamp" style="--lamp:#F56565"><i></i><div><strong>@hot</strong><span>&lt;12 ч</span></div></div>
-            <div class="sv-sema-lamp" style="--lamp:#ECC94B"><i></i><div><strong>@warm</strong><span>12–24 ч</span></div></div>
-            <div class="sv-sema-lamp" style="--lamp:#48BB78"><i></i><div><strong>@ok</strong><span>&gt;24 ч</span></div></div>
+@* Сводка семафора *@
+<section class="glass card rise" style="display:grid;grid-template-columns:repeat(3,1fr) 1.4fr;gap:14px;align-items:center">
+    <div style="display:flex;align-items:center;gap:14px">
+        <span style="width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8,var(--rd) 45%,color-mix(in oklab,var(--rd) 40%,#000));box-shadow:0 0 22px -2px var(--rd)"></span>
+        <div><div class="disp" style="font-size:26px;font-weight:700;color:var(--rd)">@hot</div><div class="eyebrow" style="font-size:9.5px">&lt;12 ч</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+        <span style="width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8,var(--ye) 45%,color-mix(in oklab,var(--ye) 40%,#000));box-shadow:0 0 22px -2px var(--ye)"></span>
+        <div><div class="disp" style="font-size:26px;font-weight:700;color:var(--ye)">@warm</div><div class="eyebrow" style="font-size:9.5px">12–24 ч</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+        <span style="width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8,var(--gr) 45%,color-mix(in oklab,var(--gr) 40%,#000));box-shadow:0 0 22px -2px var(--gr)"></span>
+        <div><div class="disp" style="font-size:26px;font-weight:700;color:var(--gr)">@ok</div><div class="eyebrow" style="font-size:9.5px">&gt;24 ч</div></div>
+    </div>
+    <div>
+        <div style="display:flex;gap:4px;height:10px">
+            <i style="flex:@Math.Max(1,hot);border-radius:6px;background:var(--rd);box-shadow:0 0 10px var(--rd)"></i>
+            <i style="flex:@Math.Max(1,warm);border-radius:6px;background:var(--ye);box-shadow:0 0 10px var(--ye)"></i>
+            <i style="flex:@Math.Max(1,ok);border-radius:6px;background:var(--gr);box-shadow:0 0 10px var(--gr)"></i>
         </div>
+        <div class="dim" style="font-size:12px;margin-top:8px">@stock.Count() партий · первыми уходят те, что истекают раньше</div>
     </div>
-    <div class="sv-proportion">
-        <i style="flex:@hot;background:#F56565;box-shadow:0 0 12px #F56565"></i>
-        <i style="flex:@warm;background:#ECC94B;box-shadow:0 0 12px #ECC94B"></i>
-        <i style="flex:@ok;background:#48BB78;box-shadow:0 0 12px #48BB78"></i>
-    </div>
-    <div class="sv-muted" style="font-size:11px">@stock.Count() партий · FEFO — первыми уходят те, что истекают раньше</div>
 </section>
 
-<div class="sv-card fade-up">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <div class="sv-section-title mb-0">Партии на складе</div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <div class="d-flex gap-1 flex-wrap">
-                <a class="sv-chip @(curCat == null ? "active" : "")" href="@Url.Action("Stock", new { expiringOnly })">Все</a>
-                @foreach (var c in categories)
-                {
-                    <a class="sv-chip @(curCat == c ? "active" : "")" href="@Url.Action("Stock", new { expiringOnly, category = c })"><img src="~/img/brand/@catImg(c)" style="width:16px;height:16px;margin-right:5px;vertical-align:-3px" alt="" />@c</a>
-                }
-            </div>
-            <label class="sv-toggle"><input type="checkbox" id="expToggle" @(expiringOnly ? "checked" : "") /> &lt;48ч</label>
-        </div>
+<section class="glass card rise">
+    <div class="card-h" style="flex-wrap:wrap">
+        <span class="eyebrow">Партии на складе</span><span class="sp"></span>
+        <a class="chip @(curCat == null ? "on" : "")" href="@Url.Action("Stock", new { expiringOnly })">Все<span class="n">@stock.Count()</span></a>
+        @foreach (var c in categories)
+        {
+            <a class="chip @(curCat == c ? "on" : "")" href="@Url.Action("Stock", new { expiringOnly, category = c })"><img src="~/img/brand/@catImg(c)" alt="" />@c</a>
+        }
+        <label class="chip @(expiringOnly ? "on" : "")" style="gap:6px"><input type="checkbox" id="expToggle" @(expiringOnly ? "checked" : "") style="display:none" /><span class="dot" style="width:8px;height:8px;background:var(--ye);box-shadow:0 0 8px var(--ye)"></span>&lt;48 ч</label>
     </div>
+
     @if (groups.Any())
     {
+        <div style="display:flex;flex-direction:column;gap:14px">
         @foreach (var g in groups)
         {
-            <div class="sv-prod-group">
-                <div class="sv-prod-head">
-                    <img src="~/img/brand/@catImg(g.Category)" class="sv-prod-ic" alt="" />
-                    <b>@g.Product</b>
-                    <span class="sv-badge sv-badge-muted">@g.Category</span>
-                    <span class="sv-prod-total">@($"{g.Total:0.##}") @g.Unit</span>
+            <div style="border-radius:18px;border:1px solid var(--stroke);padding:8px;background:color-mix(in oklab,var(--bg2) 35%,transparent)">
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 10px">
+                    <img src="~/img/brand/@catImg((string)g.Category)" width="26" height="26" alt="" />
+                    <b style="font-size:14.5px">@g.Product</b>
+                    <span class="badge">@g.Category</span>
+                    <span style="flex:1"></span>
+                    <span class="mono c-gr" style="font-weight:700">@($"{g.Total:0.##}") @g.Unit</span>
                 </div>
-                <div class="sv-table-wrap">
-                    <table class="sv-table sv-batch-table">
-                        <tbody>
-                        @foreach (var b in g.Batches)
-                        {
-                            var used = b.QtyInitial > 0 ? 1 - (b.QtyRemaining / b.QtyInitial) : 0;
-                            var freshH = (b.ExpiresAt - now).TotalHours;
-                            var lit = Math.Max(1, (int)Math.Round(Math.Min(freshH, 72) / 72 * 18));
-                            var fc = b.ExpiresAt <= now.AddHours(12) ? "#F56565" : b.ExpiresAt < now.AddHours(24) ? "#ECC94B" : "#48BB78";
-                            <tr class="@b.RowClass">
-                                <td><span class="sv-product-tag">@b.Delivery</span></td>
-                                <td><b>@($"{b.QtyRemaining:0.##}") @g.Unit</b></td>
-                                <td><div class="sv-used"><div><i style="width:@($"{used * 100:0}")%"></i></div><em>@($"{used * 100:0}")%</em></div></td>
-                                <td class="sv-muted">@b.ExpiresAt.ToLocalTime().ToString("dd.MM HH:mm")</td>
-                                <td><div class="sv-fbar">@for (var i = 0; i < 18; i++) { <i style="@(i < lit ? $"background:{fc};box-shadow:0 0 5px {fc}" : "")"></i> }</div></td>
-                                <td><b style="color:@fc">@b.HoursText</b></td>
-                                <td>
-                                    <button type="button" class="sv-wo-btn" title="Списать вручную" data-wo
-                                        data-batch="@b.Id" data-name="@g.Product" data-unit="@g.Unit" data-max="@($"{b.QtyRemaining:0.###}")">
-                                        <img src="~/img/brand/st-stop.png" alt="" />
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
+                <div class="thead" style="grid-template-columns:90px 90px 1fr 110px 1.3fr 90px 44px;padding:0 14px 4px">
+                    <span>Поставка</span><span>Остаток</span><span>Израсходовано</span><span>Приход</span><span>Свежесть</span><span>Срок</span><span></span>
+                </div>
+                <div class="rows">
+                @foreach (var b in g.Batches)
+                {
+                    var used = b.QtyInitial > 0 ? 1 - (b.QtyRemaining / b.QtyInitial) : 0;
+                    var freshH = (b.ExpiresAt - now).TotalHours;
+                    var lit = Math.Max(1, (int)Math.Round(Math.Min(freshH, 72) / 72 * 18));
+                    var isRed = b.ExpiresAt <= now.AddHours(12);
+                    var fc = isRed ? "var(--rd)" : b.ExpiresAt < now.AddHours(24) ? "var(--ye)" : "var(--gr)";
+                    <div class="row @b.RowClass" style="grid-template-columns:90px 90px 1fr 110px 1.3fr 90px 44px;@(isRed ? "background:color-mix(in oklab,var(--rd) 9%,transparent)" : "")">
+                        <span class="badge">@b.Delivery</span>
+                        <b class="mono" style="font-size:13px">@($"{b.QtyRemaining:0.##}") @g.Unit</b>
+                        <div style="display:flex;align-items:center;gap:10px"><div class="bar" style="flex:1;color:var(--tx3)"><i style="width:@($"{used * 100:0}")%"></i></div><span class="dim mono" style="font-size:11px">@($"{used * 100:0}")%</span></div>
+                        <span class="dim mono" style="font-size:12px">@b.ExpiresAt.ToLocalTime().ToString("dd.MM HH:mm")</span>
+                        <div class="led" style="color:@fc">@for (var i = 0; i < 18; i++) { <i class="@(i < lit ? "on" : "")"></i> }</div>
+                        <b class="mono" style="font-size:13px;color:@fc">@b.HoursText</b>
+                        <button type="button" class="btn sm ico danger" title="Списать" data-wo
+                            data-batch="@b.Id" data-name="@g.Product" data-unit="@g.Unit" data-max="@($"{b.QtyRemaining:0.###}")">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>
+                        </button>
+                    </div>
+                }
                 </div>
             </div>
         }
+        </div>
     }
     else
     {
-        <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><img src="~/img/brand/st-check.png" style="width:34px" alt="" /><p>@(expiringOnly ? "Нет истекающих партий — склад свежий." : "Склад пуст — примите поставку.")</p></div>
+        <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>@(expiringOnly ? "Нет истекающих партий — склад свежий." : "Склад пуст — примите поставку.")</p></div>
     }
-</div>
+</section>
 
 @* ===== Модалка ручного списания ===== *@
 <div class="sv-modal-wrap" id="woModal" hidden>
@@ -126,8 +135,8 @@
                 <input class="sv-input" type="text" name="comment" placeholder="например: помята упаковка" maxlength="300" />
             </div>
             <div class="modal-footer" style="border-top:1px solid #ffffff10;padding:14px 18px;display:flex;gap:10px;justify-content:flex-end">
-                <button type="button" class="btn-sv-ghost" id="woCancel">Отмена</button>
-                <button type="submit" class="btn-sv-danger-outline">Списать</button>
+                <button type="button" class="btn ghost" id="woCancel">Отмена</button>
+                <button type="submit" class="btn danger">Списать</button>
             </div>
         </form>
     </div>
@@ -139,7 +148,6 @@
         var cat = '@curCat';
         location.href = '@Url.Action("Stock", "Inventory")' + '?expiringOnly=' + this.checked + (cat ? '&category=' + encodeURIComponent(cat) : '');
     });
-    // модалка списания
     var woModal = document.getElementById('woModal');
     document.querySelectorAll('[data-wo]').forEach(function (btn) {
         btn.addEventListener('click', function () {

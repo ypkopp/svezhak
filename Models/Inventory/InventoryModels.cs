@@ -66,6 +66,13 @@ public class Dish
     public decimal Price { get; set; }
     public bool IsActive { get; set; } = true;
 
+    // Ручной стоп-лист: блюдо принудительно снято с продажи поваром/менеджером
+    public bool ManualStopped { get; set; }
+
+    // Необязательная причина ручного стопа (кратко: «порча», «нет повара» и т.п.)
+    [MaxLength(300)]
+    public string? StopComment { get; set; }
+
     public List<RecipeItem> RecipeItems { get; init; } = [];
 }
 
@@ -130,6 +137,40 @@ public class Shift
     // "шеф" / "повар" / "менеджер"
     [MaxLength(20)]
     public string Position { get; set; } = null!;
+}
+
+/// <summary>Лид-заявка с публичного лендинга. Связи с рестораном нет —
+/// обработка офлайн (телеграм/договор).</summary>
+public class LeadRequest
+{
+    public int Id { get; init; }
+
+    [MaxLength(120)]
+    public string NetworkName { get; set; } = null!;
+
+    [MaxLength(120)]
+    public string Contact { get; set; } = null!;
+
+    public int RestaurantCount { get; set; }
+
+    // "новая" / "в работе" / "доступ выдан"
+    [MaxLength(20)]
+    public string Status { get; set; } = "новая";
+
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+}
+
+/// <summary>Сохранённый ИИ-анализ смены — пишется фоновым сервисом раз в час,
+/// дашборд читает последний без обращения к LLM на каждый просмотр.</summary>
+public class AiInsight
+{
+    public int Id { get; init; }
+    public int RestaurantId { get; init; }
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public string Text { get; set; } = null!;
+    /// <summary>JSON-массив чипов [{Category,Title,Severity,ActionUrl}] — до 3х.</summary>
+    public string ChipsJson { get; set; } = "[]";
+    public bool UsedAi { get; set; }
 }
 
 public class WriteOff

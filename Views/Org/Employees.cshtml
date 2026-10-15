@@ -1,0 +1,177 @@
+@{
+    ViewData["Title"] = "Сотрудники сети";
+    var restaurants = (List<SmartInventory.Models.Structure.Restaurant>)ViewBag.Restaurants;
+    var byRestaurant = (Dictionary<int, List<SmartInventory.Models.Structure.AccessCode>>)ViewBag.ByRestaurant;
+    var unassigned = (List<SmartInventory.Models.Structure.AccessCode>)ViewBag.Unassigned;
+    var selfId = (int)ViewBag.SelfCodeId;
+    string RoleBadge(SmartInventory.Authorization.AppRole r) => r switch
+    {
+        SmartInventory.Authorization.AppRole.OrganizationOwner => "<span class=\"badge ac\">владелец</span>",
+        SmartInventory.Authorization.AppRole.Admin => "<span class=\"badge rd\">админ</span>",
+        SmartInventory.Authorization.AppRole.RestaurantManager or SmartInventory.Authorization.AppRole.Manager => "<span class=\"badge li\">менеджер</span>",
+        SmartInventory.Authorization.AppRole.HeadChef => "<span class=\"badge ye\">шеф</span>",
+        _ => "<span class=\"badge gr\">повар</span>",
+    };
+}
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Org" asp-action="Index" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← К точкам</a>
+        <div class="eyebrow" style="margin-bottom:8px">Владелец · персонал</div>
+        <h1 class="disp">Сотрудники сети</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Все access-коды организации по точкам. Новый код показывается один раз.</p>
+    </div>
+    <button class="btn pri" type="button" data-bs-toggle="modal" data-bs-target="#createEmpModal">＋ Сотрудник</button>
+</div>
+
+@if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
+@if (ViewBag.Error is string err) { <div class="sv-form-alert mb-3">@err</div> }
+@if (ViewBag.NewCode is string nc && !string.IsNullOrEmpty(nc))
+{
+    <div class="glass card fade-up mb-3" style="border-color:color-mix(in oklab,var(--gr) 45%,transparent)">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <img src="~/img/brand/st-check.png" style="width:40px" alt="" />
+            <div style="flex:1;min-width:180px"><div class="eyebrow" style="color:var(--gr)">Сотрудник добавлен — код показан один раз</div><b>@ViewBag.NewCodeName</b></div>
+            <code class="mono" style="font-size:22px;letter-spacing:.12em;padding:12px 18px;border-radius:10px;background:#06080a;color:var(--gr);text-shadow:0 0 10px var(--gr)">@nc</code>
+            <button class="btn sm" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('@nc')">Копировать</button>
+        </div>
+    </div>
+}
+
+@foreach (var r in restaurants)
+{
+    var list = byRestaurant.GetValueOrDefault(r.Id) ?? new List<SmartInventory.Models.Structure.AccessCode>();
+    <section class="glass card rise mb-3">
+        <div class="card-h">
+            <div><div class="eyebrow" style="font-size:9px">Точка</div><b class="disp" style="font-size:15px">@r.Address</b></div>
+            <span class="sp"></span>
+            <span class="badge">@list.Count чел</span>
+        </div>
+        @if (list.Count == 0)
+        {
+            <div style="display:flex;align-items:center;gap:14px">
+                <img src="~/img/brand/m-onigiri.png" style="height:64px" alt="" />
+                <span class="muted" style="font-size:13px">Нет сотрудников со сменами на этой точке.</span>
+                <span style="flex:1"></span>
+                <button class="btn sm" type="button" data-bs-toggle="modal" data-bs-target="#createEmpModal">＋ Добавить</button>
+            </div>
+        }
+        else
+        {
+            <div class="thead" style="grid-template-columns:1.3fr .9fr .9fr 1.9fr"><span>Сотрудник</span><span>Роль</span><span>Статус</span><span>Действие</span></div>
+            <div class="rows">
+            @foreach (var c in list)
+            {
+                var isSelf = c.Id == selfId;
+                var isOwner = c.Role == SmartInventory.Authorization.AppRole.OrganizationOwner;
+                <div class="row @(c.IsActive?"":"sv-row-expired")" style="grid-template-columns:1.3fr .9fr .9fr 1.9fr;@(c.IsActive?"":"opacity:.5")">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <span class="ava" style="width:32px;height:32px;font-size:13px;border-radius:10px">@((c.EmployeeName ?? "?")[0])</span>
+                        <div><b style="font-size:13.5px">@(c.EmployeeName ?? $"#{c.Id}")</b><div class="mono dim" style="font-size:10.5px">@c.Code</div></div>
+                    </div>
+                    <span>@Html.Raw(RoleBadge(c.Role))</span>
+                    <span><span class="badge @(c.IsActive?"gr":"")">@(c.IsActive?"активен":"отключён")</span></span>
+                    <span style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+                        @if (isSelf || isOwner) { <span class="chip" style="height:28px">@(isSelf?"это вы":"владелец")</span> }
+                        else
+                        {
+                            <form asp-action="AssignEmployee" method="post" style="display:inline-flex;align-items:center;gap:6px">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <select class="sv-select" name="restaurantId" style="min-height:30px;font-size:12px;padding:0 8px;max-width:150px">
+                                    <option value="">без точки</option>
+                                    @foreach (var rr in restaurants) { <option value="@rr.Id" selected="@(rr.Id==r.Id)">@rr.Address</option> }
+                                </select>
+                                <button class="btn sm ghost" type="submit" title="Переназначить точку">→</button>
+                            </form>
+                            <form asp-action="ToggleEmployee" method="post" style="display:inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button class="btn sm @(c.IsActive?"danger":"ok")" type="submit">@(c.IsActive?"Деактив.":"Актив.")</button>
+                            </form>
+                            <form asp-action="DeleteEmployee" method="post" style="display:inline" onsubmit="return confirm('Удалить сотрудника «@(c.EmployeeName ?? c.Code)»? Код перестанет работать.');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button class="btn sm ico danger" type="submit" title="Удалить"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>
+                            </form>
+                        }
+                    </span>
+                </div>
+            }
+            </div>
+        }
+    </section>
+}
+
+@if (unassigned.Any())
+{
+    <section class="glass card rise">
+        <div class="card-h"><div><div class="eyebrow" style="font-size:9px">без точки</div><b class="disp" style="font-size:15px">Персонал сети</b></div><span class="sp"></span><span class="badge">@unassigned.Count чел</span></div>
+        <div class="thead" style="grid-template-columns:1.2fr .9fr .8fr 2fr"><span>Сотрудник</span><span>Роль</span><span>Статус</span><span>Действие</span></div>
+        <div class="rows">
+        @foreach (var c in unassigned)
+        {
+            var isSelf = c.Id == selfId;
+            var isOwner = c.Role == SmartInventory.Authorization.AppRole.OrganizationOwner;
+            <div class="row @(c.IsActive?"":"sv-row-expired")" style="grid-template-columns:1.2fr .9fr .8fr 2fr;@(c.IsActive?"":"opacity:.5")">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <span class="ava" style="width:32px;height:32px;font-size:13px;border-radius:10px">@((c.EmployeeName ?? "?")[0])</span>
+                    <div><b style="font-size:13.5px">@(c.EmployeeName ?? $"#{c.Id}")</b><div class="mono dim" style="font-size:10.5px">@c.Code</div></div>
+                </div>
+                <span>@Html.Raw(RoleBadge(c.Role))</span>
+                <span><span class="badge @(c.IsActive?"gr":"")">@(c.IsActive?"активен":"отключён")</span></span>
+                <span style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+                    @if (isSelf || isOwner) { <span class="chip" style="height:28px">@(isSelf?"это вы":"владелец")</span> }
+                    else
+                    {
+                        <form asp-action="AssignEmployee" method="post" style="display:inline-flex;align-items:center;gap:6px">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id" />
+                            <select class="sv-select" name="restaurantId" required style="min-height:30px;font-size:12px;padding:0 8px;max-width:150px">
+                                <option value="" selected disabled>в точку…</option>
+                                @foreach (var rr in restaurants) { <option value="@rr.Id">@rr.Address</option> }
+                            </select>
+                            <button class="btn sm" type="submit" title="Привязать к точке">OK</button>
+                        </form>
+                        <form asp-action="ToggleEmployee" method="post" style="display:inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id" />
+                            <button class="btn sm @(c.IsActive?"danger":"ok")" type="submit">@(c.IsActive?"Деактив.":"Актив.")</button>
+                        </form>
+                        <form asp-action="DeleteEmployee" method="post" style="display:inline" onsubmit="return confirm('Удалить сотрудника «@(c.EmployeeName ?? c.Code)»? Код перестанет работать.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id" />
+                            <button class="btn sm ico danger" type="submit" title="Удалить"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>
+                        </form>
+                    }
+                </span>
+            </div>
+        }
+        </div>
+    </section>
+}
+
+@* Модалка: новый сотрудник *@
+<div class="modal fade" id="createEmpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass" style="border-radius:24px;color:var(--tx)">
+            <form asp-action="CreateEmployee" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="border-color:var(--stroke)"><div><div class="eyebrow">Новый сотрудник</div><h5 class="disp" style="font-size:17px">Создать access-код</h5></div><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="field mb-3"><label>Имя сотрудника</label><input class="inp" type="text" name="employeeName" required maxlength="100" /></div>
+                    <div class="field"><label>Роль</label>
+                        <select class="sv-select" name="role">
+                            <option value="повар">повар</option>
+                            <option value="шеф">шеф</option>
+                            <option value="менеджер">менеджер</option>
+                            <option value="админ">админ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-color:var(--stroke)"><button type="button" class="btn ghost" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn pri">Создать код</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {<script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>}

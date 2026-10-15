@@ -1,0 +1,81 @@
+@{
+    Layout = null;
+    var r = (SmartInventory.Models.Structure.Restaurant)ViewBag.Restaurant;
+    var stop = (List<SmartInventory.Services.OrderService.StopListItem>)ViewBag.StopList;
+    var token = (Guid)ViewBag.Token;
+}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Кухня — @r.Address</title>
+<link rel="icon" type="image/png" href="~/img/brand/svezhak-icon.png" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Manrope:wght@600;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#0b0d11;color:#e8eaf0;font-family:'Manrope',sans-serif}
+body{display:flex;flex-direction:column;padding:5vh 6vw}
+.kicker{font:700 clamp(14px,1.6vw,20px) 'JetBrains Mono',monospace;letter-spacing:.28em;text-transform:uppercase;color:#ED8936}
+h1{font:800 clamp(30px,4.4vw,54px) 'Unbounded',sans-serif;margin:8px 0 4px}
+.sub{color:#8b93a7;font-size:clamp(13px,1.4vw,17px)}
+.pulse{display:inline-block;width:14px;height:14px;border-radius:50%;background:#48BB78;box-shadow:0 0 14px #48BB78;animation:p 1.6s infinite}
+@@keyframes p{0%,100%{opacity:1}50%{opacity:.35}}
+.list{flex:1;margin-top:5vh;display:flex;flex-direction:column;gap:2.2vh}
+.item{display:flex;align-items:center;gap:2.4vw;background:linear-gradient(90deg,#F5656516,transparent);border-left:8px solid #F56565;border-radius:0 18px 18px 0;padding:2.4vh 2.4vw}
+.item .nm{font:800 clamp(22px,3.4vw,44px) 'Unbounded',sans-serif;flex:1}
+.item .why{color:#8b93a7;font-size:clamp(12px,1.3vw,16px);margin-top:6px;font-family:'JetBrains Mono',monospace}
+.badge{font:700 clamp(10px,1vw,14px) 'JetBrains Mono',monospace;padding:.6em 1em;border-radius:999px;white-space:nowrap}
+.b-man{background:#ECC94B22;color:#ECC94B}.b-auto{background:#F5656522;color:#F56565}
+.empty{flex:1;display:grid;place-items:center;text-align:center}
+.empty img{max-height:34vh;margin-bottom:2vh}
+.empty b{font:800 clamp(26px,3.6vw,44px) 'Unbounded',sans-serif;color:#48BB78}
+.empty p{color:#8b93a7;font-size:clamp(14px,1.6vw,20px);margin-top:1vh}
+.tick{position:fixed;right:3vw;bottom:3vh;font:600 clamp(10px,1.1vw,14px) 'JetBrains Mono',monospace;color:#4a5165}
+</style>
+</head>
+<body>
+    <div class="d-flex justify-content-between align-items-start" style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+            <div class="kicker"><span class="pulse"></span> Терминал кухни · демо</div>
+            <h1>@r.Address</h1>
+            <div class="sub">стоп-лист · обновляется автоматически</div>
+        </div>
+        <img src="~/img/brand/svezhak-logo-dark-2x.png" style="height:clamp(30px,4vh,50px);opacity:.9" alt="" />
+    </div>
+
+    <div class="list" id="stopList">
+        @if (stop.Any())
+        {
+            foreach (var s in stop)
+            {
+                <div class="item">
+                    <div><div class="nm">@s.DishName</div><div class="why">@(s.IsManual ? (string.IsNullOrWhiteSpace(s.Comment) ? "остановлено вручную" : s.Comment) : "не хватает ингредиентов")</div></div>
+                    <span class="badge @(s.IsManual?"b-man":"b-auto")">@(s.IsManual?"вручную":"авто")</span>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty"><div><img src="~/img/brand/chef-3-cut.png" alt=""/><br/><b>Всё в меню</b><p>стоп-лист пуст — готовим всё</p></div></div>
+        }
+    </div>
+    <div class="tick" id="tick">обновлено --:--:--</div>
+
+<script>
+(function(){
+  var url='/Kitchen/@token/data';
+  function tick(){var d=new Date();document.getElementById('tick').textContent='обновлено '+d.toTimeString().slice(0,8);}
+  async function poll(){
+    try{var r=await fetch(url);if(!r.ok)return;var d=await r.json();
+      var list=document.getElementById('stopList');
+      if(d.count===0){list.innerHTML='<div class="empty"><div><img src="/img/brand/chef-3-cut.png"/><br/><b>Всё в меню</b><p>стоп-лист пуст — готовим всё</p></div></div>';}
+      else{list.innerHTML=d.items.map(function(s){var why=s.isManual?(s.comment||'остановлено вручную'):'не хватает ингредиентов';return '<div class="item"><div><div class="nm">'+s.dishName+'</div><div class="why">'+why+'</div></div><span class="badge '+(s.isManual?'b-man':'b-auto')+'">'+(s.isManual?'вручную':'авто')+'</span></div>'}).join('');}
+    }catch(e){}
+    tick();
+  }
+  poll(); setInterval(poll, 8000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+@{
+    ViewData["Title"] = "Просмотр точки";
+    var r = (SmartInventory.Models.Structure.Restaurant)ViewBag.Restaurant;
+    var live = (List<SmartInventory.Models.Inventory.Batch>)ViewBag.Live;
+    var stop = (List<SmartInventory.Services.OrderService.StopListItem>)ViewBag.StopList;
+    var now = (DateTime)ViewBag.Now;
+    Func<DateTime, string> fmt = e => { var h=(e-now).TotalHours; return h<0?"просрочено": h>=48? $"{(int)h/24} дн {(int)h%24} ч": $"{h:0.#} ч"; };
+}
+
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Org" asp-action="Index" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← К точкам</a>
+        <div class="eyebrow" style="margin-bottom:8px">Точка #@r.Id · только просмотр</div>
+        <h1 class="disp">@r.Address</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Read-only дашборд точки — без действий, только наблюдение.</p>
+    </div>
+    <span class="badge ye">👁 просмотр</span>
+</div>
+
+<a class="glass rise" href="@Url.Action("Analytics","Inventory")" style="display:flex;align-items:center;gap:14px;padding:14px 18px;text-decoration:none;color:inherit">
+    <img src="~/img/brand/st-hot.png" style="width:32px" alt="" />
+    <div style="flex:1"><b>Аналитика точки</b><div class="dim" style="font-size:12px">неликвиды и ходовые за период</div></div>
+    <span style="color:var(--ac)">→</span>
+</a>
+
+<div class="grid" style="grid-template-columns:1.5fr 1fr;align-items:start">
+    <section class="glass card rise">
+        <div class="card-h"><span class="eyebrow">Живые партии (@live.Count)</span></div>
+        <div class="thead" style="grid-template-columns:1.4fr 80px 90px 1fr 90px"><span>Продукт</span><span>Поставка</span><span>Остаток</span><span>Свежесть</span><span>Срок</span></div>
+        <div class="rows">
+        @foreach (var b in live.Take(12))
+        {
+            var fc = b.ExpiresAt<=now.AddHours(12)?"var(--rd)":b.ExpiresAt<now.AddHours(24)?"var(--ye)":"var(--gr)";
+            var lit = Math.Max(1,(int)Math.Round(Math.Min((b.ExpiresAt-now).TotalHours,72)/72*14));
+            <div class="row" style="grid-template-columns:1.4fr 80px 90px 1fr 90px;min-height:42px">
+                <b style="font-size:13px">@b.Product?.Name</b>
+                <span class="badge">@b.Delivery?.Number</span>
+                <span class="mono">@($"{b.QtyRemaining:0.##}") @b.Product?.Unit</span>
+                <div class="led" style="color:@fc">@for(var i=0;i<14;i++){<i class="@(i<lit?"on":"")"></i>}</div>
+                <b class="mono" style="font-size:12.5px;color:@fc">@fmt(b.ExpiresAt)</b>
+            </div>
+        }
+        </div>
+    </section>
+    <section class="glass card rise">
+        <div class="card-h"><span class="eyebrow" style="color:var(--rd)">Стоп-лист (@stop.Count)</span></div>
+        <div class="rows">
+        @foreach (var s in stop)
+        {
+            <div class="row" style="grid-template-columns:1fr auto auto;min-height:42px">
+                <b style="font-size:13px">@s.DishName</b>
+                @if(s.IsManual){<span class="badge ye">вручную</span>}else{<span></span>}
+                <span class="badge rd">стоп</span>
+            </div>
+        }
+        @if (!stop.Any()) { <div class="dim" style="padding:14px 0">Стоп-лист пуст — всё меню доступно.</div> }
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:18px">
+            <div id="heroRadar" style="width:180px"></div>
+            <div><div class="eyebrow">Истекает &lt;24ч</div><div class="disp" style="font-size:40px;font-weight:700;color:var(--rd)">@ViewBag.Expiring24</div></div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+<script src="~/js/svezhak-proto.js" asp-append-version="true"></script>
+<script>
+    // Маленькая спираль свежести для этой точки — те же данные /ChartDataRiver? нет, сервер отдаёт батчи ресторана юзера.
+    // Для read-only точки используем уже отрендеренные партии через data-атрибут? — проще: тихий JSON-эндпоинт не существует для чужого ресторана, поэтому рисуем по встроенным данным ниже.
+    (function(){
+        var batches = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(live.Select(b => new { name = b.Product?.Name, delivery = b.Delivery?.Number, qty = b.QtyRemaining, unit = b.Product?.Unit, hoursLeft = Math.Round((b.ExpiresAt - now).TotalHours, 1) })));
+        var n=document.getElementById('heroRadar'); if(n&&window.SvProto&&SvProto.spiral){SvProto.spiral('heroRadar','#');}
+        // SvProto.spiral фетчит url — вместо этого нарисуем сами, т.к. data локальная
+        if(n&&window.SvProto&&SvProto.spiral){ /* spiral expects url; do manual call below */ }
+        if(n){ // отрисуем спираль напрямую через proto internals? у proto нет публичного draw(data) — подаём фейк-url через blob
+            var blob=new Blob([JSON.stringify(batches)],{type:'application/json'});
+            var url=URL.createObjectURL(blob);
+            if(window.SvProto&&SvProto.spiral) SvProto.spiral('heroRadar',url);
+        }
+    })();
+    document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});
+</script>
+@await Html.PartialAsync("_InventoryRealtime")
+}

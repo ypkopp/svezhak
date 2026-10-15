@@ -1,0 +1,61 @@
+@{
+    ViewData["Title"] = "Админы организации";
+    var codes = (List<SmartInventory.Models.Structure.AccessCode>)ViewBag.Codes;
+    var selfCodeId = int.TryParse(User.FindFirst("AccessCodeId")?.Value, out var sc) ? sc : -1;
+    string RoleBadge(SmartInventory.Authorization.AppRole r) => r switch
+    {
+        SmartInventory.Authorization.AppRole.OrganizationOwner => "<span class=\"badge ac\">владелец</span>",
+        SmartInventory.Authorization.AppRole.Admin => "<span class=\"badge rd\">админ</span>",
+        SmartInventory.Authorization.AppRole.RestaurantManager => "<span class=\"badge li\">менеджер</span>",
+        SmartInventory.Authorization.AppRole.HeadChef => "<span class=\"badge ye\">шеф</span>",
+        _ => "<span class=\"badge gr\">повар</span>",
+    };
+}
+
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Org" asp-action="Index" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← К точкам</a>
+        <div class="eyebrow" style="margin-bottom:8px">Владелец · доступы</div>
+        <h1 class="disp">Управление админами</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Выдать / отозвать роль Admin у существующих access-кодов организации.</p>
+    </div>
+</div>
+
+@if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
+@if (ViewBag.Error is string err) { <div class="sv-form-alert mb-3">@err</div> }
+
+<section class="glass card rise">
+    <div class="thead" style="grid-template-columns:1.4fr 1fr 1fr auto"><span>Сотрудник</span><span>Роль</span><span>Статус</span><span>Действие</span></div>
+    <div class="rows">
+    @foreach (var c in codes)
+    {
+        var isSelf = c.Id == selfCodeId;
+        var isOwner = c.Role == SmartInventory.Authorization.AppRole.OrganizationOwner;
+        var isAdmin = c.Role == SmartInventory.Authorization.AppRole.Admin;
+        <div class="row" style="grid-template-columns:1.4fr 1fr 1fr auto">
+            <div style="display:flex;align-items:center;gap:12px">
+                <span class="ava" style="width:32px;height:32px;font-size:13px;border-radius:10px">@((c.EmployeeName ?? "?")[0])</span>
+                <div><b style="font-size:13.5px">@(c.EmployeeName ?? $"#{c.Id}")</b><div class="mono dim" style="font-size:10.5px">@c.Code</div></div>
+            </div>
+            <span>@Html.Raw(RoleBadge(c.Role))</span>
+            <span><span class="badge @(c.IsActive ? "gr" : "")">@(c.IsActive ? "активен" : "выкл")</span></span>
+            <span style="text-align:right">
+                @if (isSelf || isOwner)
+                {
+                    <span class="chip" style="height:28px">это вы</span>
+                }
+                else
+                {
+                    <form asp-action="ToggleAdmin" method="post" style="display:inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@c.Id" />
+                        <button class="btn sm @(isAdmin?"danger":"")" type="submit">@(isAdmin ? "⊘ Отозвать админа" : "⛨ Сделать админом")</button>
+                    </form>
+                }
+            </span>
+        </div>
+    }
+    </div>
+</section>
+
+@section Scripts {<script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>}

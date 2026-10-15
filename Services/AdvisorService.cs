@@ -28,6 +28,48 @@ public sealed class AdvisorService(
     public sealed record SummaryResult(DateTime GeneratedAtUtc, bool UsedAi, string Text, IReadOnlyList<Insight> Highlights);
     private sealed record Snapshot(List<Insight> LocalInsights, object Data);
 
+    /// <summary>Сырой снапшот склада для чата/аналитики (те же факты, что в сводке).</summary>
+    public async Task<object> GetSnapshotDataAsync(int restaurantId, CancellationToken ct = default)
+        => (await BuildSnapshotAsync(restaurantId, ct)).Data;
+
+    /// <summary>Общий вызов LLM с произвольным пользовательским промптом + фактами снапшота.
+    /// Возвращает текст ответа или null, если провайдер недоступен/не настроен.</summary>
+    public async Task<string?> AskAiAsync(string userPrompt, object data, CancellationToken ct = default)
+    {
+        var baseUrl = configuration["Ai:BaseUrl"]?.TrimEnd('/');
+        var model = configuration["Ai:Model"];
+        var apiKey = configuration["Ai:ApiKey"];
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(model) || string.IsNullOrWhiteSpace(apiKey))
+            return null;
+        try
+        {
+            var client = clients.CreateClient(nameof(AdvisorService));
+            client.Timeout = TimeSpan.FromSeconds(30);
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            request.Content = new StringContent(JsonSerializer.Serialize(new
+            {
+                model,
+                temperature = 0.3,
+                max_tokens = 700,
+                messages = new object[]
+                {
+                    new { role = "user", content = $"{userPrompt}\n\nFacts:\n{TransliterateJson(data)}" }
+                }
+            }), Encoding.UTF8, "application/json");
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode) return null;
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            return json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()?.Trim();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning("AI ask failed ({ErrorType})", ex.GetType().Name);
+            return null;
+        }
+    }
+
     public async Task<InsightsResult> GetInsightsAsync(int restaurantId, CancellationToken ct = default)
     {
         var key = $"advisor:{restaurantId}";
@@ -103,7 +145,9 @@ public sealed class AdvisorService(
             }
         }
 
-        var result = new SummaryResult(DateTime.UtcNow, usedAi, text, local.Take(3).ToList());
+        // Highlights отдаём с запасом (6) — View отфильтрует «продать срочно»
+        // (эта категория живёт в отдельной hot-offers карточке и не дублируется).
+        var result = new SummaryResult(DateTime.UtcNow, usedAi, text, local.Take(6).ToList());
         cache.Set(key, result, new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(7),
@@ -240,13 +284,21 @@ public sealed class AdvisorService(
             local.Add(new Insight("списать", $"Проверить партию {b.Delivery?.Number}", $"{b.Product?.Name}: {b.QtyRemaining:0.##} {b.Product?.Unit}, до срока {hours:0.#} ч. Если продукт непригоден — оформите списание.", "st-hourglass.png", "Открыть склад", "/Inventory/Stock?expiringOnly=true", hours < 6 ? "high" : "medium"));
         }
 
+        // «Анализ и предложение поставок»: по расходу за 7 дней и остатку —
+        // «Лосось: расход 1.2 кг/день, остатка хватит на ~2 дня — закажите 4 кг».
         foreach (var (productId, perDay) in dailyUse.Where(x => x.Value > 0).OrderBy(x => remaining.GetValueOrDefault(x.Key) / x.Value).Take(4))
         {
-            var daysLeft = (double)(remaining.GetValueOrDefault(productId) / perDay);
+            var stockQty = remaining.GetValueOrDefault(productId);
+            var daysLeft = (double)(stockQty / perDay);
             if (daysLeft > 7) continue;
             var product = products.GetValueOrDefault(productId);
             if (product is null) continue;
-            local.Add(new Insight("заказать", $"Запланировать {product.Name}", $"При текущем расходе запаса хватит примерно на {daysLeft:0.#} дн. Остаток: {remaining.GetValueOrDefault(productId):0.##} {product.Unit}.", "st-box.png", "Принять поставку", "/Inventory/Deliveries", daysLeft < 2 ? "high" : "medium"));
+            // Целевой запас — на 4 дня вперёд; рекомендуемый заказ = нехватка до цели.
+            var suggestQty = Math.Max(0m, perDay * 4m - stockQty);
+            var explanation = suggestQty > 0
+                ? $"расход {perDay:0.#} {product.Unit}/день, остатка хватит на ~{daysLeft:0.#} дн — закажите {suggestQty:0.#} {product.Unit}"
+                : $"расход {perDay:0.#} {product.Unit}/день, остатка хватит на ~{daysLeft:0.#} дн. Остаток: {stockQty:0.##} {product.Unit}.";
+            local.Add(new Insight("заказать", $"{product.Name}: закуп", explanation, "st-box.png", "Принять поставку", "/Inventory/Deliveries", daysLeft < 2 ? "high" : "medium"));
         }
 
         if (local.Count == 0)

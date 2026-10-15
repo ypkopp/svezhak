@@ -19,6 +19,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Order> Orders { get; set; } = null!;
     public DbSet<OrderItem> OrderItems { get; set; } = null!;
     public DbSet<WriteOff> WriteOffs { get; set; } = null!;
+    public DbSet<LeadRequest> LeadRequests { get; set; } = null!;
+    public DbSet<AiInsight> AiInsights { get; set; } = null!;
 
     // Расписание смен
     public DbSet<Shift> Shifts { get; set; } = null!;
@@ -76,6 +78,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<Dish>().HasIndex(d => d.RestaurantId);
         modelBuilder.Entity<Order>().HasIndex(o => o.RestaurantId);
         modelBuilder.Entity<WriteOff>().HasIndex(w => w.RestaurantId);
+        modelBuilder.Entity<AiInsight>().HasIndex(a => new { a.RestaurantId, a.CreatedAt });
 
         // FEFO-списание: поиск живых партий продукта по сроку годности
         modelBuilder.Entity<Batch>().HasIndex(b => new { b.ProductId, b.ExpiresAt });
