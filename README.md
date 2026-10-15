@@ -43,9 +43,9 @@
 | 🏛 Платформа | `HQ000001` | заявки от сетей (`/Platform/Leads`) |
 
 **Живое демо:**
-- 🚀 https://app.umirhack.tech — полная версия
+
 - 🌐 https://umirhack.tech — лендинг
-- 🕰 https://old.umirhack.tech — первая версия
+
 
 ## Быстрый старт
 
