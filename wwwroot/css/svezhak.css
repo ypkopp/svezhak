@@ -1066,3 +1066,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sv-set-row:hover{background:color-mix(in oklab,var(--tx) 6%,transparent)}
 .sv-set-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--ac);margin:0;flex:none}
 .sv-set-row .seg{margin-top:2px}
+
+/* Ссылки-действия в футе сайдбара (расписание/docs у повара) выглядят как кнопки */
+.sv-sidebar-foot a.sv-sidebar-action{text-decoration:none;cursor:pointer;width:100%;box-sizing:border-box}

@@ -85,19 +85,16 @@
                     <a asp-controller="Admin" asp-action="Employees" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M15 15.5c2.4.3 4 2 4 4.5"/></svg></span><span>Команда</span></a>
                 }
             </nav>
-            @if (isCook)
-            {
-                <a class="sv-sched-mini" asp-controller="Schedule" asp-action="Index" title="Своя и командная смена">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-                    <span>Расписание</span>
-                </a>
-                <a class="sv-handoff-nav-item sv-nav-doc@(currentController == "Docs" ? " active" : "")" asp-controller="Docs" asp-action="Index"><span class="sv-nav-icon"><img src="~/img/brand/st-check.png" width="18" height="18" style="display:block" alt="" /></span><span>Как работает</span></a>
-            }
-            else
+            @if (!isCook)
             {
                 @await Component.InvokeAsync("ShiftWidget")
             }
             <div class="sv-sidebar-foot">
+                @if (isCook)
+                {
+                    <a class="sv-sidebar-action" asp-controller="Schedule" asp-action="Index"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align:-3px;margin-right:2px"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> <span>Расписание</span></a>
+                    <a class="sv-sidebar-action" asp-controller="Docs" asp-action="Index">ⓘ <span>Как работает</span></a>
+                }
                 @if (isAdmin)
                 {
                     <form asp-controller="Inventory" asp-action="ResetDemo" method="post" onsubmit="return confirm('Сбросить демо-данные? Все заказы и списания будут удалены.');">
