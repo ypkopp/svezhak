@@ -65,3 +65,7 @@ nunit-*.xml
 design/
 qa-*.png
 qa-*.mjs
+
+# brag video assets (not part of app)
+brag-output/
+brag-plan.md
