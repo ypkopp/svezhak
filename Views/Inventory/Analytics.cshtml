@@ -2,75 +2,77 @@
     ViewData["Title"] = "Аналитика периода";
     var deadStock = (IEnumerable<dynamic>)ViewBag.DeadStock;
     var movers = (IEnumerable<dynamic>)ViewBag.Movers;
+    var period = (string)ViewBag.Period;
+    var periodLabel = (string)ViewBag.PeriodLabel;
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <h1 class="sv-page-title">Аналитика периода · @ViewBag.PeriodLabel</h1>
-        <div class="sv-page-sub mb-0">Неликвиды (доля просрочки от поступлений) и ходовые товары.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:8px">Отчёт</div>
+        <h1 class="disp">Аналитика · @periodLabel</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Неликвиды (доля просрочки от поступлений) и ходовые товары.</p>
     </div>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <div class="d-flex gap-1" id="periodSeg">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <div class="seg" id="periodSeg">
             @foreach (var p in new[]{("7","7 дней"),("30","30 дней"),("90","90 дней"),("all","Всё время")})
             {
-                <a class="sv-chip @((string)ViewBag.Period == p.Item1 ? "active" : "")" href="@Url.Action("Analytics", new { period = p.Item1 })">@p.Item2</a>
+                <button type="button" class="@(period == p.Item1 ? "on" : "")" onclick="location.href='@Url.Action("Analytics")?period=@p.Item1'">@p.Item2</button>
             }
         </div>
-        <button class="btn-sv-primary" type="button" id="aiAnalyze" data-period="@ViewBag.Period"><img src="~/img/brand/m3-avo.png" style="width:20px;margin-right:6px" alt="" />Анализ ИИ</button>
+        <button class="btn pri" type="button" id="aiAnalyze" data-period="@period"><img src="~/img/brand/m-lemon.png" style="width:20px" alt="" />Анализ ИИ</button>
     </div>
 </div>
 
-<div id="aiOut" class="sv-card fade-up mb-3" hidden>
-    <div class="d-flex align-items-center gap-2 mb-2"><img src="~/img/brand/m3-avo.png" style="width:30px" alt="" /><div class="sv-section-title mb-0" style="color:var(--a1)">Вывод ИИ — что убрать из закупок</div></div>
-    <p id="aiText" class="sv-ai-text" style="white-space:pre-wrap">Анализирую статдамп…</p>
+<div id="aiOut" class="glass card rise mb-3" hidden>
+    <div class="card-h" style="margin-bottom:10px">
+        <img src="~/img/brand/m-lemon.png" style="width:40px" alt="" />
+        <span class="eyebrow" style="color:var(--ac)">Вывод ИИ — что убрать из закупок</span>
+        <span class="sp"></span>
+        <button class="btn sm ico ghost" type="button" id="aiClose" title="Закрыть">×</button>
+    </div>
+    <p id="aiText" class="sv-ai-text" style="white-space:pre-wrap;margin:0">Анализирую статдамп…</p>
 </div>
 
-<div class="sv-grid-12">
-    @* ===== Неликвиды ===== *@
-    <section class="sv-card sv-col-7 fade-up">
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <img src="~/img/brand/st-hourglass.png" style="width:30px;mix-blend-mode:lighten" alt="" />
-            <div><div class="sv-section-title mb-0" style="color:var(--rd)">Топ-5 неликвидов</div><span class="sv-muted" style="font-size:11px">просрочка / поступления за 30дн</span></div>
+<div class="grid" style="grid-template-columns:1.2fr 1fr">
+    <section class="glass card rise">
+        <div class="card-h">
+            <img src="~/img/brand/st-stop.png" style="width:30px" alt="" />
+            <div><div class="ttl">Топ-5 неликвидов</div><div class="dim" style="font-size:12px">просрочка / поступления</div></div>
         </div>
-        @if (deadStock.Any())
-        {
+        <div class="rows">
             @foreach (var (s, i) in deadStock.Select((x, i) => (x, i)))
             {
                 var pct = (decimal)s.WasteShare;
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="sv-sl-rank @(i<2?"is-top":"")">@($"{i+1:00}")</div>
-                    <div style="flex:1;min-width:0">
-                        <div class="d-flex justify-content-between"><b>@s.Name</b><span class="sv-badge sv-badge-red">@($"{pct*100:0}")%</span></div>
-                        <div class="sv-sl-score" style="margin-top:5px"><i style="width:@($"{Math.Min(100,(double)pct*100):0}")%;background:var(--rd)"></i><span class="mono">@($"{s.Expired:0.##}") / @($"{s.Received:0.##}") @s.Unit · ~@($"{s.WasteRub:N0}") ₽</span></div>
-                    </div>
+                <div class="row" style="grid-template-columns:34px 1fr 140px 56px">
+                    <span class="disp" style="font-weight:700;color:@(i < 2 ? "var(--rd)" : "var(--tx3)")">@($"{i + 1:00}")</span>
+                    <div><b style="font-size:14px">@s.Name</b><div class="bar" style="margin-top:7px;color:var(--rd)"><i style="width:@($"{pct * 100:0}")%;background:linear-gradient(90deg,var(--ac),var(--rd))"></i></div></div>
+                    <span class="mono dim" style="font-size:11.5px;text-align:right">@($"{s.Expired:0.##}") / @($"{s.Received:0.##}") @s.Unit · ~@($"{s.WasteRub:N0}") ₽</span>
+                    <span class="badge rd" style="justify-self:end">@($"{pct * 100:0}")%</span>
                 </div>
             }
-        }
-        else
+        </div>
+        @if (!deadStock.Any())
         {
-            <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Просроченных списаний за 30 дней не было.</p></div>
+            <div class="sv-empty"><img src="~/img/brand/m-avo.png" alt="" style="height:110px" /><p>Просроченных списаний за период не было.</p></div>
         }
     </section>
-
-    @* ===== Ходовые ===== *@
-    <section class="sv-card sv-col-5 fade-up">
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <img src="~/img/brand/st-hot.png" style="width:30px;mix-blend-mode:lighten" alt="" />
-            <div><div class="sv-section-title mb-0" style="color:var(--gr)">Топ-5 ходовых</div><span class="sv-muted" style="font-size:11px">отгрузка на кухню (поступило − просрочка)</span></div>
+    <section class="glass card rise">
+        <div class="card-h">
+            <img src="~/img/brand/st-hot.png" style="width:30px" alt="" />
+            <div><div class="ttl">Топ-5 ходовых</div><div class="dim" style="font-size:12px">отгрузка на кухню</div></div>
         </div>
-        @if (movers.Any())
-        {
+        <div class="rows">
             @foreach (var (s, i) in movers.Select((x, i) => (x, i)))
             {
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid #ffffff08">
-                    <div><b>@s.Name</b><div class="sv-muted" style="font-size:11px">@s.Category</div></div>
-                    <span style="color:var(--gr);font-weight:700">@($"{s.Throughput:0.##}") @s.Unit</span>
+                <div class="row" style="grid-template-columns:1fr auto">
+                    <div><b style="font-size:14px">@s.Name</b><div class="dim" style="font-size:11.5px">@s.Category</div></div>
+                    <b class="mono c-gr" style="text-align:right">@($"{s.Throughput:0.##}") @s.Unit</b>
                 </div>
             }
-        }
-        else
+        </div>
+        @if (!movers.Any())
         {
-            <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Нет данных об отгрузке.</p></div>
+            <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Нет данных об отгрузке.</p></div>
         }
     </section>
 </div>
@@ -87,6 +89,7 @@ document.getElementById('aiAnalyze').addEventListener('click', async function(){
     }catch(e){tx.textContent='ИИ недоступен — смотри таблицу неликвидов ниже.';}
     this.disabled=false;
 });
+document.getElementById('aiClose').addEventListener('click',function(){document.getElementById('aiOut').hidden=true;});
 document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});
 </script>
 @await Html.PartialAsync("_InventoryRealtime")
