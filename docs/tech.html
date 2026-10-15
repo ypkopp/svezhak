@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>СВЕЖАК — Технический паспорт</title>
+<style>
+:root{
+  --bg:#0f1115;--bg2:#0b0d11;--pn:#171a21;--pn2:#1d2129;
+  --glass:rgba(29,33,41,.58);--stroke:rgba(255,255,255,.09);--stroke2:rgba(255,255,255,.16);
+  --tx:#F3EEE4;--tx2:#A9B0BC;--tx3:#6B7280;
+  --ac:#ED8936;--ac2:#F6AD55;--gr:#48BB78;--ye:#ECC94B;--rd:#F56565;--li:#A78BFA;
+  --mono:'JetBrains Mono',Consolas,monospace;--disp:'Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);font:400 14px/1.55 'Segoe UI',system-ui,sans-serif}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(700px 500px at 80% -10%,rgba(237,137,54,.12),transparent 60%),radial-gradient(600px 500px at 5% 110%,rgba(72,187,120,.1),transparent 60%)}
+a{color:var(--ac);text-decoration:none}
+mark{background:rgba(237,137,54,.4);color:#fff;border-radius:2px;padding:0 1px}
+/* layout */
+.wrap{display:grid;grid-template-columns:230px 1fr;max-width:1200px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
+/* sidebar */
+.sb{position:sticky;top:0;height:100vh;padding:22px 12px;border-right:1px solid var(--stroke);background:rgba(23,26,33,.8);backdrop-filter:blur(12px);display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sb .logo{font-weight:800;font-size:17px;padding:4px 8px 16px;letter-spacing:.02em}
+.sb .logo em{font-style:normal;color:var(--ac)}
+.sb a{display:block;padding:8px 10px;border-radius:9px;color:var(--tx2);font-size:12.5px;font-weight:600}
+.sb a:hover{color:var(--tx);background:rgba(255,255,255,.06)}
+.sb a.on{color:var(--ac);background:rgba(237,137,54,.12)}
+.sb .foot{margin-top:auto;font-size:10px;color:var(--tx3);padding:8px}
+/* main */
+.main{min-width:0;padding:26px 32px 60px}
+.searchbar{position:sticky;top:0;z-index:10;padding:14px 0;background:linear-gradient(180deg,var(--bg) 70%,transparent)}
+.searchbar input{width:100%;height:46px;padding:0 16px 0 42px;border:1px solid var(--stroke2);border-radius:12px;background:var(--pn2);color:var(--tx);font:600 14px var(--mono);outline:0}
+.searchbar input:focus{border-color:var(--ac)}
+.searchbar::before{content:'⌘';position:absolute;left:16px;top:27px;color:var(--tx3);font-size:16px}
+.searchbar .hint{position:absolute;right:14px;top:27px;font:600 10px var(--mono);color:var(--tx3);border:1px solid var(--stroke);border-radius:6px;padding:2px 6px}
+h1{font:700 26px var(--disp);margin:14px 0 4px}
+.sub{color:var(--tx2);font-size:13.5px;margin:0 0 22px}
+h2.sect{font:700 19px var(--disp);margin:34px 0 4px;display:flex;align-items:center;gap:10px}
+h2.sect::before{content:attr(data-n);font:800 11px var(--mono);color:var(--ac);border:1px solid color-mix(in oklab,var(--ac) 40%,transparent);border-radius:7px;padding:3px 7px;background:rgba(237,137,54,.08)}
+.sect-sub{color:var(--tx3);font-size:12px;margin:0 0 14px}
+/* cards */
+.card{background:var(--glass);border:1px solid var(--stroke);border-radius:18px;padding:18px 20px;margin:0 0 14px;backdrop-filter:blur(12px);position:relative}
+.card h3{font:700 15px var(--disp);margin:0 0 10px;display:flex;align-items:center;gap:9px}
+.card h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--ac);box-shadow:0 0 8px var(--ac);flex:none}
+.lbl{font:700 9.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin:12px 0 4px}
+.card p{margin:0 0 8px;font-size:13.5px;color:var(--tx)}
+.card p.mut{color:var(--tx2)}
+.card ul{margin:4px 0 8px;padding-left:18px;color:var(--tx2);font-size:13px}
+.card li{margin:3px 0}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:5px 14px;font-size:12.5px;margin:6px 0}
+.kv b{color:var(--tx2);font-weight:600}
+.kv span{color:var(--tx)}
+.kv .mono,.mono{font-family:var(--mono);font-size:11.5px}
+.code{background:var(--bg2);border:1px solid var(--stroke);border-radius:10px;padding:10px 12px;font:12px/1.6 var(--mono);color:var(--tx2);overflow-x:auto;white-space:pre;margin:8px 0}
+.file{font:11px var(--mono);color:var(--li)}
+.tag{display:inline-block;font:600 10px var(--mono);padding:2px 8px;border-radius:999px;border:1px solid var(--stroke2);color:var(--tx2);margin:0 5px 5px 0}
+.tag.gr{border-color:color-mix(in oklab,var(--gr) 40%,transparent);color:var(--gr)}
+.tag.rd{border-color:color-mix(in oklab,var(--rd) 40%,transparent);color:var(--rd)}
+.tag.ye{border-color:color-mix(in oklab,var(--ye) 40%,transparent);color:var(--ye)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+th{text-align:left;font:600 10px var(--mono);color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid var(--stroke2)}
+td{padding:7px 10px;border-bottom:1px solid var(--stroke);color:var(--tx);vertical-align:top}
+td.dim{color:var(--tx3);font-size:11.5px}
+.qa{border-left:2px solid var(--ac);padding:2px 0 2px 12px;margin:10px 0}
+.qa .q{font-weight:700;font-size:13px;color:var(--tx)}
+.qa .a{font-size:12.5px;color:var(--tx2);margin-top:3px}
+.empty{display:none;padding:30px;text-align:center;color:var(--tx3)}
+/* print */
+@media print{ .sb,.searchbar{display:none} .wrap{grid-template-columns:1fr} }
+@media(max-width:800px){.wrap{grid-template-columns:1fr}.sb{position:relative;height:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="sb">
+    <div class="logo">СВЕЖАК<em>·tech</em></div>
+    <nav id="nav">
+      <a href="#arch">Архитектура</a>
+      <a href="#model">Модель данных</a>
+      <a href="#algo">Ключевые алгоритмы</a>
+      <a href="#rt">Реальное время</a>
+      <a href="#auth">Авторизация и роли</a>
+      <a href="#deploy">Деплой</a>
+      <a href="#tests">Тесты</a>
+      <a href="#demo">Демо-доступ</a>
+      <a href="#qa">Шпаргалка для жюри</a>
+    </nav>
+    <div class="foot">UMIRHack3 · кейс «Флагман» · SSS</div>
+  </aside>
+
+  <main class="main">
+    <div class="searchbar">
+      <input id="q" type="text" placeholder="Поиск по паспорту…  (Ctrl+K)" autocomplete="off" />
+      <span class="hint">⌘K</span>
+    </div>
+    <h1>Технический паспорт — СВЕЖАК</h1>
+    <p class="sub">Мониторинг склада ресторана: партии со сроками, FEFO-списание, авто стоп-лист, hot offers, ИИ-советник. Документ для защиты и как контекст для AI-ассистента.</p>
+    <div class="empty" id="empty">Ничего не найдено — попробуй другое слово.</div>
+
+    <!-- ============ 1. АРХИТЕКТУРА ============ -->
+    <h2 class="sect" data-n="01" id="arch">Архитектура</h2>
+    <p class="sect-sub">ASP.NET Core MVC на .NET 10 — монолит с разделением по слоям.</p>
+
+    <div class="card" data-t="архитектура mvc слои controllers services models ef core">
+      <h3><span class="dot"></span>Слои приложения</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Классический слоёный монолит: тонкие контроллеры отдают View/JSON, вся логика склада — в сервисах, EF Core работает с БД. Razor-вьюхи в v6-дизайне (glass, токены тем).</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li><b>Controllers/</b> — InventoryController (поставки, склад, заказ, стоп, советник, аналитика, чат, симуляции), AdminController (сотрудники/расписание/рестораны/продукты/тикеты), OrgController (сеть), PlatformController (заявки), KitchenController (публичный экран), ScheduleController (read-only для поваров), DocsController.</li>
+        <li><b>Services/</b> — OrderService, HotOffersService, ExpirySweepService, AdvisorService, AiInsightService, ShiftService, ProductImportService.</li>
+        <li><b>Models/</b> — EF-сущности (Inventory/, Organizations/). <b>Data/</b> — ApplicationDbContext, DbInitializer (сид).</li>
+        <li><b>Authorization/</b> — AppRole, AuthorizeRoleAttribute, resource-based handlers.</li>
+        <li><b>Hubs/</b> — InventoryHub (SignalR). <b>Views/</b> — Razor + wwwroot/css/svezhak.css.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Controllers/ · Services/ · Models/ · Data/ · Hubs/InventoryHub.cs</span>
+    </div>
+
+    <div class="card" data-t="di dependency injection program регистрации сервисы">
+      <h3><span class="dot"></span>DI и регистрации в Program.cs</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Все зависимости собираются в Program.cs: DbContext, cookie-авторизация, сервисы склада, SignalR, фоновые сервисы.</p>
+      <div class="code">builder.Services.AddDbContext&lt;ApplicationDbContext&gt;(o =&gt;
+    isPostgres ? o.UseNpgsql(cs, x =&gt; x.MigrationsAssembly("SmartInventory"))
+               : o.UseSqlServer(cs));
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme);
+builder.Services.AddScoped&lt;IAuthorizationHandler, ManageRestaurantAuthorizationHandler&gt;();
+builder.Services.AddScoped&lt;IAuthorizationHandler, ManageOrganizationAuthorizationHandler&gt;();
+builder.Services.AddScoped&lt;OrderService&gt;();
+builder.Services.AddScoped&lt;HotOffersService&gt;();
+builder.Services.AddScoped&lt;ShiftService&gt;();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient(nameof(AdvisorService));
+builder.Services.AddScoped&lt;AdvisorService&gt;();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton&lt;InventoryEventBus&gt;();
+builder.Services.AddHostedService&lt;ExpirySweepService&gt;();   // sweep просрочки 60с
+builder.Services.AddHostedService&lt;AiInsightService&gt;();    // почасовой ИИ-инсайт
+app.MapHub&lt;InventoryHub&gt;("/hubs/inventory");</div>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Program.cs:45–205</span>
+    </div>
+
+    <div class="card" data-t="бд database sql server postgres провайдер патч render">
+      <h3><span class="dot"></span>Провайдеры БД — SQL Server / PostgreSQL</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Локально — SQL Server (Docker). На Render — PostgreSQL. Провайдер выбирается конфигом <span class="mono">Database:Provider</span>, код один и тот же.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>Postgres: <span class="mono">DATABASE_URL</span> (postgres://…) конвертируется в Npgsql-строку <span class="mono">ToNpgsql()</span>. Миграций EF на PG нет — вместо этого <span class="mono">EnsureCreatedAsync</span> + идемпотентные ALTER/CREATE для новых колонок/таблиц (ManualStopped, KitchenToken, RestaurantId, AiInsights, LeadRequests, SupportTickets).</li>
+        <li>SQL Server: классический <span class="mono">MigrateAsync()</span> по миграциям.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Program.cs:11–150 · ToNpgsql(), EnsureCreatedAsync, ExecuteSqlRawAsync</span>
+    </div>
+
+    <!-- ============ 2. МОДЕЛЬ ДАННЫХ ============ -->
+    <h2 class="sect" data-n="02" id="model">Модель данных</h2>
+    <p class="sect-sub">EF Core сущности — партии, рецептуры, списания, организация, ИИ.</p>
+
+    <div class="card" data-t="сущности product delivery batch dish recipeitem order orderitem writeoff поля связи">
+      <h3><span class="dot"></span>Ядро склада</h3>
+      <div class="kv">
+        <b>Product</b><span>Id, RestaurantId, Name(100), Unit(10), Category(30), PurchasePrice. Каталог товара точки.</span>
+        <b>Delivery</b><span>Id, RestaurantId, Number(50), CreatedAt. Шапка приёмки; позиции = партии.</span>
+        <b>Batch</b><span>Id, RestaurantId, DeliveryId, ProductId, QtyInitial, QtyRemaining, ReceivedAt, ExpiresAt. Кусок продукта со своим сроком.</span>
+        <b>Dish</b><span>Id, RestaurantId, Name(100), Price, IsActive, ManualStopped, StopComment(300). Блюдо меню + ручной стоп.</span>
+        <b>RecipeItem</b><span>Id, DishId, ProductId, Quantity. Норма расхода продукта на блюдо.</span>
+        <b>Order</b><span>Id, RestaurantId, Status(20), RejectReason(2000), CreatedAt. Заказ на кухню.</span>
+        <b>OrderItem</b><span>Id, OrderId, DishId, Qty. Позиция заказа.</span>
+        <b>WriteOff</b><span>Id, RestaurantId, BatchId, ProductId, Qty, Reason(20)=order/expired/manual, Comment(300), OrderId?, CreatedAt. Журнал списаний.</span>
+      </div>
+      <div class="lbl">Связи</div>
+      <p class="mut">Product 1→N Batch · Dish 1→N RecipeItem ←Product · Order 1→N OrderItem ←Dish · WriteOff ←Batch/Product/Order.</p>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Models/Inventory/InventoryModels.cs</span>
+    </div>
+
+    <div class="card" data-t="organization restaurant accesscode shift leadrequest aiinsight supportticket сущности">
+      <h3><span class="dot"></span>Организация, персонал, ИИ</h3>
+      <div class="kv">
+        <b>Organization</b><span>Id, Name, OwnerId. Сеть ресторанов.</span>
+        <b>Restaurant</b><span>Id, OrganizationId, Address, KitchenToken(Guid). Точка сети + публичный токен экрана кухни.</span>
+        <b>AccessCode</b><span>Id, Code(100,unique), Role, IsActive, IsActivated, EmployeeName, OrganizationId, RestaurantId?. Код входа сотрудника + привязка к точке.</span>
+        <b>Shift</b><span>Id, RestaurantId, AccessCodeId, Date, StartTime, EndTime, Position(20). Смена сотрудника.</span>
+        <b>LeadRequest</b><span>Id, NetworkName, Contact, RestaurantCount, Status="новая", CreatedAt. Заявка с лендинга.</span>
+        <b>AiInsight</b><span>Id, RestaurantId, CreatedAt, Text, ChipsJson, UsedAi. Почасовой ИИ-инсайт смены.</span>
+        <b>SupportTicket</b><span>Id, RestaurantId, AccessCodeId, AuthorName, Text(500), Status="новый", CreatedAt. Обращение повара админу.</span>
+      </div>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Models/Organizations/StructureModels.cs · Models/Inventory/InventoryModels.cs</span>
+    </div>
+
+    <div class="card" data-t="индексы index fefo expiresat производительность">
+      <h3><span class="dot"></span>Индексы</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Индексы под горячие запросы: выбор ранней партии по FEFO и фильтры по ресторану.</p>
+      <ul>
+        <li><span class="mono">Batch {ProductId, ExpiresAt}</span> — быстрый поиск самой ранней живой партии продукта (ядро FEFO).</li>
+        <li><span class="mono">AccessCode.Code</span> — UNIQUE (код входа уникален).</li>
+        <li><span class="mono">Product/Dish/Order/WriteOff.RestaurantId</span> — изоляция данных по точке.</li>
+        <li><span class="mono">AiInsight {RestaurantId, CreatedAt}</span> — последний инсайт и лента за 30 дней.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Data/ApplicationDbContext.cs:78–85 (OnModelCreating)</span>
+    </div>
+
+    <!-- ============ 3. АЛГОРИТМЫ ============ -->
+    <h2 class="sect" data-n="03" id="algo">Ключевые алгоритмы</h2>
+    <p class="sect-sub">FEFO, стоп-лист, hot offers, sweep, прогноз, советник, ИИ.</p>
+
+    <div class="card" data-t="fefo списание placeorder транзакция рецептура дефицит минус отказ">
+      <h3><span class="dot"></span>FEFO-списание — OrderService.PlaceOrderAsync</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Проверяет заказ на доступность ингредиентов и списывает их из самых ранних партий (First Expired — First Out) в одной транзакции. При дефиците — отказ со списком нехватки, остатки не трогаются.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>Разворот рецептуры: заказ → блюда → RecipeItem → требуемое количество каждого продукта.</li>
+        <li>Дефицит считается по живым партиям (QtyRemaining&gt;0, ExpiresAt&gt;now) — просроченные и ManualStopped блюдо отклоняют заказ с причиной («нужно 0.60, доступно 0.10» / «остановлено вручную: …»).</li>
+        <li>Списание по каждому продукту идёт от самой ранней ExpiresAt: уменьшает QtyRemaining, пишет WriteOff(reason="order"), не даёт уйти в минус (cap по остатку).</li>
+        <li>Всё в транзакции — либо весь заказ списался, либо ни одна строка.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Services/OrderService.cs:38 PlaceOrderAsync</span>
+    </div>
+
+    <div class="card" data-t="стоп лист getstoplist авто ручной manual">
+      <h3><span class="dot"></span>Стоп-лист — GetStopListAsync</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Возвращает блюда, которые нельзя заказать: автоматически (не хватает ингредиента по рецепту) или вручную (Dish.ManualStopped с комментарием).</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>Авто: для каждого блюда проверяется хватает ли остатков живых партий хотя бы на одну порцию.</li>
+        <li>Ручной: ManualStopped=true + StopComment — снимается тумблером в «Остановить вручную» (поиск по блюдам).</li>
+        <li>Стоп-лист показывается на кухонном экране /Kitchen/{token} публично.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Services/OrderService.cs:202 GetStopListAsync · Inventory/StopList.cshtml</span>
+    </div>
+
+    <div class="card" data-t="hot offers score urgency продать горящее приоритет">
+      <h3><span class="dot"></span>Hot Offers — HotOffersService</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Находит топ блюд, чьи ингредиенты скоро сгорят — то, что надо продать первым, чтобы спасти горящие партии.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>Для каждого продукта ближайшая партия = его срочность (чем меньше часов до ExpiresAt, тем горячее).</li>
+        <li>Score блюда = функция срочности партии × доля этого ингредиента в рецепте блюда. Чем раньше истекает и чем больше продукта в блюде — тем выше.</li>
+        <li>Каждый оффер несёт объяснение: партия, часы, сколько продукта съест одна порция. Стоп-нутые блюда и просроченные партии исключаются.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Services/HotOffersService.cs:31 GetTopAsync</span>
+    </div>
+
+    <div class="card" data-t="просрочка sweep expired writeoff списание expired">
+      <h3><span class="dot"></span>Просрочка — ExpirySweepService</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Фоновый сервис раз в 60 секунд списывает истёкшие партии: обнуляет QtyRemaining и пишет WriteOff(reason="expired") — просрочка перестаёт считаться доступной.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>HostedService с периодом 60 с; бежит по ресторанам, берёт партии с ExpiresAt&lt;=now и QtyRemaining&gt;0.</li>
+        <li>Списание фиксируется в журнале — потом попадает в аналитику потерь в ₽.</li>
+        <li>Ручное списание — отдельный путь (модалка на складе): количество + reason="manual" + комментарий.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Services/ExpirySweepService.cs · Inventory/WriteOff</span>
+    </div>
+
+    <div class="card" data-t="прогноз стоп листа stopforecast рекомендации закупок">
+      <h3><span class="dot"></span>Прогноз стоп-листа и закупки</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Оценивает, через сколько дней блюдо встанет в стоп при текущем расходе, и рекомендует, сколько заказать по фактическому потреблению.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>Дневной расход продукта = списания по заказам за окно; запас в днях = текущий живой остаток / расход.</li>
+        <li>Блюдо в прогноз-стопе, если его лимитирующий ингредиент кончается быстрее всего.</li>
+        <li>Рекомендации закупок строятся по использованию за 7 дней — «заказать N кг» под факт.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Services/OrderService.cs · InventoryAnalyticsController (stop forecast, writeoff risk ₽)</span>
+    </div>
+
+    <div class="card" data-t="советник advisor ai llm снапшот fallback кэш чат ask aiinsight">
+      <h3><span class="dot"></span>Советник и ИИ — AdvisorService / Ask / AiInsight</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Собирает снапшот склада и либо спрашивает LLM (OpenAI-совместимый endpoint), либо работает по локальным правилам — всегда есть честный fallback.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li><b>Снапшот</b> — GetSnapshotDataAsync: остатки, горящие партии, дефицит, потери, hot offers.</li>
+        <li><b>LLM</b> — AskAiAsync: конфиг Ai:BaseUrl/Model/ApiKey; без ключа возвращает null → локальные правила.</li>
+        <li><b>Кэш</b> — IMemoryCache (~7 мин) чтобы не дёргать LLM на каждый просмотр.</li>
+        <li><b>Почасовой</b> — AiInsightService (HostedService): пишет AiInsight каждый час, дашборд читает последний без запроса к модели.</li>
+        <li><b>Чат</b> — POST /Inventory/Ask {question} → snapshot+LLM → {answer}; /AnalyticsAi — вывод по статдампу периода.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Services/AdvisorService.cs · Services/AiInsightService.cs · InventoryController.Ask/AnalyticsAi</span>
+    </div>
+
+    <!-- ============ 4. REALTIME ============ -->
+    <h2 class="sect" data-n="04" id="rt">Реальное время</h2>
+    <p class="sect-sub">SignalR, шина событий, генератор нагрузки.</p>
+
+    <div class="card" data-t="signalr realtime eventbus события stock_changed order_created polling hub">
+      <h3><span class="dot"></span>SignalR + InventoryEventBus</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Изменения склада (заказ, списание, просрочка) пушатся клиентам — дашборд, склад, стоп-лист обновляются без перезагрузки.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>Хаб <span class="mono">/hubs/inventory</span>, singleton <span class="mono">InventoryEventBus</span> рассылает события <span class="mono">stock_changed / order_created / batch_expired</span>.</li>
+        <li>Клиент — <span class="mono">_InventoryRealtime.cshtml</span>: SvRealtime.subscribe(name,fn) мягко обновляет виджеты; если SignalR недоступен — polling-фолбэк раз в ~60с.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Hubs/InventoryHub.cs · Services/InventoryEventBus · _InventoryRealtime.cshtml</span>
+    </div>
+
+    <div class="card" data-t="генератор событий eventgenerator нагрузка rush демо">
+      <h3><span class="dot"></span>Генератор событий — tools/EventGenerator</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Консольная утилита, гоняющая заказы и поставки через служебные эндпоинты — для живого демо SignalR и стоп-листа.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>Логинится access-кодом, тянет /Inventory/Menu, шлёт POST /Inventory/SimulateOrder и /SimulateDelivery.</li>
+        <li>Сценарии: <span class="mono">normal</span> (3–5 зак/мин), <span class="mono">rush</span> (10–15 зак/мин — стоп-лист), <span class="mono">short-expiry</span> (поставки 4–8 ч — hot offers).</li>
+        <li>Запуск: <span class="mono">dotnet run -- --url=&lt;base&gt; --code=MANAGER1234 --scenario=rush</span></li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">tools/EventGenerator/Program.cs · InventoryController.Simulate*/Menu</span>
+    </div>
+
+    <!-- ============ 5. АВТОРИЗАЦИЯ ============ -->
+    <h2 class="sect" data-n="05" id="auth">Авторизация и роли</h2>
+    <p class="sect-sub">Cookie-авторизация, access-коды, иерархия ролей.</p>
+
+    <div class="card" data-t="авторизация cookie access code клеймы claims approle role">
+      <h3><span class="dot"></span>Вход по access-коду + клеймы</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Нет паролей — вход по коду сотрудника. По коду строится cookie с клеймами, по клеймам — доступ.</p>
+      <div class="lbl">Как устроено</div>
+      <ul>
+        <li>Claims: <span class="mono">Name</span> (имя), <span class="mono">Role</span> (AppRole.ToString()), <span class="mono">AccessCodeId</span>, <span class="mono">OrganizationId</span>, <span class="mono">NameIdentifier</span>.</li>
+        <li>Клеймы решают: свой ресторан, свою организацию, роль. После логина роль маршрутизирует — PlatformOwner→/Platform/Leads, OrganizationOwner→/Org, остальные→склад.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Controllers/AccountController.cs Login · Authorization/</span>
+    </div>
+
+    <div class="card" data-t="роли approle authorizerole доступ повар менеджер админ владелец platformowner">
+      <h3><span class="dot"></span>Роли и [AuthorizeRole]</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Иерархия ролей ограничивает, кто что видит и может делать.</p>
+      <div class="kv">
+        <b>Staff(1)</b><span>повар — склад, заказ, стоп, своё расписание, ИИ-поддержка</span>
+        <b>Manager(2)</b><span>менеджер — то же + команда</span>
+        <b>HeadChef(3)</b><span>шеф</span>
+        <b>RestaurantManager(4)</b><span>мини-админ ресторана</span>
+        <b>OrganizationOwner(5)</b><span>владелец сети — /Org, все точки, персонал</span>
+        <b>Admin(6)</b><span>админ — /Admin: сотрудники, расписание, рестораны, продукты, тикеты</span>
+        <b>ServerAdmin(7)</b><span>серверный админ</span>
+        <b>PlatformOwner(8)</b><span>платформа — /Platform/Leads (заявки)</span>
+      </div>
+      <p class="mut">[AuthorizeRole(AppRole.X)] на контроллере/экшене → 403 AccessDenied для чужих. Владельца нельзя деактивировать/удалить — ни из UI, ни прямым POST (проверка в контроллере).</p>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Authorization/Core/AppRole.cs · AuthorizeRoleAttribute · Manage*AuthorizationHandler</span>
+    </div>
+
+    <!-- ============ 6. ДЕПЛОЙ ============ -->
+    <h2 class="sect" data-n="06" id="deploy">Деплой</h2>
+    <p class="sect-sub">Docker, Render, env, health.</p>
+
+    <div class="card" data-t="деплой docker render env database_url health deploy">
+      <h3><span class="dot"></span>Docker + Render + env-переменные</h3>
+      <div class="lbl">Что делает</div>
+      <p class="mut">Одна сборка — три публичные точки: полное приложение (app), лендинг (www) и старая версия (old). PostgreSQL на Render, SQL Server локально.</p>
+      <div class="lbl">Переменные окружения</div>
+      <div class="kv">
+        <b>DATABASE_URL</b><span>postgres://… на Render → ToNpgsql</span>
+        <b>Database__Provider</b><span>SqlServer | Postgres</span>
+        <b>ConnectionStrings__Default</b><span>локальная строка SQL Server</span>
+        <b>Ai__BaseUrl / Ai__Model / Ai__ApiKey</b><span>OpenAI-совместимый endpoint для ИИ (пусто → локальные правила)</span>
+        <b>SEED_DEMO</b><span>true → сид демо-данных и в проде</span>
+      </div>
+      <ul>
+        <li>Health-check <span class="mono">/health</span> → <span class="mono">ok</span> (UptimeRobot дёргает).</li>
+        <li>PG-схема патчится идемпотентно на старте — новые колонки/таблицы без миграций на Render.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Dockerfile · docker-compose.yml · Program.cs (provider switch, /health)</span>
+    </div>
+
+    <!-- ============ 7. ТЕСТЫ ============ -->
+    <h2 class="sect" data-n="07" id="tests">Тесты</h2>
+    <p class="sect-sub">Svezhak.Tests — xUnit + SQLite in-memory. Запуск: <code class="mono">dotnet test</code>.</p>
+
+    <div class="card" data-t="тесты xunit sqlite fefo hot offers покрытие">
+      <h3><span class="dot"></span>Что покрыто (9 тестов)</h3>
+      <div class="lbl">OrderServiceTests</div>
+      <ul>
+        <li><b>PlaceOrder_WritesOffFefo_SplitsAcrossBatchesInExpiryOrder</b> — списание берёт раннюю партию первой и добирает из следующей.</li>
+        <li><b>PlaceOrder_WhenShortage_RejectsListingAllShortages_AndKeepsStock</b> — дефицит → отказ со списком, остатки целы.</li>
+        <li><b>PlaceOrder_ExpiredBatch_DoesNotCountAsAvailable</b> — просрочка не идёт в доступность.</li>
+        <li><b>PlaceOrder_OverOrder_NeverDrivesRemainingBelowZero</b> — защита от минуса.</li>
+        <li><b>StopList_AfterIngredientRunsOut_ContainsDishWithShortage</b> — исчерпал ингредиент → блюдо в стоп-листе.</li>
+      </ul>
+      <div class="lbl">HotOffersServiceTests</div>
+      <ul>
+        <li><b>GetTop_DishWithUrgentIngredient_ScoresAboveFreshDish</b> — горящий ингредиент бьёт по score выше свежего.</li>
+        <li><b>GetTop_ExcludesStopListedDishes</b> — стоп-нутые не попадают в офферы.</li>
+        <li><b>GetTop_ExpiredBatchesAreIgnored</b> — просрочка не поднимает оффер.</li>
+        <li><b>GetTop_ReasonMentionsBurningIngredient</b> — в причине указан горящий ингредиент.</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Svezhak.Tests/OrderServiceTests.cs · HotOffersServiceTests.cs · TestDbFactory.cs</span>
+    </div>
+
+    <!-- ============ 8. ДЕМО ============ -->
+    <h2 class="sect" data-n="08" id="demo">Демо-доступ и ссылки</h2>
+    <p class="sect-sub">Коды входа, домены, контакты.</p>
+
+    <div class="card" data-t="демо доступ коды manager admin owner hq домены telegram">
+      <h3><span class="dot"></span>Access-коды</h3>
+      <table>
+        <tr><th>Роль</th><th>Код</th><th>Что видит</th></tr>
+        <tr><td>Менеджер ресторана</td><td class="mono">MANAGER1234</td><td class="dim">полный склад своей точки</td></tr>
+        <tr><td>Админ</td><td class="mono">ADMIN1234</td><td class="dim">/Admin — сотрудники, расписание, рестораны, продукты, тикеты</td></tr>
+        <tr><td>Владелец сети</td><td class="mono">OWNER1234</td><td class="dim">/Org — все точки, персонал, аналитика</td></tr>
+        <tr><td>Платформа</td><td class="mono">HQ000001</td><td class="dim">/Platform/Leads — заявки от сетей</td></tr>
+        <tr><td>Шеф / повар</td><td class="mono">CHEF0001 / COOK0001</td><td class="dim">склад + своё расписание</td></tr>
+      </table>
+      <div class="lbl">Ссылки</div>
+      <ul>
+        <li><b>app.umirhack.tech</b> — полная версия</li>
+        <li><b>umirhack.tech</b> — лендинг + заявка</li>
+        <li><b>old.umirhack.tech</b> — первая версия</li>
+        <li>Telegram: <b>@minelnickels</b> (t.me/minelnickels)</li>
+      </ul>
+      <div class="lbl">Где в коде</div>
+      <span class="file">Data/DbInitializer.cs (коды сида) · Views/Account/Login.cshtml</span>
+    </div>
+
+    <!-- ============ 9. QA ============ -->
+    <h2 class="sect" data-n="09" id="qa">Шпаргалка «вопрос → ответ»</h2>
+    <p class="sect-sub">10 вероятных технических вопросов жюри.</p>
+
+    <div class="card" data-t="жюри вопросы ответы fefo fifo race llm масштаб mvc spa">
+      <h3><span class="dot"></span>Q&amp;A для защиты</h3>
+      <div class="qa"><div class="q">Почему FEFO, а не FIFO?</div><div class="a">FIFO списывает то, что пришло раньше; нам важнее <b>что испортится раньше</b>. Партия с 24ч уходит в заказ до партии с 72ч — меньше просрочки. Код: OrderService.PlaceOrderAsync.</div></div>
+      <div class="qa"><div class="q">Как избежали гонок при списании?</div><div class="a">Вся проверка доступности + списание в <b>одной транзакции EF</b>: либо заказ списался целиком, либо ни одна строка. Минус невозможен — cap по QtyRemaining.</div></div>
+      <div class="qa"><div class="q">Что если LLM/API ИИ недоступен?</div><div class="a">AdvisorService возвращает null → включаются <b>локальные правила</b>: hot offers, дедуп, рекомендации закупок работают без ключа. Кэш IMemoryCache гасит повторные запросы.</div></div>
+      <div class="qa"><div class="q">Как масштабировать на сеть из 100+ ресторанов?</div><div class="a">RestaurantId на каждой сущности + индексы ({ProductId,ExpiresAt}, RestaurantId) — данные изолированы и запросы узкие. Орг-уровень (Organization) собирает точки, owner смотрит всю сеть.</div></div>
+      <div class="qa"><div class="q">Почему MVC, а не SPA?</div><div class="a">Демо-скорость: Razor+SignalR даёт realtime без отдельного фронта и сборки. Меньше поверхности для багов на хакатоне, стили v6 инлайн-токенами.</div></div>
+      <div class="qa"><div class="q">Почему не Identity?</div><div class="a">Ресторан — сменная работа, пароль не нужен: сотрудник получает access-код. Cookie-auth с клеймами AccessCodeId/OrganizationId/Role проще и безопаснее для демо.</div></div>
+      <div class="qa"><div class="q">Как работает авто-стоп?</div><div class="a">GetStopListAsync проверяет: хватает ли живых партий хотя бы на одну порцию каждого ингредиента рецепта. Не хватает → блюдо в стопе до пополнения.</div></div>
+      <div class="qa"><div class="q">Как обновляется UI без перезагрузки?</div><div class="a">SignalR-хаб /hubs/inventory + InventoryEventBus: события stock_changed/order_created/batch_expired мягко дёргают виджеты; если недоступен — polling-фолбэк.</div></div>
+      <div class="qa"><div class="q">Как не сломать прод при добавлении колонок?</div><div class="a">На PG миграций нет — <b>EnsureCreated</b> + идемпотентные ALTER/CREATE на старте. Новая схема подтягивается сама, старая не падает.</div></div>
+      <div class="qa"><div class="q">Что считает score у hot offers?</div><div class="a">Срочность партии (часы до истечения) × доля ингредиента в блюде. Чем раньше сгорит и чем больше его в рецепте — тем выше в списке.</div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var q=document.getElementById('q'), nav=document.querySelectorAll('#nav a'),
+      cards=[].slice.call(document.querySelectorAll('.card')),
+      sects=[].slice.call(document.querySelectorAll('h2.sect')),
+      empty=document.getElementById('empty');
+  // snapshot text once (for restore)
+  cards.forEach(function(c){c._html=c.innerHTML;});
+  function esc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+  function run(){
+    var term=q.value.trim().toLowerCase();
+    if(!term){cards.forEach(function(c){c.style.display='';c.innerHTML=c._html;});sects.forEach(s=>s.style.display='');empty.style.display='none';return;}
+    var words=term.split(/\s+/).filter(Boolean), any=false;
+    var rx=new RegExp('('+words.map(esc).join('|')+')','gi');
+    sects.forEach(function(s){
+      var hit=words.every(function(w){return s.textContent.toLowerCase().includes(w);});
+      s.style.display=hit?'':'none';
+    });
+    cards.forEach(function(c){
+      var text=c.textContent.toLowerCase();
+      var hit=words.every(function(w){return text.includes(w);});
+      if(hit){
+        any=true;c.style.display='';
+        c.innerHTML=c._html.replace(rx,'<mark>$1</mark>');
+      }else c.style.display='none';
+    });
+    empty.style.display=any?'none':'block';
+  }
+  q.addEventListener('input',run);
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();q.focus();q.select();}
+  });
+  // active nav link on scroll
+  var navById={};nav.forEach(a=>navById[a.getAttribute('href').slice(1)]=a);
+  var obs=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){nav.forEach(a=>a.classList.remove('on'));var l=navById[e.target.id];if(l)l.classList.add('on');}});
+  },{rootMargin:'-40% 0px -55% 0px'});
+  sects.forEach(s=>obs.observe(s));
+})();
+</script>
+</body>
+</html>
