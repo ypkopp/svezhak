@@ -1010,8 +1010,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ===== Тотальная привязка поверхностей/текста к теме (фикс «чёрный текст на светлой») ===== */
 /* Лого: тёмная/светлая версия под тему */
 .sv-logo-light{display:none}
-[data-theme="paper"] .sv-logo-dark,[data-theme="paper"] .sv-logo-anim{display:none}
-[data-theme="paper"] .sv-logo-light{display:inline-block}
+.sv-handoff-logo .sv-logo-dark,[data-theme]:not([data-theme="paper"]) .sv-logo-light{display:none!important}
+[data-theme="paper"] .sv-logo-dark{display:none!important}
+[data-theme="paper"] .sv-logo-light{display:block!important}
+/* лого чуть крупнее и с отступом как в меню */
+.sv-handoff-logo{padding:6px 10px 2px}
+.sv-handoff-logo .sv-logo-img{width:auto;max-width:100%;height:40px;object-fit:contain;object-position:left center;display:block}
 /* Каркас приложения: сайдбар, топбар, фон — всегда из --pn/--bg темы */
 .sv-handoff-sidebar{background:color-mix(in oklab,var(--pn) 82%,transparent)!important;border-right-color:var(--stroke)!important;}
 .sv-handoff-topbar{background:color-mix(in oklab,var(--bg) 55%,transparent)!important;border-bottom-color:var(--stroke)!important;}
