@@ -3,20 +3,20 @@
     var restaurants = (IEnumerable<dynamic>)ViewBag.Restaurants;
 }
 
-<div class="sv-title-row fade-up">
-    <div>
-        <a class="sv-backlink" asp-controller="Inventory" asp-action="Index">← Назад</a>
-        <div class="sv-kicker">Владелец · @(ViewBag.OrgName ?? "организация")</div>
-        <h1 class="sv-page-title">Рестораны сети</h1>
-        <div class="sv-page-sub mb-0">Сводка по всем точкам — горящие партии, стоп-лист, потери за неделю.</div>
+<div class="ph rise">
+    <div style="flex:1;min-width:0">
+        <a class="lnk" asp-controller="Inventory" asp-action="Index" style="margin-bottom:8px;display:inline-flex;align-items:center;gap:6px">← Назад</a>
+        <div class="eyebrow" style="margin-bottom:8px">Владелец · @(ViewBag.OrgName ?? "организация")</div>
+        <h1 class="disp">Рестораны сети</h1>
+        <p class="muted" style="margin:8px 0 0;font-size:14px">Сводка по всем точкам — горящие партии, стоп-лист, потери за неделю.</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <a class="sv-chip" href="@Url.Action("Admins","Org")">Админы</a>
-        <a class="sv-chip" href="@Url.Action("Employees","Org")">Сотрудники</a>
-        <form asp-action="CreateRestaurant" method="post" class="d-flex gap-1 m-0">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <a class="btn sm" href="@Url.Action("Admins","Org")">Админы</a>
+        <a class="btn sm" href="@Url.Action("Employees","Org")">Сотрудники</a>
+        <form asp-action="CreateRestaurant" method="post" class="d-flex gap-1 m-0" style="display:flex;gap:6px">
             @Html.AntiForgeryToken()
-            <input name="address" class="sv-input" style="max-width:200px;min-height:34px;padding:4px 10px;font-size:12px" placeholder="новая точка…" required maxlength="100" />
-            <button class="btn-sv-primary btn-sm" type="submit">＋</button>
+            <input name="address" class="inp" style="width:200px;height:40px" placeholder="новая точка…" required maxlength="100" />
+            <button class="btn pri ico" type="submit" title="Добавить точку">＋</button>
         </form>
     </div>
 </div>
@@ -24,29 +24,30 @@
 @if (ViewBag.Ok is string ok) { <div class="sv-form-success mb-3">@ok</div> }
 @if (ViewBag.Error is string err) { <div class="sv-form-alert mb-3">@err</div> }
 
-<div class="sv-org-grid">
+<div class="grid" style="grid-template-columns:repeat(3,1fr)">
     @foreach (var r in restaurants)
     {
-        <div class="sv-card fade-up sv-org-card">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                    <div class="sv-kicker">точка</div>
-                    <b style="font:700 16px var(--disp)">@r.Address</b>
+        var okState = (int)r.Burning == 0 && (int)r.StopCount == 0;
+        <section class="glass card rise" style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+                <div style="flex:1">
+                    <div class="eyebrow" style="font-size:9px">Точка #@r.Id</div>
+                    <div class="disp" style="font-size:18px;font-weight:600;margin-top:5px">@r.Address</div>
                 </div>
-                <img src="~/img/brand/st-fridge.png" style="width:34px;opacity:.7" alt="" />
+                <img src="~/img/brand/@(okState ? "m-avo.png" : "m-salmon.png")" style="height:58px" alt="" />
             </div>
-            <div class="sv-org-kpis">
-                <div><span>горит &lt;24ч</span><b style="color:@((int)r.Burning>0?"var(--rd)":"var(--gr)")">@r.Burning</b></div>
-                <div><span>в стоп-листе</span><b style="color:@((int)r.StopCount>0?"var(--rd)":"var(--gr)")">@r.StopCount</b></div>
-                <div><span>потери · 7дн</span><b style="color:@((decimal)r.LostRub>0?"var(--ye)":"var(--mut)")">@($"{r.LostRub:N0}") ₽</b></div>
+            <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px">
+                <div style="padding:10px;border-radius:12px;background:color-mix(in oklab,var(--bg2) 50%,transparent);border:1px solid var(--stroke)"><div class="eyebrow" style="font-size:8.5px">горит &lt;24ч</div><div class="mono" style="font-size:22px;font-weight:700;margin-top:6px;color:@((int)r.Burning>0?"var(--rd)":"var(--gr)")">@r.Burning</div></div>
+                <div style="padding:10px;border-radius:12px;background:color-mix(in oklab,var(--bg2) 50%,transparent);border:1px solid var(--stroke)"><div class="eyebrow" style="font-size:8.5px">в стоп-листе</div><div class="mono" style="font-size:22px;font-weight:700;margin-top:6px;color:@((int)r.StopCount>0?"var(--rd)":"var(--gr)")">@r.StopCount</div></div>
+                <div style="padding:10px;border-radius:12px;background:color-mix(in oklab,var(--bg2) 50%,transparent);border:1px solid var(--stroke)"><div class="eyebrow" style="font-size:8.5px">потери · 7дн</div><div class="mono" style="font-size:14px;font-weight:700;margin-top:6px;color:@((decimal)r.LostRub>0?"var(--ye)":"var(--gr)")">@($"{r.LostRub:N0}") ₽</div></div>
             </div>
-            <a class="btn-sv-ghost btn-sm w-100 mt-3" style="justify-content:center" href="@Url.Action("View","Org",new{id=r.Id})">Открыть дашборд →</a>
-        </div>
+            <a class="btn" href="@Url.Action("View","Org",new{id=r.Id})" style="justify-content:center">Открыть дашборд →</a>
+        </section>
     }
 </div>
 @if (!restaurants.Any())
 {
-    <div class="sv-empty"><img src="~/img/brand/chef-4-sm.png" alt="" /><p>Точек нет — добавьте их в /Admin/Restaurants.</p></div>
+    <div class="sv-empty"><img src="~/img/brand/m-onigiri.png" alt="" style="height:110px" /><p>Точек нет — добавьте их через форму выше.</p></div>
 }
 
 @section Scripts {<script>document.querySelectorAll('.fade-up').forEach(function(el,i){setTimeout(function(){el.classList.add('in');},50+i*60);});</script>}
