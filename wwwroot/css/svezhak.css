@@ -1146,3 +1146,46 @@ button, input, select, textarea { font: inherit; color: inherit; }
   #orderForm>div:first-child{grid-template-columns:1fr!important}
   .sv-hero6-copy h1{font-size:26px!important}
 }
+
+/* ===== Мобильная добивка кнопок и админ-панели (≤760px) ===== */
+@media(max-width:760px){
+  /* Страничные заголовки с кучей кнопок (Админ, Аналитика, и т.д.) — в 2-строчный flex,
+     сами кнопки компактнее */
+  .ph{flex-wrap:wrap;gap:8px}
+  .ph [style*="justify-content:flex-end"]{justify-content:flex-start!important;flex-wrap:wrap}
+  .ph .btn,.ph .btn.sm{font-size:11px;padding:0 10px;min-height:36px}
+  /* Полоса импорта на поставках — вертикально */
+  .sv-import-bar{flex-direction:column!important;align-items:stretch!important;gap:10px}
+  .sv-import-bar form{display:flex;flex-direction:column;gap:8px}
+  .sv-import-bar .btn,.sv-import-bar label{width:100%;justify-content:center}
+  /* Формы-шапки с inline-forms не ломаются */
+  .ph form{display:inline-flex}
+  /* Submit-бар приёмки/заказа — компактно и не обрезан */
+  .sv-order-submitbar6{padding:12px 14px;gap:12px}
+  .sv-order-submitbar6 .btn.pri{flex:1 1 100%}
+  /* Кнопки в карточках-строках таблиц — не уезжают */
+  .row[style*="grid-template"]{grid-template-columns:auto 1fr auto!important}
+}
+@media(max-width:480px){
+  .ph .btn{min-height:34px;font-size:10.5px}
+}
+
+/* Админ-кнопки на телефоне — горизонтальный скролл полосы */
+@media(max-width:760px){
+  .adm-actions{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;width:100%;padding-bottom:4px}
+  .adm-actions::-webkit-scrollbar{display:none}
+  .adm-actions .btn{flex:none}
+  /* Профиль меню на телефоне — ссылки на админ-разделы */
+  .sv-prof-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .sv-prof-links .btn{flex:1 1 auto;justify-content:center}
+}
+
+/* Профиль: admin-ссылки показываем только на телефоне; 2-колоночную раскладку сжимаем */
+.sv-prof-links{display:none}
+@media(max-width:760px){
+  .sv-prof-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+  .sv-prof-links .btn{flex:1 1 45%;justify-content:center}
+  /* Профиль-карточка на телефоне — в одну колонку, арт меньше */
+  .sv-prof-grid,section.glass.rise[style*="grid-template-columns:1fr 1.1fr"]{grid-template-columns:1fr!important;min-height:0!important}
+  section.glass.rise>[style*="profile-girl"],section.glass.rise>div:first-child{min-height:300px}
+}

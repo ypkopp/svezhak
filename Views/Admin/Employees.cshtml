@@ -24,7 +24,7 @@
         <h1 class="disp">@(isManagerView ? "Команда" : "Сотрудники")</h1>
         <p class="muted" style="margin:8px 0 0;font-size:14px">@(isManagerView ? "Повара вашего ресторана. Коды и доступ." : "Access-коды входа для вашего ресторана. Код показывается один раз при создании.")</p>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+    <div class="adm-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
         @if (!isManagerView)
         {
             <a class="btn sm" href="@Url.Action("Schedule","Admin")">Расписание</a>

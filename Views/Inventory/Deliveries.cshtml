@@ -22,7 +22,7 @@
 @if (TempData["DeliveryError"] is string err) { <div class="sv-form-alert mb-3">@err</div> }
 
 @* Полоса импорта *@
-<section class="glass rise" style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-style:dashed">
+<section class="glass rise sv-import-bar" style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-style:dashed">
     <img src="~/img/brand/st-box.png" style="width:38px" alt="" />
     <div style="flex:1"><b>Загрузить ассортимент</b><div class="dim" style="font-size:12.5px">База продуктов пополняется приёмкой или файлом — выберите CSV/XLSX</div></div>
     <form asp-action="ImportProductsPreview" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-2" style="display:flex;align-items:center;gap:8px">

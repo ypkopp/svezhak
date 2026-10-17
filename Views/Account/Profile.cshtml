@@ -39,6 +39,16 @@
             <span class="mono" style="justify-self:end;padding:6px 12px;border-radius:10px;background:#06080a;color:var(--gr);font-weight:700;letter-spacing:.1em;text-shadow:0 0 8px var(--gr)">@ViewBag.MaskedCode</span>
         </div>
         <p class="dim" style="font-size:12px;margin:6px 4px 0">Код скрыт — показываются только последние 4 символа. Полный код выдаёт администратор.</p>
+        @if (User.IsInRole("Admin") || User.IsInRole("RestaurantManager"))
+        {
+            <div class="sv-prof-links" style="margin-top:14px">
+                <a class="btn sm" asp-controller="Admin" asp-action="Employees">Сотрудники</a>
+                <a class="btn sm" asp-controller="Admin" asp-action="Schedule">Расписание</a>
+                <a class="btn sm" asp-controller="Admin" asp-action="Restaurants">Рестораны</a>
+                <a class="btn sm" asp-controller="Admin" asp-action="Products">Ассортимент</a>
+                <a class="btn sm" asp-controller="Admin" asp-action="Tickets">Тикеты</a>
+            </div>
+        }
         <div style="flex:1"></div>
         <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:14px">
             @Html.AntiForgeryToken()
