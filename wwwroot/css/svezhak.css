@@ -1092,3 +1092,57 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .an-arrow{width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:10px;font:800 18px/1 system-ui;box-shadow:0 0 14px -2px currentColor}
 .an-arrow.an-up{color:var(--gr);background:color-mix(in oklab,var(--gr) 14%,transparent)}
 .an-arrow.an-down{color:var(--rd);background:color-mix(in oklab,var(--rd) 14%,transparent)}
+
+/* ===== Мобильная подгонка (≤760px) — дополнения к существующему брейкпоинту ===== */
+@media(max-width:760px){
+  /* Контент не должен прятаться под нижней навигацией */
+  .sv-handoff-main{padding-bottom:96px!important}
+  .sv-handoff-footer{padding-bottom:110px!important}
+  /* Топбар компактнее: поиск-поле убираем, оставляем кнопку */
+  .sv-cmd-trigger{min-width:38px;padding:0 9px}
+  .sv-cmd-trigger .sv-cmd-hint{display:none}
+  .sv-topbar-tools{gap:5px}
+  /* QR/часы/профиль — компактно */
+  .sv-led-clock{display:none}
+  .sv-profile{display:none}
+  /* Сегмент тем свотчей — компактнее */
+  .seg{padding:2px}
+  .seg button{padding:5px 6px;font-size:10px}
+  /* Нижняя навигация — крупнее иконки, читаемые подписи */
+  .sv-handoff-nav-item{font-size:9px;padding:8px 4px}
+  .sv-handoff-nav-item .sv-nav-icon{font-size:19px}
+  /* Карточки/герои во всю ширину, меньше отступы */
+  .glass.card{padding:14px 14px;border-radius:16px}
+  .card-h{flex-wrap:wrap;gap:8px}
+  /* Сетка меню заказа — 2 колонки, блюда не вылезают */
+  #orderForm>div:first-child{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  /* Строки таблиц/партий — горизонтальный скролл при необходимости */
+  .thead,.row{min-width:520px}
+  .rows,.sv-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Столбцы графиков и формы в одну колонку */
+  .sv-grid-12>[class*=sv-col-]{grid-column:1/-1}
+  .grid[style*=grid-template-columns]{grid-template-columns:1fr!important}
+  /* Спираль свежести — компактнее */
+  .sv-hero6{grid-template-columns:1fr;min-height:0}
+  .sv-hero6-copy{padding:18px 16px}
+  .sv-hero6-copy h1{font-size:30px!important}
+  .sv-hero6-spiral{padding:8px}
+  .sv-kpi6{padding:8px 9px}
+  /* Форма приёмки: строки на всю ширину */
+  .sv-dynamic-line{grid-template-columns:1fr 70px 64px 30px!important;gap:6px}
+  /* Кнопки/тап-таргеты не мельче 44px */
+  .btn,.chip,.btn.sq,.sv-icon-button{min-height:44px}
+  .btn.sm{min-height:38px}
+  /* Модалки/дропдауны на всю ширину */
+  .sv-modal,.drawer{max-width:100%;width:100%;left:0;right:0;margin:0;border-radius:0;bottom:0}
+  .sv-chat-panel{left:12px;right:12px;width:auto}
+  /* Аналитика: ряды неликвидов/ходовых в 2 колонки */
+  .grid[style*="1.2fr"],.grid[style*="repeat(3"]{grid-template-columns:1fr!important}
+  /* Таблицы аналитики — горизонтальный скролл */
+  .sv-table-wrap,.rows{overflow-x:auto}
+}
+@media(max-width:480px){
+  /* Очень узкие экраны: меню заказа в 1 колонку */
+  #orderForm>div:first-child{grid-template-columns:1fr!important}
+  .sv-hero6-copy h1{font-size:26px!important}
+}
