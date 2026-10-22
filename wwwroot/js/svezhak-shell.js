@@ -253,6 +253,16 @@
   modal.hidden = false;
 })();
 
+/* ===== Мобильное меню «Ещё» (≤760px): профиль, админ-разделы, выход ===== */
+(function () {
+  var btn = document.getElementById('svNavMoreBtn'), wrap = document.getElementById('svNavMore');
+  if (!btn || !wrap) return;
+  function toggle(open) { wrap.hidden = !open; }
+  btn.addEventListener('click', function (e) { e.stopPropagation(); toggle(wrap.hidden); });
+  wrap.addEventListener('click', function (e) { if (e.target === wrap) toggle(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !wrap.hidden) toggle(false); });
+})();
+
 /* ===== ИИ-чат склада ===== */
 (function () {
   var btn = document.getElementById('chatBtn'), panel = document.getElementById('chatPanel');

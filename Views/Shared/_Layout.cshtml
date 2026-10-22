@@ -70,20 +70,21 @@
                 <a asp-controller="Inventory" asp-action="Analytics" class="sv-handoff-nav-item@(Active("Analytics"))"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20V10M9 20V4M15 20v-8M21 20V7"/></svg></span><span>Аналитика</span></a>
                 @if (!isCook)
                 {
-                    <a asp-controller="Docs" asp-action="Index" class="sv-handoff-nav-item@(currentController == "Docs" ? " active" : "")"><span class="sv-nav-icon"><img src="~/img/brand/st-check.png" width="18" height="18" style="display:block" alt="" /></span><span>Как работает</span></a>
+                    <a asp-controller="Docs" asp-action="Index" data-nav="docs" class="sv-handoff-nav-item@(currentController == "Docs" ? " active" : "")"><span class="sv-nav-icon"><img src="~/img/brand/st-check.png" width="18" height="18" style="display:block" alt="" /></span><span>Как работает</span></a>
                 }
                 @if (isAdmin)
                 {
-                    <a asp-controller="Admin" asp-action="Employees" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20v-4M4 8V4M20 4v4M20 16v4M4 12h16"/><circle cx="12" cy="8" r="3"/><circle cx="12" cy="16" r="3"/></svg></span><span data-i18n="nav.admin">Админ</span></a>
+                    <a asp-controller="Admin" asp-action="Employees" data-nav="admin" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20v-4M4 8V4M20 4v4M20 16v4M4 12h16"/><circle cx="12" cy="8" r="3"/><circle cx="12" cy="16" r="3"/></svg></span><span data-i18n="nav.admin">Админ</span></a>
                 }
                 @if (isOwner)
                 {
-                    <a asp-controller="Org" asp-action="Index" class="sv-handoff-nav-item@(currentController == "Org" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 7.5l3 3M17 7.5l-3 3M7 16.5l3-3M17 16.5l-3-3"/></svg></span><span>Сеть</span></a>
+                    <a asp-controller="Org" asp-action="Index" data-nav="org" class="sv-handoff-nav-item@(currentController == "Org" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 7.5l3 3M17 7.5l-3 3M7 16.5l3-3M17 16.5l-3-3"/></svg></span><span>Сеть</span></a>
                 }
                 @if (isManager && !isAdmin)
                 {
-                    <a asp-controller="Admin" asp-action="Employees" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M15 15.5c2.4.3 4 2 4 4.5"/></svg></span><span>Команда</span></a>
+                    <a asp-controller="Admin" asp-action="Employees" data-nav="admin" class="sv-handoff-nav-item@(currentController == "Admin" ? " active" : "")"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M15 15.5c2.4.3 4 2 4 4.5"/></svg></span><span>Команда</span></a>
                 }
+                <button type="button" class="sv-handoff-nav-item sv-nav-more" id="svNavMoreBtn" aria-label="Ещё — профиль, доки, выход"><span class="sv-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></span><span>Ещё</span></button>
             </nav>
             @if (!isCook)
             {
@@ -108,6 +109,43 @@
                 </form>
             </div>
         </aside>
+        @* ===== Мобильное меню «Ещё» — профиль, админ-разделы, доки, выход ===== *@
+        <div class="sv-more-wrap" id="svNavMore" hidden>
+            <div class="sv-more-sheet" role="dialog" aria-modal="true" aria-label="Ещё">
+                <div class="sv-more-grab"></div>
+                <a class="sv-more-item" asp-controller="Account" asp-action="Profile">
+                    <span class="ava" style="width:34px;height:34px;font-size:14px;flex:none">@((User.Identity?.Name ?? "?").FirstOrDefault())</span>
+                    <span class="sv-more-tx"><b>@User.Identity?.Name</b><small>Профиль и код доступа →</small></span>
+                </a>
+                <a class="sv-more-item" asp-controller="Schedule" asp-action="Index">
+                    <span class="sv-more-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+                    <span class="sv-more-tx"><b>Расписание</b><small>смены — своё и команды</small></span>
+                </a>
+                <a class="sv-more-item" asp-controller="Docs" asp-action="Index">
+                    <span class="sv-more-ic"><img src="~/img/brand/st-check.png" width="18" height="18" style="display:block" alt="" /></span>
+                    <span class="sv-more-tx"><b>Как работает</b><small>справка по системе</small></span>
+                </a>
+                @if (isAdmin || isManager)
+                {
+                    <div class="sv-more-cap">Админ-панель</div>
+                    <a class="sv-more-item" asp-controller="Admin" asp-action="Employees"><span class="sv-more-ic">👥</span><span class="sv-more-tx"><b>Сотрудники</b></span></a>
+                    <a class="sv-more-item" asp-controller="Admin" asp-action="Schedule"><span class="sv-more-ic">🗓</span><span class="sv-more-tx"><b>График смен</b></span></a>
+                    <a class="sv-more-item" asp-controller="Admin" asp-action="Restaurants"><span class="sv-more-ic">🍽</span><span class="sv-more-tx"><b>Рестораны</b></span></a>
+                    <a class="sv-more-item" asp-controller="Admin" asp-action="Products"><span class="sv-more-ic">🥬</span><span class="sv-more-tx"><b>Ассортимент</b></span></a>
+                    <a class="sv-more-item" asp-controller="Admin" asp-action="Tickets"><span class="sv-more-ic">🎫</span><span class="sv-more-tx"><b>Тикеты</b></span></a>
+                }
+                @if (isOwner)
+                {
+                    <a class="sv-more-item" asp-controller="Org" asp-action="Index"><span class="sv-more-ic">🕸</span><span class="sv-more-tx"><b>Сеть ресторанов</b></span></a>
+                }
+                <form asp-controller="Account" asp-action="Logout" method="post" style="margin:4px 0 0">
+                    @Html.AntiForgeryToken()
+                    <button class="sv-more-item sv-more-out" type="submit">
+                        <span class="sv-more-ic">↪</span><span class="sv-more-tx"><b>Выйти</b></span>
+                    </button>
+                </form>
+            </div>
+        </div>
         <div class="sv-main-shell">
             <header class="sv-handoff-topbar">
                 <label class="sv-global-search sv-cmd-trigger" id="cmdTrigger" role="button" tabindex="0">
